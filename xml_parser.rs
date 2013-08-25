@@ -1,4 +1,5 @@
 use xml_node::*;
+use std::io::ReaderUtil;
 
 mod xml_node;
 
@@ -57,6 +58,8 @@ impl Parser {
     pub fn parseStr(&self, inStr: &str) -> XmlDoc{ XmlDoc::new() }
 
     // TODO IMPLEMENT
+    pub fn parseIO(&self, input: &ReaderUtil) -> XmlDoc{ XmlDoc::new() }
+
     }
 }
 
