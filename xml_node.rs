@@ -51,6 +51,10 @@ impl XmlDoc {
             pi: ~[]
         }
     }
+
+    pub fn to_str(&self) -> ~str {
+        ~"XmlDoc"
+    }
 }
 
 #[deriving(Clone,Eq)]

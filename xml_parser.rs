@@ -55,14 +55,15 @@ impl Parser {
     }
     // This method parses a document from the result
     // TODO IMPLEMENT
-    pub fn parseStr(&self, inStr: &str) -> XmlDoc{ XmlDoc::new() }
+    pub fn parse_str(&self, inStr: &str) -> XmlDoc{ XmlDoc::new() }
 
     // TODO IMPLEMENT
-    pub fn parseIO(&self, input: &ReaderUtil) -> XmlDoc{ XmlDoc::new() }
+    pub fn parse_reader(&self, input: &ReaderUtil) -> XmlDoc{ XmlDoc::new() }
 
 
     pub fn next(&self) -> XmlNode{
-        
+        //TODO IMPLEMENT
+        XmlCDATA(~"CDATA")
     }
 
 }
@@ -70,7 +71,7 @@ impl Parser {
 
 pub fn main() {
     let p = Parser::new();
-    println(p.parseDoc("bla"));
+    println(p.parse_str("bla"));
 }
 
 
