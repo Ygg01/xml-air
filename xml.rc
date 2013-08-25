@@ -1,0 +1,23 @@
+// Crate linkage metadata
+#[link(name = "xml", vers = "0.1", author = "DanielFath")];
+
+//Metadata
+#[ desc = "XML pull parser for rust"];
+#[ licence = "LGPL"];
+#[ author = "DanielFath"];
+
+// Make a library ("bin" is the default)
+#[crate_type = "bin"];
+
+// Turn on a warning
+#[warn(non_camel_case_types)];
+
+pub use xml_parser::*;
+pub use xml_node::*;
+
+pub mod xml_parser;
+pub mod xml_node;
+
+fn main() {
+    xml_parser::test();
+}
