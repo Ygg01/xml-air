@@ -60,7 +60,11 @@ impl Parser {
     // TODO IMPLEMENT
     pub fn parseIO(&self, input: &ReaderUtil) -> XmlDoc{ XmlDoc::new() }
 
+
+    pub fn next(&self) -> XmlNode{
+        
     }
+
 }
 
 
