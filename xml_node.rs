@@ -29,6 +29,30 @@ pub struct XmlElem {
     children: ~[XmlNode]
 }
 
+
+#[deriving(Clone,Eq)]
+/// A struct representing an XML root document
+pub struct XmlDoc {
+    // The document's root
+    root: ~XmlElem,
+    // The document's processing instructions
+    pi: ~[XmlNode]
+}
+
+impl XmlDoc {
+    pub fn new() -> XmlDoc {
+        XmlDoc {
+            root: ~XmlElem {
+                    name:~"",
+                    namespace:~XmlNS{name: ~"", uri: ~""}, 
+                    attributes: ~[],
+                    children: ~[]
+            },
+            pi: ~[]
+        }
+    }
+}
+
 #[deriving(Clone,Eq)]
 /// A struct representing an XML attribute
 pub struct XmlAttr {

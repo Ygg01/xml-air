@@ -2,7 +2,6 @@ use xml_node::*;
 
 mod xml_node;
 
-
 enum State {
     OutsideTag,
     TagOpened,
@@ -54,8 +53,10 @@ impl Parser {
         p
     }
     // This method parses a document from the result
-    pub fn parseDoc(&self, inStr: &str) -> ~str{
-        ~"HELLO"
+    // TODO IMPLEMENT
+    pub fn parseStr(&self, inStr: &str) -> XmlDoc{ XmlDoc::new() }
+
+    // TODO IMPLEMENT
     }
 }
 
