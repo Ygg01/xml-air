@@ -99,19 +99,6 @@ pub enum Events {
 }
 
 
-
-pub trait Node {
-    fn get_children(&self) -> ~[Self];
-
-    fn get_attr(&self) -> ~[Self];
-
-    fn get_parent(&self) -> ~Self;
-
-    fn get_root(&self) -> ~Self;
-
-    fn set_root(&self);
-}
-
 fn main() {
     
 }
