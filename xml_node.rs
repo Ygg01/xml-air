@@ -9,9 +9,9 @@ pub enum XmlNode {
     /// Character Data
     XmlText(~str),
     /// CDATA
-    CDATANode(~str),
+    XmlCDATA(~str),
     /// A XML Comment
-    CommentNode(~str),
+    XmlComment(~str),
     /// Processing Information
     PINode(~str)
 }
