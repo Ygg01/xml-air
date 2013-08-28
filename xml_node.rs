@@ -95,6 +95,18 @@ pub enum Events {
 }
 
 
+#[deriving(Eq)]
+/// If an error occurs while parsing some XML, this is the structure which is
+/// returned
+pub struct Error {
+    /// The line number at which the error occurred
+    line: uint,
+    /// The column number at which the error occurred
+    col: uint,
+    /// A message describing the type of the error
+    msg: @~str
+}
+
 fn main() {
     
 }
