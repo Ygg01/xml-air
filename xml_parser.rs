@@ -31,53 +31,78 @@ enum State {
     Namespace
 }
 
-pub struct Parser {
-    priv line: uint,
-    priv col: uint,
+
+pub struct XmlParser {
+    line: uint,
+    col: uint,
+    depth: uint,
+    elem: Option<XmlElem>,
+    priv source: Source,
     priv buf: ~str,
     priv name: ~str,
     priv attrName: ~str,
     priv attributes: ~[XmlAttr],
     priv delim: char,
-    priv state: State,
-    priv level: uint
+    priv state: State
+
 }
 
-impl Parser {
-    // Returns a new Parser
-    pub fn new() -> Parser {
-        let p = Parser {
+impl XmlParser {
+    /// Constructs a new XmlParser from string `data`
+    /// The Xmlparser will use the given string as the source for parsing.
+    /// Best used for small examples.
+    /// ~~~
+    /// let mut p = XmlParser::new("<root/>")
+    /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
+    /// ~~~
+    pub fn new(data : ~str)
+               -> XmlParser {
+        XmlParser {
             line: 1,
             col: 0,
             buf: ~"",
             name: ~"",
+            elem: None,
+            source: String(data),
             attrName: ~"",
             attributes: ~[],
             delim: 0 as char,
             state: OutsideTag,
-            level: 0
-        };
-        p
+            depth: 0
+        }
     }
-    // This method parses a document from the result
+    /// Constructs a neww XmlParser from string `data`
+    /// The Xmlparser will use the given string as the source for parsing.
+    /// Best used for small examples.
+    /// ~~~
+    /// let mut p = XmlParser::new("<root/>")
+    /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
+    /// ~~~
+
+    /// This method will parse entire document into memory as a tree of 
+    /// XmlElem. It retuns an XmlDoc if it parses correctly or an Error
+    /// if the parsing wasn't succesful.
     // TODO IMPLEMENT
-    pub fn parse_str(&self, inStr: &str) -> XmlDoc{ XmlDoc::new() }
+    pub fn parse_doc(&mut self) 
+                     -> Result<XmlDoc,Error> { 
+        Ok(XmlDoc::new())
+    }
 
-    // TODO IMPLEMENT
-    pub fn parse_reader(&self, input: &ReaderUtil) -> XmlDoc{ XmlDoc::new() }
 
-
-    pub fn next(&self) -> XmlNode{
+    pub fn next(&mut self, cb: &fn (Result<Events,Error>)) -> Result<XmlNode,Error>{
         //TODO IMPLEMENT
-        XmlCDATA(~"CDATA")
+        Ok(XmlCDATA(~"CDATA"))
     }
 
 }
 
 
 pub fn main() {
-    let p = Parser::new();
-    println(p.parse_str("HELLO").to_str());
+    let mut p = XmlParser::new(~"<root/>");
+    match p.parse_doc() {
+        Ok(doc) => println(doc.to_str()),
+        _ => {}
+    };
     error!("This is an error log");
     warn!("This is a warn log");
     info!("this is an info log");
