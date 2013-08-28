@@ -70,7 +70,11 @@ impl XmlDoc {
     }
 
     pub fn to_str(&self) -> ~str {
-        ~"XmlDoc"
+        let mut ret = ~"";
+        for e in self.pi.iter() {
+            ret = ret + e.to_str();
+        }
+        ret
     }
 }
 
