@@ -94,6 +94,12 @@ pub struct XmlNS {
     uri: ~str
 }
 
+impl XmlNS {
+    pub fn to_str() -> ~str {
+        ~""
+    }
+}
+
 #[deriving(Eq)]
 /// Events returned by the Parser
 pub enum Events {
