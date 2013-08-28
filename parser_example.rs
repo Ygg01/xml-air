@@ -7,5 +7,5 @@ pub mod xml_node;
 fn main() {
     let parser = Parser::new();
     let xmlStr = ~"<root></root>";
-    parser.parseDoc(xmlStr);
+    parser.parse_str(xmlStr);
 }
