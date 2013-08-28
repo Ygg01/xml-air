@@ -71,7 +71,9 @@ impl Parser {
 
 pub fn main() {
     let p = Parser::new();
-    println(p.parse_str("bla"));
+    println(p.parse_str("HELLO").to_str());
+    error!("This is an error log");
+    warn!("This is a warn log");
+    info!("this is an info log");
+    debug!("This is a debug log");
 }
-
-
