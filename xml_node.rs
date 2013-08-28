@@ -129,3 +129,10 @@ pub enum Events {
 fn main() {
     
 }
+
+
+#[test]
+fn test_pi(){
+    let pi = ~PINode { target: ~"php", value: ~"echo"};
+    assert_eq!(~"<?php echo ?>",pi.to_str())
+}
