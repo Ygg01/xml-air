@@ -3,6 +3,12 @@ use std::io::ReaderUtil;
 
 mod xml_node;
 
+
+enum Source {
+    String(~str),
+    ReaderUtil(~ReaderUtil)
+}
+
 enum State {
     OutsideTag,
     TagOpened,
