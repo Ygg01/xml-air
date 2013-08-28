@@ -13,8 +13,25 @@ pub enum XmlNode {
     /// A XML Comment
     XmlComment(~str),
     /// Processing Information
-    PINode(~str)
+    PINode(~PINode)
 }
+
+#[deriving(Clone,Eq)]
+/// A struct representing an XML processing instruction
+pub struct PINode {
+    /// The processing instruction's target
+    target: ~str,
+    /// The processing instruction's value
+    /// Must not contain ?>
+    value: ~str
+}
+
+impl PINode {
+    pub fn to_str(&self) -> ~str {
+       fmt!("<?%s %s ?>", self.target, self.value)
+    }
+}
+
 
 #[deriving(Clone,Eq)]
 /// A struct representing an XML element
@@ -36,7 +53,7 @@ pub struct XmlDoc {
     // The document's root
     root: ~XmlElem,
     // The document's processing instructions
-    pi: ~[XmlNode]
+    pi: ~[PINode]
 }
 
 impl XmlDoc {
