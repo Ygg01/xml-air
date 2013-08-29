@@ -4,9 +4,9 @@ use std::io::ReaderUtil;
 mod xml_node;
 
 
-enum Source {
-    String(~str),
-    ReaderUtil(~ReaderUtil)
+enum Source <'self>{
+    String(&'self str),
+    ReaderUtil(&'self ReaderUtil)
 }
 
 enum State {
@@ -32,12 +32,12 @@ enum State {
 }
 
 
-pub struct XmlParser {
+pub struct XmlParser<'self> {
     line: uint,
     col: uint,
     depth: uint,
     elem: Option<XmlElem>,
-    priv source: Source,
+    priv source: Source<'self>,
     priv buf: ~str,
     priv name: ~str,
     priv attrName: ~str,
@@ -47,7 +47,7 @@ pub struct XmlParser {
 
 }
 
-impl XmlParser {
+impl<'self> XmlParser<'self> {
     /// Constructs a new XmlParser from string `data`
     /// The Xmlparser will use the given string as the source for parsing.
     /// Best used for small examples.
@@ -55,8 +55,8 @@ impl XmlParser {
     /// let mut p = XmlParser::new("<root/>")
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
-    pub fn new(data : ~str)
-               -> XmlParser {
+    pub fn from_str(data : &'self str)
+                    -> XmlParser<'self>{
         XmlParser {
             line: 1,
             col: 0,
