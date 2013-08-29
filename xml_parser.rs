@@ -112,8 +112,12 @@ impl<'self> XmlParser<'self> {
         Ok(XmlDoc::new())
     }
 
+    pub fn next(&mut self) -> Result<XmlNode,Error>{
+        //TODO IMPLEMENT
+        Ok(XmlCDATA(~"CDATA"))
+    }
 
-    pub fn next(&mut self, cb: &fn (Result<Events,Error>)) -> Result<XmlNode,Error>{
+    pub fn next_call(&mut self, cb: &fn (Result<Events,Error>)) -> Result<XmlNode,Error>{
         //TODO IMPLEMENT
         Ok(XmlCDATA(~"CDATA"))
     }
