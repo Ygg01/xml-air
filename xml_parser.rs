@@ -98,11 +98,6 @@ impl<'self> XmlParser<'self> {
 
 
 pub fn main() {
-    let mut p = XmlParser::new(~"<root/>");
-    match p.parse_doc() {
-        Ok(doc) => println(doc.to_str()),
-        _ => {}
-    };
     error!("This is an error log");
     warn!("This is a warn log");
     info!("this is an info log");
