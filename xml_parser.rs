@@ -52,7 +52,7 @@ impl<'self> XmlParser<'self> {
     /// The Xmlparser will use the given string as the source for parsing.
     /// Best used for small examples.
     /// ~~~
-    /// let mut p = XmlParser::new("<root/>")
+    /// let mut p = XmlParser::from_str("<root/>")
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
     pub fn from_str(data : &'self str)
@@ -76,7 +76,7 @@ impl<'self> XmlParser<'self> {
     /// The Xmlparser will use the given string as the source for parsing.
     /// Best used for small examples.
     /// ~~~
-    /// let mut p = XmlParser::new("<root/>")
+    /// let mut p = XmlParser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
     pub fn from_read(data : &'self ReaderUtil)
