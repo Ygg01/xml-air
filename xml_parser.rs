@@ -95,13 +95,6 @@ impl<'self> XmlParser<'self> {
             depth: 0
         }
     }
-    /// Constructs a neww XmlParser from string `data`
-    /// The Xmlparser will use the given string as the source for parsing.
-    /// Best used for small examples.
-    /// ~~~
-    /// let mut p = XmlParser::new("<root/>")
-    /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
-    /// ~~~
 
     /// This method will parse entire document into memory as a tree of 
     /// XmlElem. It retuns an XmlDoc if it parses correctly or an Error
