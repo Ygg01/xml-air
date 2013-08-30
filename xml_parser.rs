@@ -104,13 +104,20 @@ impl<'self> XmlParser<'self> {
                      -> Result<XmlDoc,Error> { 
         Ok(XmlDoc::new())
     }
-
-    pub fn next(&mut self) -> Result<XmlNode,Error>{
+    /// This method pulls tokens until it reaches a fully formed XML node
+    /// once it's finished a node, it stops returning said node or error
+    /// if it encountered one. 
+    ///
+    /// This method should be used similar to an outer iterator.
+    pub fn next(&mut self) 
+                -> Result<XmlNode,Error>{
         //TODO IMPLEMENT
         Ok(XmlCDATA(~"CDATA"))
     }
-
-    pub fn next_call(&mut self, cb: &fn (Result<Events,Error>)) -> Result<XmlNode,Error>{
+    /// This method pulls tokens in similar way `next` method does, but 
+    /// it also takes an callback to allow fine grained inner iteration
+    pub fn next_call(&mut self, cb: &fn (Result<Events,Error>))
+                     -> Result<XmlNode,Error>{
         //TODO IMPLEMENT
         Ok(XmlCDATA(~"CDATA"))
     }
