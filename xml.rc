@@ -6,11 +6,15 @@
 #[ licence = "LGPL"];
 #[ author = "DanielFath"];
 
+
 // Make a library ("bin" is the default)
 #[crate_type = "bin"];
 
-// Turn on a warning
-#[warn(non_camel_case_types)];
+// Forbid non_camel_case_types
+#[forbid(non_camel_case_types)];
+
+// Warn on missing docs
+#[warn(missing_doc)]
 
 pub use xml_parser::*;
 pub use xml_node::*;
