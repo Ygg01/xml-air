@@ -147,8 +147,13 @@ impl XmlNS {
     }
 }
 
-#[test]
-fn test_pi_to_str(){
-    let pi = ~PINode { target: ~"php", value: ~"echo"};
-    assert_eq!(~"<?php echo ?>",pi.to_str())
+#[cfg(test)]
+mod tests{
+    use super::*;
+
+    #[test]
+    fn test_pi_to_str(){
+        let pi = ~PINode { target: ~"php", value: ~"echo"};
+        assert_eq!(~"<?php echo ?>",pi.to_str())
+    }
 }
