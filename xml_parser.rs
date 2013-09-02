@@ -109,7 +109,7 @@ impl<'self> XmlParser<'self> {
     pub fn parse_call(&mut self, cb: &fn (Result<Events,Error>))
                       -> Result<XmlDoc,Error>{
         //TODO IMPLEMENT
-        Ok(XmlCDATA(~"CDATA"))
+        Ok(XmlDoc::new())
     }
     /// This method pulls tokens until it reaches a fully formed XML node
     /// once it's finished a node, it stops returning said node or error
