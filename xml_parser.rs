@@ -121,7 +121,7 @@ impl<'self> XmlParser<'self> {
     /// This method should be used similar to an outer iterator.
     pub fn next(&mut self) 
                 -> Result<XmlNode,Error>{
-      //TODO IMPLEMENT
+        //TODO IMPLEMENT
         Ok(XmlCDATA(~"CDATA"))
     }
 
