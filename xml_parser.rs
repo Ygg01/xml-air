@@ -125,7 +125,14 @@ impl<'self> XmlParser<'self> {
         Ok(XmlCDATA(~"CDATA"))
     }
 
-
+    fn read(&mut self) -> ~char {
+        let mut ch = ~'a';
+        match self.source {
+            String(s) => { ch = ~'s';}
+            _ => {}
+        }
+        ch
+    }
 }
 
 
