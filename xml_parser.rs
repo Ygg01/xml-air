@@ -1,13 +1,7 @@
 use xml_node::*;
-use std::io::ReaderUtil;
+use std::io::{Reader,with_str_reader};
 
 mod xml_node;
-
-
-enum Source <'self>{
-    String(&'self str),
-    ReaderUtil(&'self ReaderUtil)
-}
 
 enum State {
     OutsideTag,
@@ -39,7 +33,7 @@ pub struct XmlParser<'self> {
     elem: Option<XmlElem>,
     priv pos: uint,
     priv pushback: Option<char>,
-    priv source: Source<'self>,
+    priv source: &'self Reader,
     priv buf: ~str,
     priv name: ~str,
     priv attrName: ~str,
@@ -57,8 +51,10 @@ impl<'self> XmlParser<'self> {
     /// let mut p = XmlParser::from_str("<root/>")
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
-    pub fn from_str(data : &'self str)
+/*
+    pub fn from_str(data : &str)
                     -> XmlParser<'self>{
+        
         XmlParser {
             line: 1,
             col: 0,
@@ -67,7 +63,7 @@ impl<'self> XmlParser<'self> {
             elem: None,
             pos: 0,
             pushback: None,
-            source: String(data),
+            source: reader,
             attrName: ~"",
             attributes: ~[],
             delim: 0 as char,
@@ -75,7 +71,7 @@ impl<'self> XmlParser<'self> {
             depth: 0
         }
     }
-
+*/
     /// Constructs a new XmlParser from Reader `data`
     /// The Xmlparser will use the given string as the source for parsing.
     /// Best used for small examples.
@@ -83,7 +79,7 @@ impl<'self> XmlParser<'self> {
     /// let mut p = XmlParser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
-    pub fn from_read(data : &'self ReaderUtil)
+    pub fn from_read(data : &'self Reader)
                      -> XmlParser<'self> {
         XmlParser {
             line: 1,
@@ -93,7 +89,7 @@ impl<'self> XmlParser<'self> {
             elem: None,
             pos: 0,
             pushback: None,
-            source: ReaderUtil(data),
+            source: data,
             attrName: ~"",
             attributes: ~[],
             delim: 0 as char,
@@ -130,10 +126,6 @@ impl<'self> XmlParser<'self> {
 
     fn read(&mut self) -> ~char {
         let mut ch = ~'a';
-        match self.source {
-            String(s) => { ch = ~'s';}
-            _ => {}
-        }
         ch
     }
 }
