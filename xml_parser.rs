@@ -44,34 +44,11 @@ pub struct XmlParser<'self> {
 }
 
 impl<'self> XmlParser<'self> {
-    /// Constructs a new XmlParser from string `data`
-    /// The Xmlparser will use the given string as the source for parsing.
-    /// Best used for small examples.
-    /// ~~~
-    /// let mut p = XmlParser::from_str("<root/>")
-    /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
-    /// ~~~
-/*
-    pub fn from_str(data : &str)
-                    -> XmlParser<'self>{
-        
-        XmlParser {
-            line: 1,
-            col: 0,
-            buf: ~"",
-            name: ~"",
-            elem: None,
-            pos: 0,
-            pushback: None,
-            source: reader,
-            attrName: ~"",
-            attributes: ~[],
-            delim: 0 as char,
-            state: OutsideTag,
-            depth: 0
-        }
-    }
-*/
+    /// std::io is on way out, so for time being I'm not making a from_str method
+    /// once that part is stabilized, I'll implement convenience methods for 
+    /// using 
+
+
     /// Constructs a new XmlParser from Reader `data`
     /// The Xmlparser will use the given string as the source for parsing.
     /// Best used for small examples.
