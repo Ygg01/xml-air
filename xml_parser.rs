@@ -1,5 +1,5 @@
 use xml_node::*;
-use std::io::{Reader,with_str_reader};
+use std::io::{Reader, ReaderUtil,with_str_reader};
 
 mod xml_node;
 
@@ -26,14 +26,14 @@ enum State {
 }
 
 
-pub struct XmlParser<'self> {
+pub struct XmlParser {
     line: uint,
     col: uint,
     depth: uint,
     elem: Option<XmlElem>,
     priv pos: uint,
     priv pushback: Option<char>,
-    priv source: &'self Reader,
+    priv source: @Reader,
     priv buf: ~str,
     priv name: ~str,
     priv attrName: ~str,
@@ -43,7 +43,7 @@ pub struct XmlParser<'self> {
 
 }
 
-impl<'self> XmlParser<'self> {
+impl XmlParser {
     /// std::io is on way out, so for time being I'm not making a from_str method
     /// once that part is stabilized, I'll implement convenience methods for 
     /// using 
@@ -56,8 +56,8 @@ impl<'self> XmlParser<'self> {
     /// let mut p = XmlParser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
-    pub fn from_read(data : &'self Reader)
-                     -> XmlParser<'self> {
+    pub fn from_reader(data : @Reader)
+                     -> XmlParser {
         XmlParser {
             line: 1,
             col: 0,
@@ -98,7 +98,10 @@ impl<'self> XmlParser<'self> {
     pub fn next(&mut self) 
                 -> Result<XmlNode,Error>{
         //TODO IMPLEMENT
-        Ok(XmlCDATA(~"CDATA"))
+        let retVal = Ok(XmlCDATA(~"CDATA"));
+
+        retVal
+
     }
 
     fn read(&mut self) -> ~char {
