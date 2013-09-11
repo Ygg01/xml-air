@@ -18,6 +18,7 @@
 
 pub use xml_parser::*;
 pub use xml_node::*;
+pub use std::io::*;
 
 pub mod xml_parser;
 pub mod xml_node;

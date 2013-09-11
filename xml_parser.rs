@@ -1,5 +1,5 @@
 use xml_node::*;
-use std::io::{Reader, ReaderUtil, SeekSet};
+use std::io::*;
 
 mod xml_node;
 
@@ -107,8 +107,8 @@ impl XmlParser {
     fn read(&mut self) -> char {
         //Before reading we set the char to current position in stream
         let pos = self.pos as int;
-        self.source.seek(pos, std::io::SeekSet);
-        let chr =self.source.read_char();
+        self.source.seek(pos, SeekSet);
+        let chr = self.source.read_char();
 
         if(chr == '\n') {
             self.line += 1u;
@@ -122,7 +122,7 @@ impl XmlParser {
     }
 
     fn unread(&mut self, len : uint) {
-        
+
     }
 }
 
