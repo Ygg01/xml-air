@@ -121,7 +121,7 @@ impl XmlParser {
         chr
     }
 
-    fn unread(&mut self, len : uint) {
+    fn unread(&mut self, unr_str : &str) {
 
     }
     #[inline]
