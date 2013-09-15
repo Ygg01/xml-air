@@ -124,6 +124,21 @@ impl XmlParser {
     fn unread(&mut self, len : uint) {
 
     }
+    #[inline]
+    /// This method reads the source and simply updates position
+    /// This method WILL NOT update new col or row
+    fn raw_read(&mut self) -> char {
+        self.pos += 1;
+        self.source.read_char()
+    }
+
+    /// This method unreads the source and simply updates position
+    /// This method WILL NOT update new col or row
+    fn raw_unread(&mut self) {
+        let mut pos = self.pos as int;
+        pos -= 1;
+        self.source.seek(pos, SeekSet);
+    }
 }
 
 
