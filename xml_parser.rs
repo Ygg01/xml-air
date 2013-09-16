@@ -109,15 +109,31 @@ impl XmlParser {
         let pos = self.pos as int;
         self.source.seek(pos, SeekSet);
         let chr = self.source.read_char();
-
-        if(chr == '\n') {
-            self.line += 1u;
-            self.col = 0u;
-            self.pos += 1u;
-        }else{
-            self.col += 1u;
-            self.pos += 1u;
-        }
+        let chrPeek = self.source.read_char();
+        let vec: [char, ..2] = [chr, chrPeek];
+        match vec {
+            // We found a double character newline, thus we neeed to
+            // update position
+            ['\r', '\n']
+            | ['\n', '\r'] => {
+                self.line += 1u;
+                self.col = 0u;
+            },
+            // We found a single character newline, thus we neeed to
+            // unread a chrPeek and then update position
+            ['\r', _ ]
+            | ['\n', _ ] => {
+                self.raw_unread();
+                self.line += 1u;
+                self.col = 0u;
+            },
+            // We found no extra char, just unread the character and update
+            // line
+            [_,_] => {
+                self.raw_unread();
+                self.col += 1u;
+            }
+        };
         chr
     }
 
