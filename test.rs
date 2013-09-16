@@ -35,4 +35,9 @@ fn main() {
     };
 
     rs.source.read_char();
+
+    let mut v = 0u;
+    v -= 1u;
+    println(v.to_str());
+
 }
