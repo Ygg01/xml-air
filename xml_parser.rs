@@ -106,8 +106,6 @@ impl XmlParser {
 
     fn read(&mut self) -> char {
         //Before reading we set the char to current position in stream
-        let pos = self.pos as int;
-        self.source.seek(pos, SeekSet);
         let chr = self.source.read_char();
         let chrPeek = self.source.read_char();
         let vec: [char, ..2] = [chr, chrPeek];
@@ -140,19 +138,22 @@ impl XmlParser {
     fn unread(&mut self, unr_str : &str) {
 
     }
+
+
     #[inline]
     /// This method reads the source and simply updates position
     /// This method WILL NOT update new col or row
     fn raw_read(&mut self) -> char {
-        self.pos += 1;
+        self.pos += 1u;
         self.source.read_char()
     }
 
     /// This method unreads the source and simply updates position
     /// This method WILL NOT update new col or row
     fn raw_unread(&mut self) {
-        let mut pos = self.pos as int;
-        pos -= 1;
+        //REMOVING negative causes overflow test then fix this
+        self.pos -= 1u;
+        let pos = self.pos as int;
         self.source.seek(pos, SeekSet);
     }
 }
