@@ -160,3 +160,15 @@ pub fn main() {
     info!("this is an info log");
     debug!("This is a debug log");
 }
+
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+    use std::io::*;
+
+    #[test]
+    fn to_do_test(){
+    }
+
+}
