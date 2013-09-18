@@ -31,7 +31,6 @@ pub struct XmlParser {
     col: uint,
     depth: uint,
     elem: Option<XmlElem>,
-    priv pos: uint,
     priv pushback: Option<char>,
     priv source: @Reader,
     priv buf: ~str,
@@ -64,7 +63,6 @@ impl XmlParser {
             buf: ~"",
             name: ~"",
             elem: None,
-            pos: 0,
             pushback: None,
             source: data,
             attrName: ~"",
@@ -141,20 +139,17 @@ impl XmlParser {
 
 
     #[inline]
-    /// This method reads the source and simply updates position
+    /// This method reads the source andBb simply updates position
     /// This method WILL NOT update new col or row
     fn raw_read(&mut self) -> char {
-        self.pos += 1u;
         self.source.read_char()
     }
 
+    #[inline]
     /// This method unreads the source and simply updates position
     /// This method WILL NOT update new col or row
     fn raw_unread(&mut self) {
-        //REMOVING negative causes overflow test then fix this
-        self.pos -= 1u;
-        let pos = self.pos as int;
-        self.source.seek(pos, SeekSet);
+        self.source.seek(-1, SeekCur);
     }
 }
 
