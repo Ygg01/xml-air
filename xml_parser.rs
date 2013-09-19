@@ -117,8 +117,26 @@ impl XmlParser {
             },
             // We found a single character newline, thus we neeed to
             // unread a chrPeek and then update position
+            //
+            // You may wonder what are all these wonderful chars below,
+            // and I can direct you at http://en.wikipedia.org/wiki/Newline#Unicode
+            // but for the lazy (or those with really lousy Internet) 
+            // here is a list in order of appeareance:
+            //
+            // LF:    Line Feed, U+000A
+            // CR:    Carriage Return, U+000D
+            // VT:    Vertical Tab, U+000B
+            // FF:    Form Feed, U+000C
+            // NEL:   Next Line, U+0085
+            // LS:    Line Separator, U+2028
+            // PS:    Paragraph Separator, U+2029
             ['\r', _ ]
-            | ['\n', _ ] => {
+            | ['\n', _ ]
+            | ['\x0B', _ ]
+            | ['\x0C', _ ]
+            | ['\x85', _ ]
+            | ['\u2028', _ ]
+            | ['\u2029', _ ]=> {
                 self.raw_unread();
                 self.line += 1u;
                 self.col = 0u;
