@@ -77,8 +77,8 @@ impl XmlParser {
     /// XmlElem. It retuns an XmlDoc if it parses correctly or an Error
     /// if the parsing wasn't succesful.
     // TODO IMPLEMENT
-    pub fn parse_doc(&mut self) 
-                     -> Result<XmlDoc,Error> { 
+    pub fn parse_doc(&mut self)
+                     -> Result<XmlDoc,Error> {
         Ok(XmlDoc::new())
     }
     /// This method pulls tokens in similar way `parse_doc`  does, but 
@@ -93,7 +93,7 @@ impl XmlParser {
     /// if it encountered one. 
     ///
     /// This method should be used similar to an outer iterator.
-    pub fn next(&mut self) 
+    pub fn next(&mut self)
                 -> Result<XmlNode,Error>{
         //TODO IMPLEMENT
         let retVal = Ok(XmlCDATA(~"CDATA"));
@@ -102,7 +102,8 @@ impl XmlParser {
 
     }
 
-    fn read(&mut self) -> char {
+    fn read(&mut self)
+            -> char {
         //Before reading we set the char to current position in stream
         let chr = self.source.read_char();
         let chrPeek = self.source.read_char();
