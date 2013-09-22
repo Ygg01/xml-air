@@ -113,7 +113,7 @@ impl XmlParser {
         let retVal;
         let vec: [char, ..2] = [chr, self.source.read_char()];
         match vec {
-            // We found a double character newline, thus we neeed to
+            // We found a double character newline, thus we need to
             // update position
             ['\r', '\n']
             | ['\n', '\r'] => {
