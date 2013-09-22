@@ -25,6 +25,11 @@ enum State {
     Namespace
 }
 
+#[deriving(Eq)]
+pub enum Character {
+    Chars(char),
+    NewLine
+}
 
 pub struct XmlParser {
     line: uint,
@@ -103,10 +108,10 @@ impl XmlParser {
     }
 
     fn read(&mut self)
-            -> char {
-        let mut chr = self.source.read_char();
-        let chrPeek = self.source.read_char();
-        let vec: [char, ..2] = [chr, chrPeek];
+            -> Character {
+        let chr = self.source.read_char();
+        let retVal;
+        let vec: [char, ..2] = [chr, self.source.read_char()];
         match vec {
             // We found a double character newline, thus we neeed to
             // update position
@@ -114,7 +119,7 @@ impl XmlParser {
             | ['\n', '\r'] => {
                 self.line += 1u;
                 self.col = 0u;
-                chr = '\n'
+                retVal = NewLine;
             },
             // We found a single character newline, thus we neeed to
             // unread a chrPeek and then update position
@@ -141,16 +146,17 @@ impl XmlParser {
                 self.raw_unread();
                 self.line += 1u;
                 self.col = 0u;
-                chr ='\n'
+                retVal = NewLine;
             },
             // We found no extra char, just unread the character and update
             // line
             [_,_] => {
                 self.raw_unread();
                 self.col += 1u;
+                retVal = Chars(chr);
             }
         };
-        chr
+        retVal
     }
 
     fn unread(&mut self, unr_str : &str) {
@@ -194,10 +200,10 @@ mod tests{
                 pos: @mut 0
         } as @Reader;
         let mut parser = XmlParser::from_reader(r);
-        assert_eq!('a',parser.read());
-        assert_eq!('s',parser.read());
-        parser.raw_unread();
-        assert_eq!('a',parser.read());
+        assert_eq!(Chars('a'),parser.read());
+        assert_eq!(Chars('s'),parser.read());
+        parser.unread();
+        assert_eq!(Chars('a'),parser.read());
     }
 
     #[test]
@@ -208,12 +214,15 @@ mod tests{
         } as @Reader;
 
         let mut parser = XmlParser::from_reader(r);
-        assert_eq!('a', parser.read());
+        assert_eq!(Chars('a'), parser.read());
         assert_eq!(1,   parser.line);
         assert_eq!(1,   parser.col);
-        assert_eq!('\n',parser.read());
+        assert_eq!(NewLine,parser.read());
         assert_eq!(2,   parser.line);
         assert_eq!(0,   parser.col);
+        assert_eq!(Chars('t'),parser.read());
+        assert_eq!(2,   parser.line);
+        assert_eq!(1,   parser.col);
     }
 
 }
