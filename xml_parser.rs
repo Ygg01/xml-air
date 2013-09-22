@@ -104,8 +104,7 @@ impl XmlParser {
 
     fn read(&mut self)
             -> char {
-        //Before reading we set the char to current position in stream
-        let chr = self.source.read_char();
+        let mut chr = self.source.read_char();
         let chrPeek = self.source.read_char();
         let vec: [char, ..2] = [chr, chrPeek];
         match vec {
@@ -115,6 +114,7 @@ impl XmlParser {
             | ['\n', '\r'] => {
                 self.line += 1u;
                 self.col = 0u;
+                chr = '\n'
             },
             // We found a single character newline, thus we neeed to
             // unread a chrPeek and then update position
@@ -141,6 +141,7 @@ impl XmlParser {
                 self.raw_unread();
                 self.line += 1u;
                 self.col = 0u;
+                chr ='\n'
             },
             // We found no extra char, just unread the character and update
             // line
