@@ -159,8 +159,46 @@ impl XmlParser {
         retVal
     }
 
-    fn unread(&mut self, unr_str : &str) {
-
+    fn unread(&mut self) {
+        // This methods is similar to read, except it peeks last two characters
+        // and looks at right side for newline characters
+        self.source.seek(-2, SeekCur);
+        let vec: [char, ..2] = [self.source.read_char(), self.source.read_char()];
+        match vec {
+            // If we found a double character newline,
+            // then we just update position
+            ['\r', '\n']
+            | ['\n', '\r'] => {
+                if(self.line != 0u) {
+                    self.line -= 1u;
+                }
+                self.col = 0u;
+            },
+            // If a single double character is found,
+            // we update the position and unread a character
+            // because two reads in vec have moved the pointer
+            [ _ ,'\r']
+            | [ _ ,'\n']
+            | [ _ ,'\x0B']
+            | [ _ ,'\x0C']
+            | [ _ ,'\x85']
+            | [ _ ,'\u2028']
+            | [ _ ,'\u2029']=> {
+                self.raw_unread();
+                if(self.line != 0u) {
+                    self.line -= 1u;
+                }
+                self.col = 0u;
+            },
+            // We found no extra char, just unread the character and update
+            // line
+            [_,_] => {
+                self.source.seek(-2, SeekCur);
+                if(self.col != 0u) {
+                    self.col -= 1u;
+                }
+            }
+        };
     }
 
 
