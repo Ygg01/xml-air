@@ -48,11 +48,6 @@ pub struct XmlParser {
 }
 
 impl XmlParser {
-    /// std::io is on way out, so for time being I'm not making a from_str method
-    /// once that part is stabilized, I'll implement convenience methods for 
-    /// using 
-
-
     /// Constructs a new XmlParser from Reader `data`
     /// The Xmlparser will use the given string as the source for parsing.
     /// Best used for small examples.
@@ -95,7 +90,7 @@ impl XmlParser {
     }
     /// This method pulls tokens until it reaches a fully formed XML node
     /// once it's finished a node, it stops returning said node or error
-    /// if it encountered one. 
+    /// if it encountered one.
     ///
     /// This method should be used similar to an outer iterator.
     pub fn next(&mut self)
@@ -107,8 +102,12 @@ impl XmlParser {
 
     }
 
+    /// This method reads a character and returns an enum that might be
+    /// either a value of character, a new-line sign or a restricted
+    /// character.
     fn read(&mut self)
             -> Character {
+        //TODO implement docs and restricted chars
         let chr = self.source.read_char();
         let retVal;
         match chr {
