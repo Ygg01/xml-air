@@ -207,12 +207,25 @@ mod tests{
 
     #[test]
     fn test_read_unread(){
-        let r = @BytesReader {
+        let r1 = @BytesReader {
                 bytes : "as".as_bytes(),
                 pos: @mut 0
         } as @Reader;
-        let mut parser = XmlParser::from_reader(r);
+
+        let mut parser = XmlParser::from_reader(r1);
         assert_eq!(Chars('a'),parser.read());
+        assert_eq!(Chars('s'),parser.read());
+        parser.unread();
+        assert_eq!(Chars('a'),parser.read());
+
+        let r2 = @BytesReader {
+                bytes : "a\r\x85s".as_bytes(),
+                pos: @mut 0
+        } as @Reader;
+
+        let mut parser = XmlParser::from_reader(r2);
+        assert_eq!(Chars('a'),parser.read());
+        assert_eq!(NewLine, parser.read());
         assert_eq!(Chars('s'),parser.read());
         parser.unread();
         assert_eq!(Chars('a'),parser.read());
@@ -253,7 +266,7 @@ mod tests{
         assert_eq!(1,   parser.col);
 
         let r3 = @BytesReader {
-                bytes : "a\r\u0085t".as_bytes(),
+                bytes : "a\r\x85t".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
@@ -274,7 +287,7 @@ mod tests{
                 pos: @mut 0
         } as @Reader;
 
-        parser = XmlParser::from_reader(r4);
+        let mut parser = XmlParser::from_reader(r4);
         assert_eq!(Chars('a'), parser.read());
         assert_eq!(1,   parser.line);
         assert_eq!(1,   parser.col);
@@ -285,13 +298,13 @@ mod tests{
         assert_eq!(2,   parser.line);
         assert_eq!(1,   parser.col);
       
-/*
+
         let r5 = @BytesReader {
                 bytes : "a\u2028t".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
-        parser = XmlParser::from_reader(r5);
+        let mut parser = XmlParser::from_reader(r5);
         assert_eq!(Chars('a'), parser.read());
         assert_eq!(1,   parser.line);
         assert_eq!(1,   parser.col);
@@ -300,7 +313,7 @@ mod tests{
         assert_eq!(0,   parser.col);
         assert_eq!(Chars('t'),parser.read());
         assert_eq!(2,   parser.line);
-        assert_eq!(1,   parser.col);*/
+        assert_eq!(1,   parser.col);
     }
 
 }
