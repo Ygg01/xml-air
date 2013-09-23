@@ -246,12 +246,12 @@ mod tests{
 
     #[test]
     fn test_read_newline(){
-        let r = @BytesReader {
-                bytes : "a\n\rt".as_bytes(),
+        let r1 = @BytesReader {
+                bytes : "a\r\nt".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
-        let mut parser = XmlParser::from_reader(r);
+        let mut parser = XmlParser::from_reader(r1);
         assert_eq!(Chars('a'), parser.read());
         assert_eq!(1,   parser.line);
         assert_eq!(1,   parser.col);
@@ -262,8 +262,8 @@ mod tests{
         assert_eq!(2,   parser.line);
         assert_eq!(1,   parser.col);
 
-        let r2 = @BytesReader {
-                bytes : "a\r\nt".as_bytes(),
+        let r2= @BytesReader {
+                bytes : "a\rt".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
@@ -279,7 +279,7 @@ mod tests{
         assert_eq!(1,   parser.col);
 
         let r3 = @BytesReader {
-                bytes : "a\rt".as_bytes(),
+                bytes : "a\r\x85t".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
@@ -287,31 +287,16 @@ mod tests{
         assert_eq!(Chars('a'), parser.read());
         assert_eq!(1,   parser.line);
         assert_eq!(1,   parser.col);
-        assert_eq!(NewLine,parser.read());
+        assert_eq!(NewLine, parser.read());
         assert_eq!(2,   parser.line);
         assert_eq!(0,   parser.col);
         assert_eq!(Chars('t'),parser.read());
         assert_eq!(2,   parser.line);
         assert_eq!(1,   parser.col);
 
-        let r4 = @BytesReader {
-                bytes : "a\nt".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        parser = XmlParser::from_reader(r4);
-        assert_eq!(Chars('a'), parser.read());
-        assert_eq!(1,   parser.line);
-        assert_eq!(1,   parser.col);
-        assert_eq!(NewLine,parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(0,   parser.col);
-        assert_eq!(Chars('t'),parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(1,   parser.col);
 
         let r4 = @BytesReader {
-                bytes : "a\x0Bt".as_bytes(),
+                bytes : "a\x85t".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
@@ -327,7 +312,7 @@ mod tests{
         assert_eq!(1,   parser.col);
 
         let r5 = @BytesReader {
-                bytes : "a\x0Ct".as_bytes(),
+                bytes : "a\u2028t".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
@@ -341,6 +326,7 @@ mod tests{
         assert_eq!(Chars('t'),parser.read());
         assert_eq!(2,   parser.line);
         assert_eq!(1,   parser.col);
+
     }
 
 }
