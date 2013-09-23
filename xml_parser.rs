@@ -146,7 +146,7 @@ impl XmlParser {
             // If we found a double character newline,
             // then we just update position
             ['\r', '\n']
-            | ['\r', '\u0085']  => {
+            | ['\r', '\x85']  => {
                 if(self.line != 0u) {
                     self.line -= 1u;
                 }
@@ -156,9 +156,9 @@ impl XmlParser {
             // we update the position and unread a character
             // because two reads in vec have moved the pointer
             ['\r', _ ]
-            | ['\u0085', _ ]
+            | ['\x85', _ ]
             | ['\u2028', _ ] => {
-                self.raw_unread();
+                self.source.seek(-2, SeekCur);
                 if(self.line != 0u) {
                     self.line -= 1u;
                 }
