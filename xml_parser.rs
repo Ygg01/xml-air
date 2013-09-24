@@ -136,6 +136,22 @@ impl XmlParser {
         retVal
     }
 
+    /// This method verifies if the character is a restricted character
+    /// According to http://www.w3.org/TR/xml11/#NT-Char
+    /// Restricted character include anything in the range of
+    /// [#x1-#x8], [#xB-#xC], [#xE-#x1F], [#x7F-#x84], [#x86-#x9F]
+    /// [#x1FFFE-#x1FFFF], [#x2FFFE-#x2FFFF], [#x3FFFE-#x3FFFF],
+    /// [#x4FFFE-#x4FFFF], [#x5FFFE-#x5FFFF], [#x6FFFE-#x6FFFF],
+    /// [#x7FFFE-#x7FFFF], [#x8FFFE-#x8FFFF], [#x9FFFE-#x9FFFF],
+    /// [#xAFFFE-#xAFFFF], [#xBFFFE-#xBFFFF], [#xCFFFE-#xCFFFF],
+    /// [#xDFFFE-#xDFFFF], [#xEFFFE-#xEFFFF], [#xFFFFE-#xFFFFF],
+    /// [#x10FFFE-#x10FFFF].
+
+    fn is_restricted(c: char) -> ~bool{
+            _ => ~false
+        }
+    }
+
     #[inline]
     /// This method reads the source andBb simply updates position
     /// This method WILL NOT update new col or row
@@ -165,6 +181,18 @@ mod tests{
     use super::*;
     use std::io::*;
 
+    #[test]
+    fn test_is_restricted(){
+        assert_eq!(~true, XmlParser::is_restricted('\x02'));
+        assert_eq!(~true, XmlParser::is_restricted('\x0B'));
+        assert_eq!(~true, XmlParser::is_restricted('\x0C'));
+        assert_eq!(~true, XmlParser::is_restricted('\x0F'));
+        assert_eq!(~true, XmlParser::is_restricted('\x1F'));
+        assert_eq!(~true, XmlParser::is_restricted('\x7F'));
+        assert_eq!(~true, XmlParser::is_restricted('\x84'));
+        assert_eq!(~true, XmlParser::is_restricted('\x86'));
+        assert_eq!(~true, XmlParser::is_restricted('\x9A'));
+    }
 
     #[test]
     fn test_read_newline(){
