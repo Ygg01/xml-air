@@ -114,11 +114,14 @@ impl XmlParser {
             '\r' => {
                 self.line += 1u;
                 self.col = 0u;
-                retVal = NewLine;
+
                 let chrPeek = self.raw_read();
                 if(chrPeek != '\x85' && chrPeek != '\n'){
                     self.raw_unread();
                 }
+
+                retVal = NewLine;
+
             },
             '\x85'
             | '\u2028' => {
