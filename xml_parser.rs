@@ -108,7 +108,7 @@ impl XmlParser {
     fn read(&mut self)
             -> Character {
         //TODO implement docs and restricted chars
-        let chr = self.source.read_char();
+        let chr = self.raw_read();
         let retVal;
         match chr {
             '\r' => {
@@ -135,45 +135,6 @@ impl XmlParser {
         }
         retVal
     }
-
-    fn unread(&mut self) {
-        // This methods is similar to read, except it peeks last two characters
-        // and looks at right side for newline characters
-        self.source.seek(-2, SeekCur);
-        let vec: [char, ..2] = [self.source.read_char(), self.source.read_char()];
-        match vec {
-            // If we found a double character newline,
-            // then we just update position
-            ['\r', '\n']
-            | ['\r', '\x85']  => {
-                if(self.line != 0u) {
-                    self.line -= 1u;
-                }
-                self.col = 0u;
-            },
-            // If a single double character is found,
-            // we update the position and unread a character
-            // because two reads in vec have moved the pointer
-            ['\r', _ ]
-            | ['\x85', _ ]
-            | ['\u2028', _ ] => {
-                self.source.seek(-2, SeekCur);
-                if(self.line != 0u) {
-                    self.line -= 1u;
-                }
-                self.col = 0u;
-            },
-            // We found no extra char, just unread the character and update
-            // line
-            [_,_] => {
-                self.source.seek(-2, SeekCur);
-                if(self.col != 0u) {
-                    self.col -= 1u;
-                }
-            }
-        };
-    }
-
 
     #[inline]
     /// This method reads the source andBb simply updates position
@@ -204,31 +165,6 @@ mod tests{
     use super::*;
     use std::io::*;
 
-    #[test]
-    fn test_read_unread(){
-        let r1 = @BytesReader {
-                bytes : "as".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        let mut parser = XmlParser::from_reader(r1);
-        assert_eq!(Chars('a'),parser.read());
-        assert_eq!(Chars('s'),parser.read());
-        parser.unread();
-        assert_eq!(Chars('a'),parser.read());
-
-        let r2 = @BytesReader {
-                bytes : "a\r\x85s".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        let mut parser = XmlParser::from_reader(r2);
-        assert_eq!(Chars('a'),parser.read());
-        assert_eq!(NewLine, parser.read());
-        assert_eq!(Chars('s'),parser.read());
-        parser.unread();
-        assert_eq!(Chars('a'),parser.read());
-    }
 
     #[test]
     fn test_read_newline(){
