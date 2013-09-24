@@ -139,6 +139,19 @@ impl XmlParser {
         retVal
     }
 
+    ///
+    fn is_char(c : char) -> bool {
+        if(XmlParser::is_restricted(c)) {
+            return false
+        }
+        match c {
+            '\x01' .. '\uD7FF'
+            | '\uE000' .. '\uFFFD'
+            | '\U00010000' .. '\U0010FFFF' => true,
+            _ => false
+        }
+    }
+
     /// This method verifies if the character is a restricted character
     /// According to http://www.w3.org/TR/xml11/#NT-Char
     /// Restricted character include anything in the range of
