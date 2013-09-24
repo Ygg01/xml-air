@@ -18,7 +18,6 @@ impl<'self> ReadSource<'self> {
             do_nothing : ""
         }
     }*/
-
     fn next(&mut self){
         self.source.read_char();
     }
