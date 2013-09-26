@@ -29,8 +29,9 @@ enum State {
 
 #[deriving(Eq)]
 pub enum Character {
-    Chars(char),
-    NewLine
+    Char(char),
+    NewLine,
+    RestrictedChar
 }
 
 pub struct XmlParser {
@@ -109,7 +110,7 @@ impl XmlParser {
     /// character.
     fn read(&mut self)
             -> Character {
-        //TODO implement docs and restricted chars
+        //TODO implement docs and restricted char
         let chr = self.raw_read();
         let retVal;
         match chr {
@@ -133,7 +134,8 @@ impl XmlParser {
             },
             _ => {
                 self.col += 1u;
-                retVal = Chars(chr);
+
+                retVal = Char(chr);
             }
 
 
@@ -181,15 +183,16 @@ mod tests{
         } as @Reader;
 
         let mut parser = XmlParser::from_reader(r1);
-        assert_eq!(Chars('a'), parser.read());
-        assert_eq!(1,   parser.line);
-        assert_eq!(1,   parser.col);
-        assert_eq!(NewLine,parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(0,   parser.col);
-        assert_eq!(Chars('t'),parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(1,   parser.col);
+
+        assert_eq!(Char('a'),   parser.read());
+        assert_eq!(1,           parser.line);
+        assert_eq!(1,           parser.col);
+        assert_eq!(NewLine,     parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(0,           parser.col);
+        assert_eq!(Char('t'),   parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(1,           parser.col);
 
         let r2= @BytesReader {
                 bytes : "a\rt".as_bytes(),
@@ -197,15 +200,15 @@ mod tests{
         } as @Reader;
 
         parser = XmlParser::from_reader(r2);
-        assert_eq!(Chars('a'), parser.read());
-        assert_eq!(1,   parser.line);
-        assert_eq!(1,   parser.col);
-        assert_eq!(NewLine,parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(0,   parser.col);
-        assert_eq!(Chars('t'),parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(1,   parser.col);
+        assert_eq!(Char('a'),   parser.read());
+        assert_eq!(1,           parser.line);
+        assert_eq!(1,           parser.col);
+        assert_eq!(NewLine,     parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(0,           parser.col);
+        assert_eq!(Char('t'),   parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(1,           parser.col);
 
         let r3 = @BytesReader {
                 bytes : "a\r\x85t".as_bytes(),
@@ -213,15 +216,15 @@ mod tests{
         } as @Reader;
 
         parser = XmlParser::from_reader(r3);
-        assert_eq!(Chars('a'), parser.read());
-        assert_eq!(1,   parser.line);
-        assert_eq!(1,   parser.col);
-        assert_eq!(NewLine, parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(0,   parser.col);
-        assert_eq!(Chars('t'),parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(1,   parser.col);
+        assert_eq!(Char('a'),   parser.read());
+        assert_eq!(1,           parser.line);
+        assert_eq!(1,           parser.col);
+        assert_eq!(NewLine,     parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(0,           parser.col);
+        assert_eq!(Char('t'),   parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(1,           parser.col);
 
 
         let r4 = @BytesReader {
@@ -230,15 +233,15 @@ mod tests{
         } as @Reader;
 
         let mut parser = XmlParser::from_reader(r4);
-        assert_eq!(Chars('a'), parser.read());
-        assert_eq!(1,   parser.line);
-        assert_eq!(1,   parser.col);
-        assert_eq!(NewLine,parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(0,   parser.col);
-        assert_eq!(Chars('t'),parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(1,   parser.col);
+        assert_eq!(Char('a'),   parser.read());
+        assert_eq!(1,           parser.line);
+        assert_eq!(1,           parser.col);
+        assert_eq!(NewLine,     parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(0,           parser.col);
+        assert_eq!(Char('t'),   parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(1,           parser.col);
       
 
         let r5 = @BytesReader {
@@ -247,15 +250,15 @@ mod tests{
         } as @Reader;
 
         let mut parser = XmlParser::from_reader(r5);
-        assert_eq!(Chars('a'), parser.read());
-        assert_eq!(1,   parser.line);
-        assert_eq!(1,   parser.col);
-        assert_eq!(NewLine,parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(0,   parser.col);
-        assert_eq!(Chars('t'),parser.read());
-        assert_eq!(2,   parser.line);
-        assert_eq!(1,   parser.col);
+        assert_eq!(Char('a'),   parser.read());
+        assert_eq!(1,           parser.line);
+        assert_eq!(1,           parser.col);
+        assert_eq!(NewLine,     parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(0,           parser.col);
+        assert_eq!(Char('t'),   parser.read());
+        assert_eq!(2,           parser.line);
+        assert_eq!(1,           parser.col);
     }
 
 }
