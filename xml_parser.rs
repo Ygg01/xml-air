@@ -1,7 +1,9 @@
 use xml_node::*;
 use std::io::*;
+use util::*;
 
 mod xml_node;
+mod util;
 
 enum State {
     OutsideTag,
