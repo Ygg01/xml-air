@@ -173,7 +173,36 @@ mod tests{
     use super::*;
     use std::io::*;
 
+    #[test]
+    /// Tests if it reads a restricted character
+    /// and recognize a char correctly
+    fn test_restricted_char(){
+        let r1 = @BytesReader {
+                bytes : "\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F".as_bytes(),
+                pos: @mut 0
+        } as @Reader;
 
+        let mut parser = XmlParser::from_reader(r1);
+
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(Char('a'),           parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(Char('b'),           parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(Char('c'),           parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(Char('d'),           parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      parser.read());
+    }
 
     #[test]
     fn test_read_newline(){
