@@ -29,9 +29,9 @@ pub fn unescape(input: &str) -> ~str {
 }
 
 #[inline]
-///
-pub fn is_char(c : &char) -> bool {
-    match *c {
+/// Determines if the character is allowed, if not, returns false
+pub fn is_char(chr : &char) -> bool {
+    match *chr {
         '\x01' .. '\uD7FF'
         | '\uE000' .. '\uFFFD'
         | '\U00010000' .. '\U0010FFFF' => true,
@@ -41,8 +41,8 @@ pub fn is_char(c : &char) -> bool {
 
 #[inline]
 ///
-pub fn is_whitespace(c: &char) -> bool {
-    *c == ' ' || *c == '\t' || *c == '\n' || *c == '\r'
+pub fn is_whitespace(chr: &char) -> bool {
+    *chr == ' ' || *chr == '\t' || *chr == '\n' || *chr == '\r'
 }
 
 #[inline]
@@ -56,8 +56,8 @@ pub fn is_whitespace(c: &char) -> bool {
 /// [#xAFFFE-#xAFFFF], [#xBFFFE-#xBFFFF], [#xCFFFE-#xCFFFF],
 /// [#xDFFFE-#xDFFFF], [#xEFFFE-#xEFFFF], [#xFFFFE-#xFFFFF],
 /// [#x10FFFE-#x10FFFF].
-pub fn is_restricted(c: &char) -> bool {
-    match *c {
+pub fn is_restricted(chr: &char) -> bool {
+    match *chr {
         '\x01'..'\x08'
         | '\x0B'.. '\x0C'
         | '\x0E'.. '\x1F'

@@ -107,7 +107,8 @@ impl XmlParser {
 
     /// This method reads a character and returns an enum that might be
     /// either a value of character, a new-line sign or a restricted
-    /// character.
+    /// character. If it finds a restricted character the method will still 
+    /// update position accordingly.
     fn read(&mut self)
             -> Character {
         //TODO implement docs and restricted char
