@@ -81,13 +81,13 @@ impl XmlParser {
     /// if the parsing wasn't succesful.
     // TODO IMPLEMENT
     pub fn parse_doc(&mut self)
-                     -> Result<XmlDoc,Error> {
+                     -> Result<XmlDoc,XmlError> {
         Ok(XmlDoc::new())
     }
     /// This method pulls tokens in similar way `parse_doc`  does, but 
     /// it also takes an callback to function to execute on each iteration.
-    pub fn parse_call(&mut self, cb: &fn (Result<Events,Error>))
-                      -> Result<XmlDoc,Error>{
+    pub fn parse_call(&mut self, cb: &fn (Result<Events,XmlError>))
+                      -> Result<XmlDoc,XmlError>{
         //TODO IMPLEMENT
         Ok(XmlDoc::new())
     }
@@ -97,12 +97,9 @@ impl XmlParser {
     ///
     /// This method should be used similar to an outer iterator.
     pub fn next(&mut self)
-                -> Result<XmlNode,Error>{
+                -> Result<XNode,XmlError>{
         //TODO IMPLEMENT
-        let retVal = Ok(XmlCDATA(~"CDATA"));
-
-        retVal
-
+        Ok(XText(~""))
     }
 
     /// This method reads a character and returns an enum that might be

@@ -1,5 +1,3 @@
-use std::str;
-
 #[deriving(Clone,Eq)]
 /// A struct representing an XML root document
 pub struct XmlDoc {
@@ -29,7 +27,7 @@ pub struct XmlElem {
     /// The element's `Attribute`s
     attributes: ~[XmlAttr],
     /// The element's child `XmlNode` nodes
-    children: ~[XmlNode]
+    children: ~[XNode]
 }
 
 
@@ -57,17 +55,17 @@ pub struct XmlNS {
 // General types
 #[deriving(Clone,Eq,ToStr)]
 /// An Enum describing a XML Node
-pub enum XmlNode {
+pub enum XNode {
     /// An XML Element
-    XmlElem(~XmlElem),
+    XElem(~XmlElem),
     /// Character Data
-    XmlText(~str),
+    XText(~str),
     /// CDATA
-    XmlCDATA(~str),
+    XCdata(~str),
     /// A XML Comment
-    XmlComment(~str),
+    XComment(~str),
     /// Processing Information
-    PINode(~PINode)
+    XPi(~PINode)
 }
 
 
@@ -100,7 +98,7 @@ pub enum Events {
 #[deriving(Eq)]
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
-pub struct Error {
+pub struct XmlError {
     /// The line number at which the error occurred
     line: uint,
     /// The column number at which the error occurred
@@ -113,12 +111,14 @@ fn main() {
     
 }
 
+
+
 impl XmlDoc {
     pub fn new() -> XmlDoc {
         XmlDoc {
             root: ~XmlElem {
                     name:~"",
-                    namespace:~XmlNS{name: ~"", uri: ~""}, 
+                    namespace:~XmlNS{name: ~"", uri: ~""},
                     attributes: ~[],
                     children: ~[]
             },
