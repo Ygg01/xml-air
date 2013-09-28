@@ -135,6 +135,16 @@ impl XmlDoc {
     }
 }
 
+impl XmlElem {
+    pub fn new(new_name : ~str) -> XmlElem {
+        XmlElem {
+                    name:new_name,
+                    namespace:~XmlNS{name: ~"", uri: ~""},
+                    attributes: ~[],
+                    children: ~[]
+        }
+    }
+}
 
 impl PINode {
     pub fn to_str(&self) -> ~str {
