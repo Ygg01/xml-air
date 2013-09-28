@@ -9,7 +9,7 @@ pub struct XmlDoc {
     pi: ~[PINode]
 }
 
-#[deriving(Clone,Eq)]
+#[deriving(Clone,Eq,ToStr)]
 /// A struct representing an XML processing instruction
 pub struct PINode {
     /// The processing instruction's target
@@ -19,7 +19,7 @@ pub struct PINode {
     value: ~str
 }
 
-#[deriving(Clone,Eq)]
+#[deriving(Clone,Eq,ToStr)]
 /// A struct representing an XML element
 pub struct XmlElem {
     /// The element's name
@@ -33,7 +33,7 @@ pub struct XmlElem {
 }
 
 
-#[deriving(Clone,Eq)]
+#[deriving(Clone,Eq,ToStr)]
 /// A struct representing an XML attribute
 pub struct XmlAttr {
     /// The attribute's name
@@ -55,7 +55,7 @@ pub struct XmlNS {
 
 
 // General types
-#[deriving(Clone,Eq)]
+#[deriving(Clone,Eq,ToStr)]
 /// An Enum describing a XML Node
 pub enum XmlNode {
     /// An XML Element
@@ -144,7 +144,7 @@ impl PINode {
 
 
 impl XmlNS {
-    pub fn to_str() -> ~str {
+    pub fn to_str(&self) -> ~str {
         ~""
     }
 }
