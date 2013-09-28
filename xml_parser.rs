@@ -133,6 +133,10 @@ impl XmlParser {
                 self.col = 0u;
                 retVal = NewLine;
             },
+            a if (!is_char(&a) || is_restricted(&a)) => {
+                self.col += 1u;
+                retVal = RestrictedChar;
+            },
             _ => {
                 self.col += 1u;
 
