@@ -137,13 +137,13 @@ impl XmlParser {
                 self.col = 0u;
                 retVal = NewLine;
             },
-            // If we encounter a restricted char, we notify compiler of it, but
-            // increase column number as usual.
+            // If we encounter a restricted char as specified in `http://www.w3.org/TR/xml11/#charsets`
+            // the compiler is notified is a restricted char is found, but increase column number as usual.
             a if (!is_char(&a) || is_restricted(&a)) => {
                 self.col += 1u;
                 retVal = RestrictedChar;
             },
-            // A valid non-restricted char was found, so we update the column position
+            // A valid non-restricted char was found, so we update the column position.
             _ => {
                 self.col += 1u;
                 retVal = Char(chr);
@@ -182,6 +182,28 @@ pub fn main() {
 mod tests{
     use super::*;
     use std::io::*;
+    use xml_node::*;
+
+    #[test]
+    fn parse_simple(){
+        let r1 = @BytesReader {
+                bytes : "<a>".as_bytes(),
+                pos: @mut 0
+        } as @Reader;
+
+        let mut parser = XmlParser::from_reader(r1);
+        let node = parser.next();
+        match node {
+            Ok(a) => {
+                println(fmt!("%?", a));
+                assert_eq!(XElem(~XmlElem::new(~"a")), a);
+            }
+            Err(_) => {
+                fail!(~"No element found");
+            }
+        }
+
+    }
 
     #[test]
     /// Tests if it reads a restricted character
