@@ -106,15 +106,22 @@ impl XmlParser {
     }
 
     /// This method reads a character and returns an enum that might be
-    /// either a value of character, a new-line sign or a restricted
-    /// character. If it finds a restricted character the method will still 
-    /// update position accordingly.
+    /// either a value of character, a new-line sign or a restricted character.
+    /// If it finds a restricted character the method will still update
+    /// position accordingly.
     fn read(&mut self)
             -> Character {
-        //TODO implement docs and restricted char
         let chr = self.raw_read();
         let retVal;
+
+        // This pattern matcher decides what to do with found character.
         match chr {
+            // If char read is `\r` it must peek tocheck if `\x85` or `\n` are next,
+            // because they are part of same newline group.
+            // According to `http://www.w3.org/TR/xml11/#sec-line-ends` New line
+            // updates column and line
+            // Note: Lines and column start at 1 but the read character will be
+            // update after a new character is read.
             '\r' => {
                 self.line += 1u;
                 self.col = 0u;
@@ -127,22 +134,25 @@ impl XmlParser {
                 retVal = NewLine;
 
             },
+            // A regular single character new line is found same as previous section
+            // without the need to peek the next character.
             '\x85'
             | '\u2028' => {
                 self.line += 1u;
                 self.col = 0u;
                 retVal = NewLine;
             },
+            // If we encounter a restricted char, we notify compiler of it, but
+            // increase column number as usual.
             a if (!is_char(&a) || is_restricted(&a)) => {
                 self.col += 1u;
                 retVal = RestrictedChar;
             },
+            // A valid non-restricted char was found, so we update the column position
             _ => {
                 self.col += 1u;
-
                 retVal = Char(chr);
             }
-
 
         }
         retVal
