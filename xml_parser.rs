@@ -34,6 +34,13 @@ pub enum Character {
     RestrictedChar
 }
 
+#[deriving(Eq)]
+pub enum ParseResult {
+    NoNode,
+    ParseError(XmlError),
+    ParseNode(XNode)
+}
+
 pub struct XmlParser {
     line: uint,
     col: uint,
@@ -47,6 +54,27 @@ pub struct XmlParser {
     priv delim: char,
     priv state: State
 
+}
+
+impl Iterator<Result<XNode,XmlError>> for XmlParser {
+    /// This method pulls tokens until it reaches a fully formed XML node
+    /// once it's finished a node, it stops returning said node or error
+    /// if it encountered one.
+    ///
+    /// This method should be used similar to an outer iterator.
+    fn next(&mut self)
+            -> Option<Result<XNode,XmlError>>{
+        let node : ParseResult = NoNode;
+        while (node == NoNode) {
+
+        }
+        match node {
+            ParseNode(a) => Some(Ok(a)),
+            ParseError(a) => Some(Err(a)),
+            NoNode => None
+        }
+
+    }
 }
 
 impl XmlParser {
@@ -81,23 +109,6 @@ impl XmlParser {
     pub fn parse_doc(&mut self)
                      -> Result<XmlDoc,XmlError> {
         Ok(XmlDoc::new())
-    }
-    /// This method pulls tokens in similar way `parse_doc`  does, but 
-    /// it also takes an callback to function to execute on each iteration.
-    pub fn parse_call(&mut self, cb: &fn (Result<Events,XmlError>))
-                      -> Result<XmlDoc,XmlError>{
-        //TODO IMPLEMENT
-        Ok(XmlDoc::new())
-    }
-    /// This method pulls tokens until it reaches a fully formed XML node
-    /// once it's finished a node, it stops returning said node or error
-    /// if it encountered one.
-    ///
-    /// This method should be used similar to an outer iterator.
-    pub fn next(&mut self)
-                -> Result<XNode,XmlError>{
-        //TODO IMPLEMENT
-        Ok(XText(~""))
     }
 
     /// This method reads a character and returns an enum that might be
