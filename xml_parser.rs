@@ -64,9 +64,11 @@ impl Iterator<Result<XNode,XmlError>> for XmlParser {
     /// This method should be used similar to an outer iterator.
     fn next(&mut self)
             -> Option<Result<XNode,XmlError>>{
-        let node : ParseResult = NoNode;
+        let mut node : ParseResult = NoNode;
         while (node == NoNode) {
-
+            let charRead = self.read();
+            self.parse_char(charRead);
+            node = ParseNode(XText(~"bloogy woogy woo"));
         }
         match node {
             ParseNode(a) => Some(Ok(a)),
@@ -111,6 +113,12 @@ impl XmlParser {
         Ok(XmlDoc::new())
     }
 
+    /// This method reads a single character and changes state based on that
+    fn parse_char(&mut self, c: Character) {
+        match self.state {
+            _ => {}
+        }
+    }
     /// This method reads a character and returns an enum that might be
     /// either a value of character, a new-line sign or a restricted character.
     /// If it finds a restricted character the method will still update
@@ -205,11 +213,11 @@ mod tests{
         let mut parser = XmlParser::from_reader(r1);
         let node = parser.next();
         match node {
-            Ok(a) => {
-                println(fmt!("%?", a));
+            Some(Ok(a)) => {
+                println(fmt!("PRINT: %?", a));
                 assert_eq!(XElem(~XmlElem::new(~"a")), a);
             }
-            Err(_) => {
+            _ => {
                 fail!(~"No element found");
             }
         }
