@@ -51,7 +51,6 @@ pub struct XmlParser {
     priv name: ~str,
     priv attrName: ~str,
     priv attributes: ~[XmlAttr],
-    priv delim: char,
     priv state: State
 
 }
@@ -98,7 +97,6 @@ impl XmlParser {
             source: data,
             attrName: ~"",
             attributes: ~[],
-            delim: 0 as char,
             state: OutsideTag,
             depth: 0
         }
