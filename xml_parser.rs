@@ -1,9 +1,12 @@
 use xml_node::*;
 use std::io::*;
 use util::*;
+use xml_lexer::*;
+
 
 mod xml_node;
 mod util;
+mod xml_lexer;
 
 enum State {
     OutsideTag,
@@ -27,12 +30,7 @@ enum State {
     Namespace
 }
 
-#[deriving(Eq)]
-pub enum Character {
-    Char(char),
-    NewLine,
-    RestrictedChar
-}
+
 
 #[deriving(Eq)]
 pub enum ParseResult {
@@ -46,8 +44,7 @@ pub struct XmlParser {
     col: uint,
     depth: uint,
     elem: Option<XmlElem>,
-    priv source: @Reader,
-    priv buf: ~str,
+    priv lexer: XmlLexer,
     priv name: ~str,
     priv attrName: ~str,
     priv attributes: ~[XmlAttr],
@@ -64,25 +61,7 @@ impl Iterator<Result<XNode,XmlError>> for XmlParser {
     fn next(&mut self)
             -> Option<Result<XNode,XmlError>>{
         let mut node : ParseResult = NoNode;
-        while (node == NoNode) {
-            let charRead = self.read();
-            match charRead {
-                RestrictedChar => {
-                    node = ParseError(XmlError{
-                                line : self.line,
-                    col : self.col,
-                    msg : @~"Found restricted char"
-                })},
-                NewLine => {node = self.parse_char('\n')},
-                Char(a) => {node = self.parse_char(a)}
-            }
-
-        }
-        match node {
-            ParseNode(a) => Some(Ok(a)),
-            ParseError(a) => Some(Err(a)),
-            NoNode => None
-        }
+        None
 
     }
 }
@@ -100,14 +79,13 @@ impl XmlParser {
         XmlParser {
             line: 1,
             col: 0,
-            buf: ~"",
-            name: ~"",
+            depth: 0,
             elem: None,
-            source: data,
+            lexer: XmlLexer::from_reader(data),
+            name: ~"",
             attrName: ~"",
             attributes: ~[],
-            state: OutsideTag,
-            depth: 0
+            state: OutsideTag
         }
     }
 
@@ -120,107 +98,6 @@ impl XmlParser {
         Ok(XmlDoc::new())
     }
 
-    /// This method reads a single character and changes state based on that
-    fn parse_char(&mut self, c: char)
-                  -> ParseResult {
-        match self.state {
-            OutsideTag => self.outside_tag(c),
-            _ => NoNode
-        }
-    }
-
-    fn outside_tag(&mut self, c: char)
-                         -> ParseResult {
-        match c {
-            '<' if self.buf.len() > 0 => {
-                self.state = TagOpened;
-                let buf = unescape(self.buf);
-                self.buf.clear();
-                return ParseNode(XText(buf))
-            },
-            '<' => self.state = TagOpened,
-            _ => self.buf.push_char(c)
-
-        }
-        NoNode
-    }
-
-    fn tag_opened(&mut self, c: char)
-                  -> ParseResult {
-        NoNode
-    }
-    /// This method reads a character and returns an enum that might be
-    /// either a value of character, a new-line sign or a restricted character.
-    /// If it finds a restricted character the method will still update
-    /// position accordingly.
-    fn read(&mut self)
-            -> Character {
-        let chr = self.raw_read();
-        let retVal;
-
-        // This pattern matcher decides what to do with found character.
-        match chr {
-            // If char read is `\r` it must peek tocheck if `\x85` or `\n` are
-            // next,  because they are part of same newline group.
-            // According to `http://www.w3.org/TR/xml11/#sec-line-ends`
-            // definition. This method updates column and line position.
-            // Note: Lines and column start at 1 but the read character will be
-            // update after a new character is read.
-            '\r' => {
-                self.line += 1u;
-                self.col = 0u;
-
-                let chrPeek = self.raw_read();
-                if(chrPeek != '\x85' && chrPeek != '\n'){
-                    self.raw_unread();
-                }
-
-                retVal = NewLine;
-
-            },
-            // A regular single character new line is found same as previous
-            // section without the need to peek the next character.
-            '\x85'
-            | '\u2028' => {
-                self.line += 1u;
-                self.col = 0u;
-                retVal = NewLine;
-            },
-            // If we encounter a restricted character as specified in
-            // `http://www.w3.org/TR/xml11/#charsets` the compiler is notified
-            // that such character has been found.
-            // Restricted chars still but increase column number because
-            // they might be ignored by the parser.
-            a if (!is_char(&a) || is_restricted(&a)) => {
-                self.col += 1u;
-                retVal = RestrictedChar;
-            },
-            // A valid non-restricted char was found,
-            // so we update the column position.
-            _ => {
-                self.col += 1u;
-                retVal = Char(chr);
-            }
-
-        }
-        retVal
-    }
-
-
-    #[inline]
-    /// This method reads the source and updates position of
-    /// pointer in said structure.
-    /// This method WILL NOT update new col or row
-    fn raw_read(&mut self) -> char {
-        self.source.read_char()
-    }
-
-    #[inline]
-    /// This method unreads the source and simply updates position
-    /// This method WILL NOT update new col or row
-    fn raw_unread(&mut self) {
-        self.source.seek(-1, SeekCur);
-    }
 }
 
 
@@ -231,7 +108,7 @@ pub fn main() {
     debug!("This is a debug log");
 }
 
-
+/*
 #[cfg(test)]
 mod tests{
     use super::*;
@@ -243,7 +120,7 @@ mod tests{
         let r1 = @BytesReader {
                 bytes : "<a>".as_bytes(),
                 pos: @mut 0
-        } as @Reader;
+        } as ~Reader;
 
         let mut parser = XmlParser::from_reader(r1);
         let node = parser.next();
@@ -259,121 +136,6 @@ mod tests{
 
     }
 
-    #[test]
-    /// Tests if it reads a restricted character
-    /// and recognize a char correctly
-    fn test_restricted_char(){
-        let r1 = @BytesReader {
-                bytes : "\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        let mut parser = XmlParser::from_reader(r1);
-
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('a'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('b'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('c'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('d'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-    }
-
-    #[test]
-    fn test_read_newline(){
-        let r1 = @BytesReader {
-                bytes : "a\r\nt".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        let mut parser = XmlParser::from_reader(r1);
-
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
-
-        let r2= @BytesReader {
-                bytes : "a\rt".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        parser = XmlParser::from_reader(r2);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
-
-        let r3 = @BytesReader {
-                bytes : "a\r\x85t".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        parser = XmlParser::from_reader(r3);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
-
-
-        let r4 = @BytesReader {
-                bytes : "a\x85t".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        let mut parser = XmlParser::from_reader(r4);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
-      
-
-        let r5 = @BytesReader {
-                bytes : "a\u2028t".as_bytes(),
-                pos: @mut 0
-        } as @Reader;
-
-        let mut parser = XmlParser::from_reader(r5);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
-    }
 
 }
+*/
