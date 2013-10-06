@@ -102,7 +102,7 @@ impl XmlParser {
         }
     }
 
-    /// This method will parse entire document into memory as a tree of 
+    /// This method will parse entire document into memory as a tree of
     /// XmlElem. It retuns an XmlDoc if it parses correctly or an Error
     /// if the parsing wasn't succesful.
     // TODO IMPLEMENT
@@ -128,10 +128,10 @@ impl XmlParser {
 
         // This pattern matcher decides what to do with found character.
         match chr {
-            // If char read is `\r` it must peek tocheck if `\x85` or `\n` are next,
-            // because they are part of same newline group.
-            // According to `http://www.w3.org/TR/xml11/#sec-line-ends` New line
-            // updates column and line
+            // If char read is `\r` it must peek tocheck if `\x85` or `\n` are
+            // next,  because they are part of same newline group.
+            // According to `http://www.w3.org/TR/xml11/#sec-line-ends`
+            // definition. This method updates column and line position.
             // Note: Lines and column start at 1 but the read character will be
             // update after a new character is read.
             '\r' => {
@@ -146,21 +146,25 @@ impl XmlParser {
                 retVal = NewLine;
 
             },
-            // A regular single character new line is found same as previous section
-            // without the need to peek the next character.
+            // A regular single character new line is found same as previous
+            // section without the need to peek the next character.
             '\x85'
             | '\u2028' => {
                 self.line += 1u;
                 self.col = 0u;
                 retVal = NewLine;
             },
-            // If we encounter a restricted char as specified in `http://www.w3.org/TR/xml11/#charsets`
-            // the compiler is notified is a restricted char is found, but increase column number as usual.
+            // If we encounter a restricted character as specified in
+            // `http://www.w3.org/TR/xml11/#charsets` the compiler is notified
+            // that such character has been found.
+            // Restricted chars still but increase column number because
+            // they might be ignored by the parser.
             a if (!is_char(&a) || is_restricted(&a)) => {
                 self.col += 1u;
                 retVal = RestrictedChar;
             },
-            // A valid non-restricted char was found, so we update the column position.
+            // A valid non-restricted char was found,
+            // so we update the column position.
             _ => {
                 self.col += 1u;
                 retVal = Char(chr);
@@ -172,7 +176,8 @@ impl XmlParser {
 
 
     #[inline]
-    /// This method reads the source andBb simply updates position
+    /// This method reads the source and updates position of
+    /// pointer in said structure.
     /// This method WILL NOT update new col or row
     fn raw_read(&mut self) -> char {
         self.source.read_char()
