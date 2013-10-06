@@ -66,8 +66,17 @@ impl Iterator<Result<XNode,XmlError>> for XmlParser {
         let mut node : ParseResult = NoNode;
         while (node == NoNode) {
             let charRead = self.read();
-            self.parse_char(charRead);
-            node = ParseNode(XText(~"bloogy woogy woo"));
+            match charRead {
+                RestrictedChar => {
+                    node = ParseError(XmlError{
+                                line : self.line,
+                    col : self.col,
+                    msg : @~"Found restricted char"
+                })},
+                NewLine => {node = self.parse_char('\n')},
+                Char(a) => {node = self.parse_char(a)}
+            }
+
         }
         match node {
             ParseNode(a) => Some(Ok(a)),
@@ -112,10 +121,33 @@ impl XmlParser {
     }
 
     /// This method reads a single character and changes state based on that
-    fn parse_char(&mut self, c: Character) {
+    fn parse_char(&mut self, c: char)
+                  -> ParseResult {
         match self.state {
-            _ => {}
+            OutsideTag => self.outside_tag(c),
+            _ => NoNode
         }
+    }
+
+    fn outside_tag(&mut self, c: char)
+                         -> ParseResult {
+        match c {
+            '<' if self.buf.len() > 0 => {
+                self.state = TagOpened;
+                let buf = unescape(self.buf);
+                self.buf.clear();
+                return ParseNode(XText(buf))
+            },
+            '<' => self.state = TagOpened,
+            _ => self.buf.push_char(c)
+
+        }
+        NoNode
+    }
+
+    fn tag_opened(&mut self, c: char)
+                  -> ParseResult {
+        NoNode
     }
     /// This method reads a character and returns an enum that might be
     /// either a value of character, a new-line sign or a restricted character.
