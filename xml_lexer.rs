@@ -28,7 +28,8 @@ enum XmlToken {
 pub enum Character {
     Char(char),
     NewLine,
-    RestrictedChar
+    RestrictedChar,
+    EndFile
 }
 
 pub struct XmlLexer {
@@ -133,7 +134,17 @@ mod tests {
     use super::*;
     use std::io::*;
 
+    #[test]
+    fn test_eof(){
+        let r = @BytesReader {
+            bytes: "a".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
 
+        let mut lexer = XmlLexer::from_reader(r);
+        assert_eq!(Char('a'),           lexer.read());
+        assert_eq!(EndFile,           lexer.read())
+    }
 
     #[test]
     /// Tests if it reads a restricted character
