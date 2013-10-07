@@ -3,7 +3,24 @@ use util::*;
 
 mod util;
 
+#[deriving(Eq)]
 enum XmlToken {
+    LeftBracket,        // Symbol '<'
+    RightBracket,       // Symbol '>'
+    EndTag,             // Symbol '</'
+    Text(~str),         // Various characters
+    Whitespace(int),    // Whitespace
+    PIStart,            // Start of PI block '<?'
+    PIEnd,              // End of PI block '?>'
+    CDataStart,         // Start of CDATA block '<![CDATA'
+    CDataEnd,           // End of CDATA block ']]>'
+    DoctypeStart,       // Start of Doctype block '<!DOCTYPE'
+    DoctypeEnd,         // End of Doctype block '!>'
+    CommentStart,       // Comment start <!--
+    CommentEnd,         // Comment start --!>
+    EntityRef,          // Entity refernce, symbol '&'
+    PERef,              // Entity refernce, symbol '%'
+    CharRef,            // Encoded char or '&#'
     EndOfFile
 }
 
