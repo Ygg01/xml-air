@@ -117,6 +117,21 @@ impl XmlLexer {
         retVal
     }
 
+    /// This method reads a string of given length skipping over any restricted char
+    ///
+    pub fn read_str(&mut self, len: uint) -> ~str {
+        let mut string = ~"";
+        do len.times {
+            let chr = self.read();
+            match chr {
+                NewLine => string.push_char('\n'),
+                Char(a) => string.push_char(a),
+                _ => {}
+            }
+        }
+        string
+    }
+
 
     #[inline]
     /// This method reads the source and updates position of
