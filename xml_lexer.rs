@@ -61,6 +61,11 @@ impl XmlLexer {
     /// position accordingly.
     fn read(&mut self)
             -> Character {
+
+        if(self.source.eof()){
+            return EndFile
+        }
+
         let chr = self.raw_read();
         let retVal;
 
