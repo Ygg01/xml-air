@@ -160,26 +160,26 @@ mod tests {
                 pos: @mut 0
         } as @Reader;
 
-        let mut parser = XmlLexer::from_reader(r1);
+        let mut lexer = XmlLexer::from_reader(r1);
 
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('a'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('b'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('c'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(Char('d'),           parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
-        assert_eq!(RestrictedChar,      parser.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(Char('a'),           lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(Char('b'),           lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(Char('c'),           lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(Char('d'),           lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar,      lexer.read());
     }
 
     #[test]
@@ -189,49 +189,49 @@ mod tests {
                 pos: @mut 0
         } as @Reader;
 
-        let mut parser = XmlLexer::from_reader(r1);
+        let mut lexer = XmlLexer::from_reader(r1);
 
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
+        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(1,           lexer.line);
+        assert_eq!(1,           lexer.col);
+        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(0,           lexer.col);
+        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(1,           lexer.col);
 
         let r2= @BytesReader {
                 bytes : "a\rt".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
-        parser = XmlLexer::from_reader(r2);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
+        lexer = XmlLexer::from_reader(r2);
+        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(1,           lexer.line);
+        assert_eq!(1,           lexer.col);
+        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(0,           lexer.col);
+        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(1,           lexer.col);
 
         let r3 = @BytesReader {
                 bytes : "a\r\x85t".as_bytes(),
                 pos: @mut 0
         } as @Reader;
 
-        parser = XmlLexer::from_reader(r3);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
+        lexer = XmlLexer::from_reader(r3);
+        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(1,           lexer.line);
+        assert_eq!(1,           lexer.col);
+        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(0,           lexer.col);
+        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(1,           lexer.col);
 
 
         let r4 = @BytesReader {
@@ -239,16 +239,16 @@ mod tests {
                 pos: @mut 0
         } as @Reader;
 
-        let mut parser = XmlLexer::from_reader(r4);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
+        let mut lexer = XmlLexer::from_reader(r4);
+        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(1,           lexer.line);
+        assert_eq!(1,           lexer.col);
+        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(0,           lexer.col);
+        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(1,           lexer.col);
       
 
         let r5 = @BytesReader {
@@ -256,15 +256,15 @@ mod tests {
                 pos: @mut 0
         } as @Reader;
 
-        let mut parser = XmlLexer::from_reader(r5);
-        assert_eq!(Char('a'),   parser.read());
-        assert_eq!(1,           parser.line);
-        assert_eq!(1,           parser.col);
-        assert_eq!(NewLine,     parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(0,           parser.col);
-        assert_eq!(Char('t'),   parser.read());
-        assert_eq!(2,           parser.line);
-        assert_eq!(1,           parser.col);
+        let mut lexer = XmlLexer::from_reader(r5);
+        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(1,           lexer.line);
+        assert_eq!(1,           lexer.col);
+        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(0,           lexer.col);
+        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(2,           lexer.line);
+        assert_eq!(1,           lexer.col);
     }
 }
