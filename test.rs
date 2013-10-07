@@ -1,42 +1,24 @@
 use std::io::{BytesReader,Reader, ReaderUtil};
 
-pub struct ReadSource<'self> {
-    source: @Reader,
-    priv do_nothing: &'self str
+pub struct ReadSource {
+    source: ~Reader,
+
 }
 
-impl<'self> ReadSource<'self> {
+impl ReadSource {
 /*
-    fn from_str(data: ~str) -> ReadSource<'self>{
-        let r = @BytesReader {
-                bytes : data.as_bytes(),
-                pos:  @mut 0
-        } as @Reader;
-
-        ReadSource {
-            source :  r, 
-            do_nothing : ""
-        }
-    }*/
     fn next(&mut self){
         self.source.read_char();
     }
+*/
 }
 
 fn main() {
-    let r = @BytesReader {
+    let r = ~BytesReader {
                 bytes : "as".as_bytes(),
                 pos: @mut 0
-    } as @Reader;
+    } as ~Reader;
 
-    let rs = ReadSource {
-        source : r, do_nothing : ""
-    };
-
-    rs.source.read_char();
-
-    let mut v = 0u;
-    v -= 1u;
-    println(v.to_str());
+    let rs = ReadSource{source: r};
 
 }
