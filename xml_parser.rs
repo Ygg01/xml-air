@@ -60,7 +60,7 @@ impl Iterator<Result<XNode,XmlError>> for XmlParser {
     /// This method should be used similar to an outer iterator.
     fn next(&mut self)
             -> Option<Result<XNode,XmlError>>{
-        let mut node : ParseResult = NoNode;
+        let mut node = NoNode;
         None
 
     }

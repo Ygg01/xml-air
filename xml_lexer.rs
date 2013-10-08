@@ -7,6 +7,7 @@ mod util;
 enum XmlToken {
     LeftBracket,        // Symbol '<'
     RightBracket,       // Symbol '>'
+    Equal,              // Symbol '='
     EndTag,             // Symbol '</'
     Text(~str),         // Various characters
     Whitespace(int),    // Whitespace
