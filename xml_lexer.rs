@@ -25,7 +25,7 @@ enum XmlToken {
     EndOfFile
 }
 
-#[deriving(Eq)]
+#[deriving(Eq,ToStr)]
 pub enum Character {
     Char(char),
     NewLine,
@@ -140,11 +140,26 @@ impl XmlLexer {
                 NewLine => string.push_char('\n'),
                 Char(a) => string.push_char(a),
                 _ => {}
-            }
+            };
         }
         string
     }
 
+    /// Method that peeks incoming strings
+    pub fn peek_str(&mut self, len: uint) -> ~str {
+        let col = self.col;
+        let line = self.line;
+        let depth = self.depth;
+        let offset = len as int;
+
+        let peekStr = self.read_str(len);
+        self.col = col;
+        self.line = line;
+        self.depth = depth;
+        self.source.seek(-offset, SeekCur);
+
+        peekStr
+    }
 
     #[inline]
     /// This method reads the source and updates position of
