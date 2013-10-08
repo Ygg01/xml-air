@@ -42,6 +42,18 @@ pub struct XmlLexer {
     priv source: @Reader
 }
 
+impl Iterator<XmlToken> for XmlLexer {
+    /// This method pulls tokens from stream until it reaches end of file.
+    ///
+    /// Example:
+    /// TODO
+    fn next(&mut self)
+            -> Option<XmlToken>{
+        None
+
+    }
+}
+
 impl XmlLexer {
     /// Constructs a new `XmlLexer` from @Reader `data`
     /// The `XmlLexer` will use the given string as the source for parsing.
