@@ -168,6 +168,19 @@ mod tests {
     use std::io::*;
 
     #[test]
+    fn test_read_str(){
+        let r = @BytesReader {
+            bytes: "as".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer = XmlLexer::from_reader(r);
+        assert_eq!(~"as", lexer.read_str(2u));
+        r.seek(0, SeekSet);
+        assert_eq!(~"as", lexer.read_str(3u));
+    }
+
+    #[test]
     fn test_eof(){
         let r = @BytesReader {
             bytes: "a".as_bytes(),
