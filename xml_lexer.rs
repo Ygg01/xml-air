@@ -35,10 +35,10 @@ pub enum Character {
     EndFile
 }
 
+
 pub struct XmlLexer {
     line: uint,
     col: uint,
-    depth: uint,
     token: Option<XmlToken>,
     priv buf: ~str,
     priv source: @Reader
@@ -64,7 +64,6 @@ impl XmlLexer {
         XmlLexer {
             line: 1,
             col: 0,
-            depth: 0,
             token: None,
             buf: ~"",
             source: data
@@ -151,13 +150,11 @@ impl XmlLexer {
     pub fn peek_str(&mut self, len: uint) -> ~str {
         let col = self.col;
         let line = self.line;
-        let depth = self.depth;
         let offset = len as int;
 
         let peekStr = self.read_str(len);
         self.col = col;
         self.line = line;
-        self.depth = depth;
         self.source.seek(-offset, SeekCur);
 
         peekStr
@@ -193,13 +190,11 @@ mod tests {
 
         let mut lexer = XmlLexer::from_reader(r);
         assert_eq!(~"as",               lexer.peek_str(2u));
-        assert_eq!(0u,                   lexer.col);
-        assert_eq!(1u,                   lexer.line);
-        assert_eq!(0u,                   lexer.depth);
+        assert_eq!(0u,                  lexer.col);
+        assert_eq!(1u,                  lexer.line);
         assert_eq!(~"as",               lexer.read_str(2u));
-        assert_eq!(2u,                   lexer.col);
-        assert_eq!(1u,                   lexer.line);
-        assert_eq!(0u,                   lexer.depth);
+        assert_eq!(2u,                  lexer.col);
+        assert_eq!(1u,                  lexer.line);
     }
 
     #[test]
