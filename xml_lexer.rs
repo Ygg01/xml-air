@@ -10,7 +10,7 @@ enum XmlToken {
     Equal,              // Symbol '='
     EndTag,             // Symbol '</'
     Text(~str),         // Various characters
-    Whitespace(int),    // Whitespace
+    Whitespace,         // Whitespace
     PIStart,            // Start of PI block '<?'
     PIEnd,              // End of PI block '?>'
     CDataStart,         // Start of CDATA block '<![CDATA'
@@ -22,7 +22,9 @@ enum XmlToken {
     EntityRef,          // Entity refernce, symbol '&'
     PERef,              // Entity refernce, symbol '%'
     CharRef,            // Encoded char or '&#'
-    EndOfFile
+    Encoding(~str),     // Encoding and it's respective value e.g. Encoding(~"UTF-8")
+    Standalone(bool),   // Standalone declaration, yes or no
+    EndOfFile           // Denotes end of file
 }
 
 #[deriving(Eq,ToStr)]
