@@ -210,9 +210,9 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        assert_eq!(~"as", lexer.read_str(2u));
+        assert_eq!(~"as",               lexer.read_str(2u));
         r.seek(0, SeekSet);
-        assert_eq!(~"as", lexer.read_str(3u));
+        assert_eq!(~"as",               lexer.read_str(3u));
     }
 
     #[test]
@@ -224,7 +224,7 @@ mod tests {
 
         let mut lexer = XmlLexer::from_reader(r);
         assert_eq!(Char('a'),           lexer.read());
-        assert_eq!(EndFile,           lexer.read())
+        assert_eq!(EndFile,             lexer.read())
     }
 
     #[test]
