@@ -185,6 +185,24 @@ mod tests {
     use std::io::*;
 
     #[test]
+    fn test_peek_str(){
+        let r = @BytesReader {
+            bytes: "as".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer = XmlLexer::from_reader(r);
+        assert_eq!(~"as",               lexer.peek_str(2u));
+        assert_eq!(0u,                   lexer.col);
+        assert_eq!(1u,                   lexer.line);
+        assert_eq!(0u,                   lexer.depth);
+        assert_eq!(~"as",               lexer.read_str(2u));
+        assert_eq!(2u,                   lexer.col);
+        assert_eq!(1u,                   lexer.line);
+        assert_eq!(0u,                   lexer.depth);
+    }
+
+    #[test]
     fn test_read_str(){
         let r = @BytesReader {
             bytes: "as".as_bytes(),
