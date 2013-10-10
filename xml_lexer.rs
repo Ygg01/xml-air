@@ -4,13 +4,13 @@ use util::*;
 mod util;
 
 #[deriving(Eq)]
-enum XmlToken {
+pub enum XmlToken {
     LeftBracket,        // Symbol '<'
     RightBracket,       // Symbol '>'
     Equal,              // Symbol '='
     EndTag,             // Symbol '</'
     Text(~str),         // Various characters
-    Whitespace,         // Whitespace
+    WhiteSpace,         // Whitespace
     PIStart,            // Start of PI block '<?'
     PIEnd,              // End of PI block '?>'
     CDataStart,         // Start of CDATA block '<![CDATA'
@@ -30,7 +30,6 @@ enum XmlToken {
 #[deriving(Eq,ToStr)]
 pub enum Character {
     Char(char),
-    NewLine,
     RestrictedChar,
     EndFile
 }
@@ -100,7 +99,7 @@ impl XmlLexer {
                     self.raw_unread();
                 }
 
-                retVal = NewLine;
+                retVal = Char('\n');
 
             },
             // A regular single character new line is found same as previous
@@ -109,7 +108,7 @@ impl XmlLexer {
             | '\u2028' => {
                 self.line += 1u;
                 self.col = 0u;
-                retVal = NewLine;
+                retVal = Char('\n');
             },
             // If we encounter a restricted character as specified in
             // `http://www.w3.org/TR/xml11/#charsets` the compiler is notified
@@ -138,7 +137,6 @@ impl XmlLexer {
         do len.times {
             let chr = self.read();
             match chr {
-                NewLine => string.push_char('\n'),
                 Char(a) => string.push_char(a),
                 _ => {}
             };
@@ -265,7 +263,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(Char('\n'),     lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -281,7 +279,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(Char('\n'),     lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -297,7 +295,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(Char('\n'),     lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -314,7 +312,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(Char('\n'),     lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -331,7 +329,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(NewLine,     lexer.read());
+        assert_eq!(Char('\n'),     lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
