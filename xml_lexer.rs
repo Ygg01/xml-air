@@ -180,6 +180,20 @@ mod tests {
     use std::io::*;
 
     #[test]
+    fn test_whitespace(){
+        let r = @BytesReader {
+            bytes: "   \t\n  a ".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer = XmlLexer::from_reader(r);
+        assert_eq!(Some(WhiteSpace),     lexer.next());
+        assert_eq!(7u,                   lexer.col);
+        assert_eq!(1u,                   lexer.line);
+
+    }
+
+    #[test]
     fn test_peek_str(){
         let r = @BytesReader {
             bytes: "as".as_bytes(),

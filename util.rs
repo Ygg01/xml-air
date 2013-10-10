@@ -41,8 +41,8 @@ pub fn is_char(chr : &char) -> bool {
 
 #[inline]
 /// Determines if the character is one of allowed whitespaces
-pub fn is_whitespace(chr: &char) -> bool {
-    *chr == ' ' || *chr == '\t' || *chr == '\n' || *chr == '\r'
+pub fn is_whitespace(chr: char) -> bool {
+    chr == ' ' || chr == '\t' || chr == '\n' || chr == '\r'
 }
 
 #[inline]
