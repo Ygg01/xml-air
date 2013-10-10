@@ -50,7 +50,21 @@ impl Iterator<XmlToken> for XmlLexer {
     /// TODO
     fn next(&mut self)
             -> Option<XmlToken>{
-        None
+        let chr_read = self.read();
+        let token = match chr_read {
+            Char(chr) if(is_whitespace(chr)) => {
+                self.read_until( |val| {
+                    match val {
+                        RestrictedChar => false,
+                        EndFile => false,
+                        Char(v) => is_whitespace(v)
+                    }
+                });
+                Some(WhiteSpace)
+            }
+            _ => None
+        };
+        token
 
     }
 }
@@ -128,6 +142,29 @@ impl XmlLexer {
 
         }
         retVal
+    }
+
+    pub fn read_until(&mut self, f: &fn(Character)-> bool ) -> ~str{
+        let mut col = 0u;
+        let mut line = 1u;
+        let mut char_read = self.read();
+        let mut ret_str = ~"";
+        while(f(char_read)){
+            match char_read {
+                Char(a) => {
+                    col = self.col;
+                    line = self.line;
+                    ret_str.push_char(a);
+                    char_read = self.read();
+
+                }
+                _ => {}
+            }
+        }
+        self.raw_unread();
+        self.col = col;
+        self.line = line;
+        ret_str
     }
 
     /// This method reads a string of given length skipping over any restricted char
