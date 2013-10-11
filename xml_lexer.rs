@@ -215,6 +215,7 @@ impl XmlLexer {
 mod tests {
     use super::*;
     use std::io::*;
+    use util::*;
 
     #[test]
     fn test_whitespace(){
