@@ -68,31 +68,6 @@ pub enum XNode {
     XPi(~PINode)
 }
 
-
-#[deriving(Eq)]
-/// Events returned by the Parser
-pub enum Events {
-    Document,
-    /// Event indicating a start tag was found
-    ElementStart {
-        name: ~str, 
-        attributes : ~[XmlAttr],
-        namespace : ~XmlNS
-    },
-    /// Event indicating an end tag was found
-    ElementEnd {
-        name: ~str
-    },
-    /// Event indicating processing information was found
-    ProcessInstruction(~str),
-    /// Event indicating character data was found
-    Text (~str),
-    /// Event indicating CDATA was found
-    CDATA (~str),
-    /// Event indicating a comment was found
-    Comment (~str)
-    //EndOfFile
-}
 fn main() {
     
 }
