@@ -43,15 +43,19 @@ pub struct XmlLexer {
     priv source: @Reader
 }
 
-impl Iterator<XmlToken> for XmlLexer {
+impl Iterator<Result<XmlToken,XmlError>> for XmlLexer {
     /// This method pulls tokens from stream until it reaches end of file.
     ///
     /// Example:
     /// TODO
     fn next(&mut self)
-            -> Option<XmlToken>{
+            -> Option<Result<XmlToken,XmlError>>{
         let chr_read = self.read();
         let token = match chr_read {
+            // This method when finding a whitespace character consumes all
+            // following whitespace characters until it reaches a non
+            // white space character be it Restricted char, EndFile or
+            // a non-white space char
             Char(chr) if(is_whitespace(chr)) => {
                 self.read_until( |val| {
                     match val {
@@ -60,7 +64,11 @@ impl Iterator<XmlToken> for XmlLexer {
                         Char(v) => is_whitespace(v)
                     }
                 });
-                Some(WhiteSpace)
+                Some(Ok(WhiteSpace))
+            },
+            Char('<') => {
+                let chr_peek = self.peek_str(1u);
+                None
             }
             _ => None
         };
