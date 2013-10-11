@@ -177,16 +177,36 @@ impl XmlLexer {
 
     /// This method reads a string of given length skipping over any restricted char
     ///
-    pub fn read_str(&mut self, len: uint) -> ~str {
+    pub fn read_str(&mut self, len: uint) -> (~str, Option<XmlError>) {
         let mut string = ~"";
-        do len.times {
+        let mut error = None;
+        let mut eof = false;
+        let mut l = 0u;
+
+        while (l < len && !eof) {
             let chr = self.read();
+            l += 1;
             match chr {
                 Char(a) => string.push_char(a),
-                _ => {}
+                EndFile => {
+                    error = Some(self.get_error(@~"Unexpected end of file"));
+                    eof = true;
+                },
+                RestrictedChar =>{
+                    error = Some(self.get_error(@~"Illegal character"));
+                }
             };
+
+        };
+        (string, error)
+    }
+
+    pub fn get_error(&mut self, err: @~str) -> XmlError {
+        XmlError {
+            line: self.line,
+            col: self.col,
+            msg: err
         }
-        string
     }
 
     /// Method that peeks incoming strings
@@ -195,7 +215,7 @@ impl XmlLexer {
         let line = self.line;
         let offset = len as int;
 
-        let peekStr = self.read_str(len);
+        let (peekStr, _)  = self.read_str(len);
         self.col = col;
         self.line = line;
         self.source.seek(-offset, SeekCur);
@@ -233,7 +253,7 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        assert_eq!(Some(WhiteSpace),     lexer.next());
+        assert_eq!(Some(Ok(WhiteSpace)), lexer.next());
         assert_eq!(7u,                   lexer.col);
         assert_eq!(1u,                   lexer.line);
 
@@ -247,12 +267,12 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        assert_eq!(~"as",               lexer.peek_str(2u));
-        assert_eq!(0u,                  lexer.col);
-        assert_eq!(1u,                  lexer.line);
-        assert_eq!(~"as",               lexer.read_str(2u));
-        assert_eq!(2u,                  lexer.col);
-        assert_eq!(1u,                  lexer.line);
+        assert_eq!(~"as",                       lexer.peek_str(2u));
+        assert_eq!(0u,                          lexer.col);
+        assert_eq!(1u,                          lexer.line);
+        assert_eq!((~"as", None),               lexer.read_str(2u));
+        assert_eq!(2u,                          lexer.col);
+        assert_eq!(1u,                          lexer.line);
     }
 
     #[test]
@@ -263,9 +283,11 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        assert_eq!(~"as",               lexer.read_str(2u));
+        assert_eq!((~"as", None),               lexer.read_str(2u));
         r.seek(0, SeekSet);
-        assert_eq!(~"as",               lexer.read_str(3u));
+        lexer = XmlLexer::from_reader(r);
+        assert_eq!((~"as", Some(XmlError{ line: 1u, col: 2u, msg: @~"Unexpected end of file"
+                                })),            lexer.read_str(3u));
     }
 
     #[test]
