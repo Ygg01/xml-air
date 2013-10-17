@@ -205,7 +205,9 @@ impl XmlLexer {
         XmlError {
             line: self.line,
             col: self.col,
-            msg: err
+            msg: err,
+            context: None,
+            mark: None
         }
     }
 
@@ -283,11 +285,11 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        assert_eq!((~"as", None),               lexer.read_str(2u));
+        assert_eq!(XmlResult{ data: ~"as", errors :~[]},               lexer.read_str(2u));
         r.seek(0, SeekSet);
         lexer = XmlLexer::from_reader(r);
-        assert_eq!((~"as", Some(XmlError{ line: 1u, col: 2u, msg: @~"Unexpected end of file"
-                                })),            lexer.read_str(3u));
+        assert_eq!(XmlResult{ data: ~"as", errors: ~[XmlError{ line: 1u, col: 2u, msg: @~"Unexpected end of file", context: None, mark: None}]},
+                    lexer.read_str(3u));
     }
 
     #[test]

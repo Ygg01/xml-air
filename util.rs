@@ -1,6 +1,6 @@
 use std::str;
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone, ToStr)]
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
 pub struct XmlError {
@@ -9,7 +9,12 @@ pub struct XmlError {
     /// The column number at which the error occurred
     col: uint,
     /// A message describing the type of the error
-    msg: @~str
+    msg: @~str,
+    /// Context in which the error occured
+    context: Option<~str>,
+    /// Position of error in Context
+    mark: Option<uint>
+}
 }
 
 #[inline]
