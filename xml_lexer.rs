@@ -40,7 +40,7 @@ pub struct XmlLexer {
     line: uint,
     col: uint,
     token: Option<XmlToken>,
-    priv buf: ~str,
+    priv peek_buf: ~str,
     priv err_buf: ~str,
     priv source: @Reader
 }
@@ -112,7 +112,7 @@ impl XmlLexer {
             line: 1,
             col: 0,
             token: None,
-            buf: ~"",
+            peek_buf: ~"",
             err_buf: ~"",
             source: data
         }
