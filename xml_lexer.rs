@@ -41,6 +41,7 @@ pub struct XmlLexer {
     col: uint,
     token: Option<XmlToken>,
     priv buf: ~str,
+    priv err_buf: ~str,
     priv source: @Reader
 }
 
@@ -69,8 +70,31 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
                 Some(XmlResult{data: WhiteSpace, errors: ~[]})
             },
             Char('<') => {
-                let chr_peek = self.peek_str(1u);
-                None
+                let chr_peek = self.peek_str(1u).data;
+                match chr_peek {
+                    ~"?" => {
+                        self.read();
+                        Some(XmlResult{data: PIStart, errors: ~[]})
+                    }
+                    ~"!" => {
+                        self.read();
+                        let sec_chr_peek = self.peek_str(1u).data;
+                        match sec_chr_peek {
+                            ~"[" => {
+                                let peek_cdata = self.peek_str(6u).data;
+                                if(peek_cdata == ~"[CDATA"){
+                                    self.read_str(6u);
+                                    Some(XmlResult {data: CDataStart, errors:~[]})
+                                }else{
+                                    //TODO peek
+                                    Some(XmlResult {data: CDataStart, errors: ~[]})
+                                }
+                            },
+                            _ => None
+                        }
+                    }
+                    _   => Some(XmlResult{data: LeftBracket, errors: ~[]})
+                }
             }
             _ => None
         };
@@ -81,7 +105,7 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
 
 impl XmlLexer {
     /// Constructs a new `XmlLexer` from @Reader `data`
-    /// The `XmlLexer` will use the given string as the source for parsing.
+    /// The `XmlLexer` will use the given reader as the source for parsing.
     pub fn from_reader(data : @Reader)
                      -> XmlLexer {
         XmlLexer {
@@ -89,22 +113,37 @@ impl XmlLexer {
             col: 0,
             token: None,
             buf: ~"",
+            err_buf: ~"",
             source: data
         }
     }
     /// This method reads a character and returns an enum that might be
     /// either a value of character, a new-line sign or a restricted character.
-    /// If it finds a restricted character the method will still update
-    /// position accordingly.
-    fn read(&mut self)
-            -> Character {
+    /// 
+    /// Encountering Restricted characters will not result in an error,
+    /// Instead the position will be update but no information about such
+    /// characters will not be preserved.
+    ///
+    /// Method shortcircuits if the End of file has been reached
+    ///
+    /// Note: This method will normalize all accepted newline characters into
+    /// '\n' character.
+    /// encountered will not be preserved.
+    ///TODO add buffer for character/
+    ///TODO add line char buffer
+    fn read(&mut self) -> Character {
+
 
         if(self.source.eof()){
             return EndFile
         }
-
-        let chr = self.raw_read();
+        let chr;
         let retVal;
+        if(self.err_buf.is_empty()){
+            chr= self.raw_read();
+        }else{
+            chr = self.err_buf.pop_char();
+        }
 
         // This pattern matcher decides what to do with found character.
         match chr {
@@ -254,6 +293,74 @@ mod tests {
     use util::*;
 
     #[test]
+    /// This method test buffer to ensure that adding characters into it
+    /// will not cause premature end of line. 
+    /// If program has six characters and lexer peeks 6 the reader will
+    /// be moved, and those characters added to buffer.
+    /// If reader isn't set back the read() method will end prematurely
+    /// because it encountered an EOF sign, but it hasn't read all characters
+    fn test_premature_eof(){
+        let r = @BytesReader {
+            bytes: "012345".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer =         XmlLexer::from_reader(r);
+        lexer.peek_str(6u);
+        assert_eq!(~"012345",       lexer.read_str(6u).data);
+    }
+
+    #[test]
+    fn test_tokens(){
+        let r = @BytesReader {
+            bytes: "<?xml> <![CDATA]]> <!DOCTYPE !><a></a><a/><!-- --!>".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer =         XmlLexer::from_reader(r);
+
+        assert_eq!(Some(XmlResult{ data: PIStart, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: NameToken(~"xml"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: PIEnd, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: WhiteSpace, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: CDataStart, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: CDataEnd, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: WhiteSpace, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: DoctypeStart, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: WhiteSpace, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: DoctypeEnd, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: LeftBracket, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: NameToken(~"a"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: RightBracket, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: LeftBracket, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: NameToken(~"a"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: EndTag, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: CommentStart, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: WhiteSpace, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: CommentEnd, errors: ~[] }),
+                   lexer.next());
+
+    }
+
+    #[test]
     fn test_whitespace(){
         let r = @BytesReader {
             bytes: "   \t\n  a ".as_bytes(),
@@ -354,7 +461,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),     lexer.read());
+        assert_eq!(Char('\n'),  lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -370,7 +477,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),     lexer.read());
+        assert_eq!(Char('\n'),  lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -386,7 +493,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),     lexer.read());
+        assert_eq!(Char('\n'),  lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -403,7 +510,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),     lexer.read());
+        assert_eq!(Char('\n'),  lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
@@ -420,7 +527,7 @@ mod tests {
         assert_eq!(Char('a'),   lexer.read());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),     lexer.read());
+        assert_eq!(Char('\n'),  lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
         assert_eq!(Char('t'),   lexer.read());
