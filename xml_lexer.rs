@@ -9,6 +9,7 @@ pub enum XmlToken {
     RightBracket,       // Symbol '>'
     Equal,              // Symbol '='
     EndTag,             // Symbol '</'
+    NameToken(~str),    // Tag name
     Text(~str),         // Various characters
     WhiteSpace,         // Whitespace
     PIStart,            // Start of PI block '<?'
@@ -58,7 +59,7 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
             // reaches a non white space character be it Restricted char,
             // EndFile or  a non-white space char
             Char(chr) if(is_whitespace(chr)) => {
-                self.read_until( |val| {
+                self.read_until_fn( |val| {
                     match val {
                         RestrictedChar => false,
                         EndFile => false,
