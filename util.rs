@@ -40,6 +40,45 @@ pub fn unescape(input: &str) -> ~str {
     str::replace(tmp, "&amp;", "&")
 }
 
+
+#[inline]
+pub fn is_name_start(chr: &char) -> bool {
+    match *chr {
+        ':'
+        | '_'
+        | 'A'..'Z'
+        | 'a'..'z'
+        | '\xC0'..'\xD6'
+        | '\xD8'..'\xF6'
+        | '\xF8'..'\u02FF'
+        | '\u0370'..'\u03FD'
+        | '\u037F'..'\u1FFF'
+        | '\u200C'..'\u200D'
+        | '\u2070'..'\u218F'
+        | '\u2C00'..'\u2FEF'
+        | '\u3001'..'\uD7FF'
+        | '\uF900'..'\uFDCF'
+        | '\uFDF0'..'\uFFFD'
+        | '\U00010000'..'\U000EFFFF' => true,
+        _ => false
+    }
+}
+
+pub fn is_name_char(chr: &char) -> bool {
+    if(is_name_start(chr)){
+        return true;
+    }
+    match *chr {
+        '-'
+        | '.'
+        | '0'..'9'
+        | '\xB7'
+        | '\u0300'..'\u036F'
+        | '\u203F'..'\u2040' => true,
+        _ =>false
+    }
+}
+
 #[inline]
 /// Determines if the character is allowed, if not, returns false
 pub fn is_char(chr : &char) -> bool {
