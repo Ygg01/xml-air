@@ -15,6 +15,10 @@ pub struct XmlError {
     /// Position of error in Context
     mark: Option<uint>
 }
+#[deriving(Eq, Clone, ToStr)]
+pub struct XmlResult<T> {
+    data: T,
+    errors: ~[XmlError]
 }
 
 #[inline]

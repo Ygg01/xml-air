@@ -43,19 +43,20 @@ pub struct XmlLexer {
     priv source: @Reader
 }
 
-impl Iterator<Result<XmlToken,XmlError>> for XmlLexer {
+impl Iterator<XmlResult<XmlToken>> for XmlLexer {
     /// This method pulls tokens from stream until it reaches end of file.
+    /// From that point on, it will return None.
     ///
     /// Example:
     /// TODO
     fn next(&mut self)
-            -> Option<Result<XmlToken,XmlError>>{
+            -> Option<XmlResult<XmlToken>>{
         let chr_read = self.read();
         let token = match chr_read {
-            // This method when finding a whitespace character consumes all
-            // following whitespace characters until it reaches a non
-            // white space character be it Restricted char, EndFile or
-            // a non-white space char
+            // If we find a whitespace character  the following method
+            // consumes all following whitespace characters until it
+            // reaches a non white space character be it Restricted char,
+            // EndFile or  a non-white space char
             Char(chr) if(is_whitespace(chr)) => {
                 self.read_until( |val| {
                     match val {
@@ -64,7 +65,7 @@ impl Iterator<Result<XmlToken,XmlError>> for XmlLexer {
                         Char(v) => is_whitespace(v)
                     }
                 });
-                Some(Ok(WhiteSpace))
+                Some(XmlResult{data: WhiteSpace, errors: ~[]})
             },
             Char('<') => {
                 let chr_peek = self.peek_str(1u);
@@ -152,12 +153,14 @@ impl XmlLexer {
         retVal
     }
 
-    pub fn read_until(&mut self, f: &fn(Character)-> bool ) -> ~str{
+    //TODO Doc
+    pub fn read_until_fn(&mut self, true_fn: &fn(Character)-> bool ) -> XmlResult<~str>{
         let mut col = 0u;
         let mut line = 1u;
         let mut char_read = self.read();
         let mut ret_str = ~"";
-        while(f(char_read)){
+
+        while(true_fn(char_read)){
             match char_read {
                 Char(a) => {
                     col = self.col;
@@ -172,14 +175,16 @@ impl XmlLexer {
         self.raw_unread();
         self.col = col;
         self.line = line;
-        ret_str
+        //TODO error checking
+        XmlResult{ data: ret_str, errors: ~[]}
     }
 
     /// This method reads a string of given length skipping over any restricted char
     ///
-    pub fn read_str(&mut self, len: uint) -> (~str, Option<XmlError>) {
+    //TODO return XMLrestul
+    pub fn read_str(&mut self, len: uint) -> XmlResult<~str> {
         let mut string = ~"";
-        let mut error = None;
+        let mut found_errs = ~[];
         let mut eof = false;
         let mut l = 0u;
 
@@ -189,16 +194,16 @@ impl XmlLexer {
             match chr {
                 Char(a) => string.push_char(a),
                 EndFile => {
-                    error = Some(self.get_error(@~"Unexpected end of file"));
+                    found_errs = ~[self.get_error(@~"Unexpected end of file")];
                     eof = true;
                 },
                 RestrictedChar =>{
-                    error = Some(self.get_error(@~"Illegal character"));
+                    found_errs = ~[self.get_error(@~"Illegal character")];
                 }
             };
 
         };
-        (string, error)
+        XmlResult{ data: string, errors:found_errs}
     }
 
     pub fn get_error(&mut self, err: @~str) -> XmlError {
@@ -212,12 +217,12 @@ impl XmlLexer {
     }
 
     /// Method that peeks incoming strings
-    pub fn peek_str(&mut self, len: uint) -> ~str {
+    pub fn peek_str(&mut self, len: uint) -> XmlResult<~str>{
         let col = self.col;
         let line = self.line;
         let offset = len as int;
 
-        let (peekStr, _)  = self.read_str(len);
+        let peekStr  = self.read_str(len);
         self.col = col;
         self.line = line;
         self.source.seek(-offset, SeekCur);
@@ -255,9 +260,10 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        assert_eq!(Some(Ok(WhiteSpace)), lexer.next());
-        assert_eq!(7u,                   lexer.col);
-        assert_eq!(1u,                   lexer.line);
+        let whitespace = XmlResult{ data: WhiteSpace, errors: ~[]};
+        assert_eq!(Some(whitespace),    lexer.next());
+        assert_eq!(7u,                  lexer.col);
+        assert_eq!(1u,                  lexer.line);
 
     }
 
@@ -269,10 +275,10 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        assert_eq!(~"as",                       lexer.peek_str(2u));
+        assert_eq!(~"as",                       lexer.peek_str(2u).data);
         assert_eq!(0u,                          lexer.col);
         assert_eq!(1u,                          lexer.line);
-        assert_eq!((~"as", None),               lexer.read_str(2u));
+        assert_eq!(~"as",                       lexer.read_str(2u).data);
         assert_eq!(2u,                          lexer.col);
         assert_eq!(1u,                          lexer.line);
     }
