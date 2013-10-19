@@ -107,7 +107,7 @@ impl XmlLexer {
     /// Constructs a new `XmlLexer` from @Reader `data`
     /// The `XmlLexer` will use the given reader as the source for parsing.
     pub fn from_reader(data : @Reader)
-                     -> XmlLexer {
+                    -> XmlLexer {
         XmlLexer {
             line: 1,
             col: 0,
@@ -129,20 +129,21 @@ impl XmlLexer {
     /// Note: This method will normalize all accepted newline characters into
     /// '\n' character.
     /// encountered will not be preserved.
-    ///TODO add buffer for character/
     ///TODO add line char buffer
     fn read(&mut self) -> Character {
 
-
-        if(self.source.eof()){
-            return EndFile
-        }
         let chr;
         let retVal;
-        if(self.err_buf.is_empty()){
+
+        if(self.peek_buf.is_empty()){
+
+            if(self.source.eof()){
+                return EndFile
+            }
             chr= self.raw_read();
         }else{
-            chr = self.err_buf.pop_char();
+            chr = self.peek_buf.pop_char();
+
         }
 
         // This pattern matcher decides what to do with found character.
@@ -219,10 +220,19 @@ impl XmlLexer {
         XmlResult{ data: ret_str, errors: ~[]}
     }
 
-    /// This method reads a string of given length skipping over any restricted char
-    ///
-    //TODO return XMLrestul
+    /// This method reads a string of given length skipping over any
+    /// restricted character and adding an error for each such
+    /// character.
+    /// Restricted characters are *not included* into the output
+    /// string.
     pub fn read_str(&mut self, len: uint) -> XmlResult<~str> {
+        XmlLexer::rem_restricted_char(self.read_str_raw(len))
+    }
+
+    /// This method reads a string of given lenght, adding any
+    /// restricted char  into the error section.
+    /// Restricted character are *included* into the output string
+    fn read_str_raw(&mut self, len: uint) -> XmlResult<~str> {
         let mut string = ~"";
         let mut found_errs = ~[];
         let mut eof = false;
@@ -262,12 +272,15 @@ impl XmlLexer {
         let line = self.line;
         let offset = len as int;
 
-        let peekStr  = self.read_str(len);
+        let peek_result  = self.read_str_raw(len);
         self.col = col;
         self.line = line;
-        self.source.seek(-offset, SeekCur);
 
-        peekStr
+        for c in peek_result.data.rev_iter(){
+             self.peek_buf.push_char(c);
+        }
+
+        XmlLexer::rem_restricted_char(peek_result)
     }
 
     #[inline]
@@ -284,6 +297,24 @@ impl XmlLexer {
     fn raw_unread(&mut self) {
         self.source.seek(-1, SeekCur);
     }
+
+    /// This methods removes all restricted character from a given XmlResult<~str>,
+    /// Without changing errors
+    fn rem_restricted_char(input: XmlResult<~str>) -> XmlResult<~str> {
+        let mut clean_str = ~"";
+
+        for c in input.data.iter() {
+            if (!is_restricted(&c)){
+                clean_str.push_char(c);
+            }
+        }
+
+        let result = XmlResult {
+                        data: clean_str,
+                        errors: input.errors.clone()
+        };
+        result
+    }
 }
 
 #[cfg(test)]
@@ -291,6 +322,33 @@ mod tests {
     use super::*;
     use std::io::*;
     use util::*;
+
+    #[test]
+    fn test_multi_peek(){
+        let r = @BytesReader {
+            bytes: "123".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer =             XmlLexer::from_reader(r);
+        assert_eq!(~"12",           lexer.peek_str(2u).data);
+        assert_eq!(~"12",           lexer.peek_str(2u).data);
+        assert_eq!(~"1",            lexer.read_str(1u).data);
+        assert_eq!(~"23",           lexer.peek_str(2u).data);
+        assert_eq!(~"23",           lexer.peek_str(2u).data);
+    }
+
+    #[test]
+    fn test_peek_restricted(){
+        let r = @BytesReader {
+            bytes: "1\x0123".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer =             XmlLexer::from_reader(r);
+        assert_eq!(~"1",            lexer.peek_str(2u).data);
+        assert_eq!(~"12",           lexer.peek_str(3u).data);
+    }
 
     #[test]
     /// This method test buffer to ensure that adding characters into it
