@@ -10,11 +10,16 @@ pub struct XmlError {
     col: uint,
     /// A message describing the type of the error
     msg: @~str,
-    /// Context in which the error occured
-    context: Option<~str>,
-    /// Position of error in Context
-    mark: Option<uint>
+    /// Position and context of error in Context
+    mark: Option<Mark>
 }
+#[deriving(Eq, Clone, ToStr)]
+pub struct Mark {
+    pos: uint,
+
+    context: ~str
+}
+
 #[deriving(Eq, Clone, ToStr)]
 pub struct XmlResult<T> {
     data: T,
