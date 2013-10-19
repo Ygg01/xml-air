@@ -31,7 +31,7 @@ pub enum XmlToken {
 #[deriving(Eq,ToStr)]
 pub enum Character {
     Char(char),
-    RestrictedChar,
+    RestrictedChar(char),
     EndFile
 }
 
@@ -62,9 +62,9 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
             Char(chr) if(is_whitespace(chr)) => {
                 self.read_until_fn( |val| {
                     match val {
-                        RestrictedChar => false,
-                        EndFile => false,
-                        Char(v) => is_whitespace(v)
+                        RestrictedChar(_)   => false,
+                        EndFile             => false,
+                        Char(v)             => is_whitespace(v)
                     }
                 });
                 Some(XmlResult{data: WhiteSpace, errors: ~[]})
@@ -180,7 +180,7 @@ impl XmlLexer {
             // they might be ignored by the parser.
             a if (!is_char(&a) || is_restricted(&a)) => {
                 self.col += 1u;
-                retVal = RestrictedChar;
+                retVal = RestrictedChar(a);
             },
             // A valid non-restricted char was found,
             // so we update the column position.
@@ -237,8 +237,9 @@ impl XmlLexer {
                     found_errs = ~[self.get_error(@~"Unexpected end of file")];
                     eof = true;
                 },
-                RestrictedChar =>{
+                RestrictedChar(a) =>{
                     found_errs = ~[self.get_error(@~"Illegal character")];
+                    string.push_char(a);
                 }
             };
 
@@ -428,24 +429,24 @@ mod tests {
 
         let mut lexer = XmlLexer::from_reader(r1);
 
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(Char('a'),           lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(Char('b'),           lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(Char('c'),           lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(Char('d'),           lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
-        assert_eq!(RestrictedChar,      lexer.read());
+        assert_eq!(RestrictedChar('\x01'),      lexer.read());
+        assert_eq!(RestrictedChar('\x04'),      lexer.read());
+        assert_eq!(RestrictedChar('\x08'),      lexer.read());
+        assert_eq!(Char('a'),                   lexer.read());
+        assert_eq!(RestrictedChar('\x0B'),      lexer.read());
+        assert_eq!(RestrictedChar('\x0C'),      lexer.read());
+        assert_eq!(Char('b'),                   lexer.read());
+        assert_eq!(RestrictedChar('\x0E'),      lexer.read());
+        assert_eq!(RestrictedChar('\x10'),      lexer.read());
+        assert_eq!(RestrictedChar('\x1F'),      lexer.read());
+        assert_eq!(Char('c'),                   lexer.read());
+        assert_eq!(RestrictedChar('\x7F'),      lexer.read());
+        assert_eq!(RestrictedChar('\x80'),      lexer.read());
+        assert_eq!(RestrictedChar('\x84'),      lexer.read());
+        assert_eq!(Char('d'),                   lexer.read());
+        assert_eq!(RestrictedChar('\x86'),      lexer.read());
+        assert_eq!(RestrictedChar('\x90'),      lexer.read());
+        assert_eq!(RestrictedChar('\x9F'),      lexer.read());
     }
 
     #[test]
