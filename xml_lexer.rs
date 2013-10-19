@@ -35,6 +35,23 @@ pub enum Character {
     EndFile
 }
 
+impl Character {
+    pub fn extract_char(&self) -> Option<char> {
+        match *self {
+            Char(a)
+            | RestrictedChar(a) => Some(a),
+            EndFile             => None
+        }
+    }
+
+    pub fn is_valid_char(&self) -> bool {
+        match *self {
+            Char(_) => true,
+            _       => false
+        }
+    }
+}
+
 
 pub struct XmlLexer {
     line: uint,
@@ -444,7 +461,10 @@ mod tests {
         assert_eq!(~"as",                       lexer.peek_str(2u).data);
         assert_eq!(0u,                          lexer.col);
         assert_eq!(1u,                          lexer.line);
-        assert_eq!(~"as",                       lexer.read_str(2u).data);
+        assert_eq!(Char('a'),                   lexer.read());
+        assert_eq!(1u,                          lexer.col);
+        assert_eq!(1u,                          lexer.line);
+        assert_eq!(~"s",                        lexer.read_str(1u).data);
         assert_eq!(2u,                          lexer.col);
         assert_eq!(1u,                          lexer.line);
     }
