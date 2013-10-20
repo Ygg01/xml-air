@@ -53,9 +53,9 @@ pub struct XmlParser {
 }
 
 impl Iterator<Result<XNode,XmlError>> for XmlParser {
-    /// This method pulls tokens until it reaches a fully formed XML node
-    /// once it's finished a node, it stops returning said node or error
-    /// if it encountered one.
+    /// This method pulls tokens, until it reaches a fully formed XML node.
+    /// Once it finds a node, it stops returning said node or error
+    /// if it there was an error during processing.
     ///
     /// This method should be used similar to an outer iterator.
     fn next(&mut self)
@@ -68,8 +68,7 @@ impl Iterator<Result<XNode,XmlError>> for XmlParser {
 
 impl XmlParser {
     /// Constructs a new XmlParser from Reader `data`
-    /// The Xmlparser will use the given string as the source for parsing.
-    /// Best used for small examples.
+    /// The XmlParser will use the given reader as the source for parsing.
     /// ~~~
     /// let mut p = XmlParser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }

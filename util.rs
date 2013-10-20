@@ -54,6 +54,20 @@ pub fn unescape(input: &str) -> ~str {
     str::replace(tmp, "&amp;", "&")
 }
 
+pub fn is_digit(input: &char) -> bool {
+    match *input {
+        '0'..'9' => true,
+        _ => false
+    }
+}
+
+pub fn is_hex_digit(input: &char) -> bool {
+    match *input {
+        '0'..'9'
+        | 'A'..'F' => true,
+        _ => false
+    }
+}
 
 #[inline]
 pub fn is_name_start(chr: &char) -> bool {
