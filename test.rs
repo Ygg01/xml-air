@@ -6,11 +6,11 @@ pub struct ReadSource {
 }
 
 impl ReadSource {
-/*
+
     fn next(&mut self){
         self.source.read_char();
     }
-*/
+
 }
 
 fn main() {

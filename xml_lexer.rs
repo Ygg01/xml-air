@@ -20,8 +20,8 @@ pub enum XmlToken {
     DoctypeEnd,         // End of Doctype block '!>'
     CommentStart,       // Comment start <!--
     CommentEnd,         // Comment start --!>
-    EntityRef,          // Entity refernce, symbol '&'
-    PERef,              // Entity refernce, symbol '%'
+    EntityRef,          // Entity reference, symbol '&'
+    PERef,              // Entity reference, symbol '%'
     CharRef,            // Encoded char or '&#'
     Encoding(~str),     // Encoding and it's respective value e.g. Encoding(~"UTF-8")
     Standalone(bool),   // Standalone declaration, yes or no
@@ -48,6 +48,19 @@ impl Character {
         match *self {
             Char(_) => true,
             _       => false
+        }
+    }
+
+    pub fn from_char(chr: char) -> Character {
+        if(is_restricted(&chr)){
+            RestrictedChar(chr)
+        }else if(is_char(&chr)){
+            Char(chr)
+        }else{
+            // If we encounter unknown character we replace it with 
+            // space 
+            // TODO check if this is OK
+            Char(' ')
         }
     }
 }
@@ -141,7 +154,7 @@ impl XmlLexer {
     /// Instead the position will be update but no information about such
     /// characters will not be preserved.
     ///
-    /// Method shortcircuits if the End of file has been reached
+    /// Method short-circuits if the End of file has been reached
     ///
     /// Note: This method will normalize all accepted newline characters into
     /// '\n' character.
@@ -150,65 +163,26 @@ impl XmlLexer {
     fn read(&mut self) -> Character {
 
         let chr;
-        let retVal;
+        // and non allowed are added?
+        let mut retVal = Char('\0');
 
         if(self.peek_buf.is_empty()){
 
             if(self.source.eof()){
                 return EndFile
             }
+
             chr= self.raw_read();
         }else{
             chr = self.peek_buf.pop_char();
-
         }
 
-        // This pattern matcher decides what to do with found character.
-        match chr {
-            // If char read is `\r` it must peek tocheck if `\x85` or `\n` are
-            // next,  because they are part of same newline group.
-            // According to `http://www.w3.org/TR/xml11/#sec-line-ends`
-            // definition. This method updates column and line position.
-            // Note: Lines and column start at 1 but the read character will be
-            // update after a new character is read.
-            '\r' => {
-                self.line += 1u;
-                self.col = 0u;
-
-                let chrPeek = self.raw_read();
-                if(chrPeek != '\x85' && chrPeek != '\n'){
-                    self.raw_unread();
-                }
-
-                retVal = Char('\n');
-
-            },
-            // A regular single character new line is found same as previous
-            // section without the need to peek the next character.
-            '\x85'
-            | '\u2028' => {
-                self.line += 1u;
-                self.col = 0u;
-                retVal = Char('\n');
-            },
-            // If we encounter a restricted character as specified in
-            // `http://www.w3.org/TR/xml11/#charsets` the compiler is notified
-            // that such character has been found.
-            // Restricted chars still but increase column number because
-            // they might be ignored by the parser.
-            a if (!is_char(&a) || is_restricted(&a)) => {
-                self.col += 1u;
-                retVal = RestrictedChar(a);
-            },
-            // A valid non-restricted char was found,
-            // so we update the column position.
-            _ => {
-                self.col += 1u;
-                retVal = Char(chr);
-            }
-
+        if("\r\u2028\x85".contains_char(chr)){
+           return self.process_newline(chr)
+        }else{
+           return self.process_char(chr)
         }
-        retVal
+
     }
 
     //TODO Doc
@@ -243,10 +217,10 @@ impl XmlLexer {
     /// Restricted characters are *not included* into the output
     /// string.
     pub fn read_str(&mut self, len: uint) -> XmlResult<~str> {
-        XmlLexer::rem_restricted_char(self.read_str_raw(len))
+        XmlLexer::clean_restricted(self.read_str_raw(len))
     }
 
-    /// This method reads a string of given lenght, adding any
+    /// This method reads a string of given length, adding any
     /// restricted char  into the error section.
     /// Restricted character are *included* into the output string
     fn read_str_raw(&mut self, len: uint) -> XmlResult<~str> {
@@ -297,7 +271,7 @@ impl XmlLexer {
              self.peek_buf.push_char(c);
         }
 
-        XmlLexer::rem_restricted_char(peek_result)
+        XmlLexer::clean_restricted(peek_result)
     }
 
     #[inline]
@@ -317,7 +291,7 @@ impl XmlLexer {
 
     /// This methods removes all restricted character from a given XmlResult<~str>,
     /// Without changing errors
-    fn rem_restricted_char(input: XmlResult<~str>) -> XmlResult<~str> {
+    fn clean_restricted(input: XmlResult<~str>) -> XmlResult<~str> {
         let mut clean_str = ~"";
 
         for c in input.data.iter() {
@@ -331,6 +305,33 @@ impl XmlLexer {
                         errors: input.errors.clone()
         };
         result
+    }
+
+    /// Processes the input `char` as it was a newline
+    /// Note if char read is `\r` it must peek to check if `\x85` or `\n`
+    /// are next, because they are part of same newline group.
+    /// See to `http://www.w3.org/TR/xml11/#sec-line-ends` for details
+    /// This method updates column and line position accordingly.
+    ///
+    /// Note: Lines and column start at 1 but the read character will be
+    /// update after a new character is read.
+    fn process_newline(&mut self, c: char) -> Character {
+        self.line += 1u;
+        self.col = 0u;
+
+        if(c == '\r'){
+            let chrPeek = self.raw_read();
+            if(chrPeek != '\x85' && chrPeek != '\n'){
+                self.raw_unread();
+            }
+        }
+
+        Char('\n')
+    }
+
+    fn process_char(&mut self, c: char) -> Character {
+        self.col += 1u;
+        Character::from_char(c)
     }
 }
 
