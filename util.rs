@@ -10,9 +10,18 @@ pub struct XmlError {
     col: uint,
     /// A message describing the type of the error
     msg: @~str,
+    ///TODO Type of error
+
     /// Position and context of error in Context
     mark: Option<Mark>
 }
+
+#[deriving(Eq, Clone, ToStr)]
+enum ErrKind {
+    RestrictedCharError,
+    EndOfFileError
+}
+
 #[deriving(Eq, Clone, ToStr)]
 pub struct Mark {
     pos: uint,
@@ -33,12 +42,12 @@ pub fn escape(input: &str) -> ~str {
 
     for c in input.iter() {
         match c {
-            '&' => result.push_str("&amp;"),
-            '<' => result.push_str("&lt;"),
-            '>' => result.push_str("&gt;"),
-            '\'' => result.push_str("&apos;"),
-            '"' => result.push_str("&quot;"),
-            o => result.push_char(o)
+            '&'     => result.push_str("&amp;"),
+            '<'     => result.push_str("&lt;"),
+            '>'     => result.push_str("&gt;"),
+            '\''    => result.push_str("&apos;"),
+            '"'     => result.push_str("&quot;"),
+            chr     => result.push_char(chr)
         }
     }
     result
