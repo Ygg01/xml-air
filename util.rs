@@ -29,6 +29,13 @@ pub struct Mark {
     context: ~str
 }
 
+//TODO replace this with
+pub enum XmlResult2<'self, T> {
+    Data(T),
+    Recoverable(T, &'self [XmlError]),
+    FatalError(XmlError)
+}
+
 #[deriving(Eq, Clone, ToStr)]
 pub struct XmlResult<T> {
     data: T,
