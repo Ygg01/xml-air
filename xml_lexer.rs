@@ -685,52 +685,7 @@ mod tests {
     use super::*;
     use std::io::*;
     use util::*;
-/*
-    #[test]
-    fn test_multi_peek(){
-        let r = @BytesReader {
-            bytes: "123".as_bytes(),
-            pos: @mut 0
-        } as @Reader;
 
-        let mut lexer =             XmlLexer::from_reader(r);
-        assert_eq!(~"12",           lexer.peek_str(2u).data);
-        assert_eq!(~"12",           lexer.peek_str(2u).data);
-        assert_eq!(~"1",            lexer.read_str(1u).data);
-        assert_eq!(~"23",           lexer.peek_str(2u).data);
-        assert_eq!(~"23",           lexer.peek_str(2u).data);
-    }
-
-    #[test]
-    fn test_peek_restricted(){
-        let r = @BytesReader {
-            bytes: "1\x0123".as_bytes(),
-            pos: @mut 0
-        } as @Reader;
-
-        let mut lexer =             XmlLexer::from_reader(r);
-        assert_eq!(~"1",            lexer.peek_str(2u).data);
-        assert_eq!(~"12",           lexer.peek_str(3u).data);
-    }
-
-    #[test]
-    /// This method test buffer to ensure that adding characters into it
-    /// will not cause premature end of line. 
-    /// If program has six characters and lexer peeks 6 the reader will
-    /// be moved, and those characters added to buffer.
-    /// If reader isn't set back the read() method will end prematurely
-    /// because it encountered an EOF sign, but it hasn't read all characters
-    fn test_premature_eof(){
-        let r = @BytesReader {
-            bytes: "012345".as_bytes(),
-            pos: @mut 0
-        } as @Reader;
-
-        let mut lexer =         XmlLexer::from_reader(r);
-        lexer.peek_str(6u);
-        assert_eq!(~"012345",       lexer.read_str(6u).data);
-    }
-*/
     #[test]
     fn test_tokens(){
         let r = @BytesReader {
@@ -782,10 +737,53 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Comment(~" "), errors: ~[] }),
                    lexer.next());
-
-
     }
-/*
+
+    #[test]
+    fn test_multi_peek(){
+        let r = @BytesReader {
+            bytes: "123".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer =             XmlLexer::from_reader(r);
+        assert_eq!(~"12",           lexer.peek_str(2u).data);
+        assert_eq!(~"12",           lexer.peek_str(2u).data);
+        assert_eq!(~"1",            lexer.read_str(1u).data);
+        assert_eq!(~"23",           lexer.peek_str(2u).data);
+        assert_eq!(~"23",           lexer.peek_str(2u).data);
+    }
+
+    #[test]
+    fn test_peek_restricted(){
+        let r = @BytesReader {
+            bytes: "1\x0123".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer =             XmlLexer::from_reader(r);
+        assert_eq!(~"1",            lexer.peek_str(2u).data);
+        assert_eq!(~"12",           lexer.peek_str(3u).data);
+    }
+
+    #[test]
+    /// This method test buffer to ensure that adding characters into it
+    /// will not cause premature end of line. 
+    /// If program has six characters and lexer peeks 6 the reader will
+    /// be moved, and those characters added to buffer.
+    /// If reader isn't set back the read() method will end prematurely
+    /// because it encountered an EOF sign, but it hasn't read all characters
+    fn test_premature_eof(){
+        let r = @BytesReader {
+            bytes: "012345".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        let mut lexer =         XmlLexer::from_reader(r);
+        lexer.peek_str(6u);
+        assert_eq!(~"012345",       lexer.read_str(6u).data);
+    }
+
     #[test]
     fn test_whitespace(){
         let r = @BytesReader {
@@ -798,7 +796,6 @@ mod tests {
         assert_eq!(Some(whitespace),    lexer.next());
         assert_eq!(7u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
-
     }
 
     #[test]
@@ -962,5 +959,5 @@ mod tests {
         assert_eq!(Char('t'),   lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(1,           lexer.col);
-    }*/
+    }
 }
