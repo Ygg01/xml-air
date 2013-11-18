@@ -9,7 +9,7 @@ pub struct XmlError {
     /// The column number at which the error occurred
     col: uint,
     /// A message describing the type of the error
-    msg: @~str,
+    msg: ~str,
     ///TODO Type of error
 
     /// Position and context of error in Context
