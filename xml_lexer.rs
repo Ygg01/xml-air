@@ -16,22 +16,30 @@ pub enum XmlToken {
     LeftBracket,        // Symbol '('
     RightBracket,       // Symbol ')'
     Equal,              // Symbol '='
+    Plus,               // Symbol '+'
+    Pipe,               // Symbol '|'
+    Star,               // Symbol '*'
+    QuestionMark,       // Symbol '?'
     CloseTag,           // Symbol '</'
     EmptyTag,           // Symbol '/>'
-    DoctypeOpen,        // Symbol '<!['
-    DoctypeClose,       // Symbol ']]>'
     NameToken(~str),    // Tag name
     Text(~str),         // Various characters
-    WhiteSpace,         // Whitespace
+    WhiteSpace(~str),   // Whitespace
     PI(~str),           // Processing instruction token
     PrologStart,        // Start of PI block '<?'
     PrologEnd,          // End of PI block '?>'
-    CData(~str),        // CData toekn with inner structure
+    CData(~str),        // CData token with inner structure
     DoctypeStart,       // Start of Doctype block '<!DOCTYPE'
+    DoctypeOpen,        // Symbol '<!['
+    DoctypeClose,       // Symbol ']]>'
     DoctypeEnd,         // End of Doctype block '!>'
+    EntityType,         // Symbol <!ENTITY
+    AttlistType,        // Symbol <!ATTLIST
+    ElementType,        // Symbol <!ELEMENT
+    NotationType,       // Symbol <!NOTATION
     Comment(~str),      // Comment token
-    EntityRef,          // Entity reference, symbol '&'
-    PERef,              // Entity reference, symbol '%'
+    EntityRef(~str),    // Entity reference, symbol '&'
+    PERef(~str),        // Entity reference, symbol '%'
     CharRef(char),      // Encoded char or '&#'
     SingleQuoted(~str), // Single quoted string e.g. 'example'
     DoubleQuoted(~str), // Single quoted string e.g. "example"
@@ -113,36 +121,23 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
 
         let token = match chr_peek {
 
-            Char(chr) if(is_whitespace(chr)) => {
-                self.get_whitespace_token()
-            },
-            Char('<') => {
-                self.get_left_bracket_token()
-            },
-            Char(chr) if(is_name_start(&chr)) => {
-                self.get_name_token()
-            },
-            Char('?') => {
-                self.get_pi_end_token()
-            },
-            Char(']') => {
-                self.get_sqbracket_right_token()
-            },
-            Char('[') => {
-                self.get_sqbracket_left_token()
-            },
-            Char('&') => {
-                self.get_ref_token()
-            },
-            Char('!') => {
-                self.get_doctype_end_token()
-            },
-            Char('>') => {
-                self.get_right_bracket_token()
-            },
-            Char('/') => {
-                self.get_empty_tag_token()
-            }
+            Char(chr) if(is_whitespace(chr)) => self.get_whitespace_token(),
+            Char(chr) if(is_name_start(&chr))=> self.get_name_token(),
+            Char('<') => self.get_left_bracket_token(),
+            Char('?') => self.get_pi_end_token(),
+            Char(']') => self.get_sqbracket_right_token(),
+            Char('[') => self.get_sqbracket_left_token(),
+            Char('(') => self.get_bracket_left_token(),
+            Char(')') => self.get_bracket_right_token(),
+            Char('*') => self.get_star_token(),
+            Char('+') => self.get_plus_token(),
+            Char('&') => self.get_ref_token(),
+            Char('%') => self.get_elem_ref_token(),
+            Char('!') => self.get_doctype_end_token(),
+            Char('>') => self.get_right_bracket_token(),
+            Char('/') => self.get_empty_tag_token(),
+            Char('\'') | Char('"') => self.get_quote_token(),
+            Char(_) => self.get_text_token(),
             _ => None
         };
         //println(fmt!("token: %?", token));
@@ -439,14 +434,14 @@ impl XmlLexer {
     /// reaches a non white space character be it Restricted char,
     /// EndFile or  a non-white space char.
     fn get_whitespace_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        self.read_until_fn( |val| {
+        let whitespace = self.read_until_fn( |val| {
             match val {
                 RestrictedChar(_)   => false,
                 EndFile             => false,
                 Char(v)             => is_whitespace(v)
             }
-        });
-        Some(XmlResult{data: WhiteSpace, errors: ~[]})
+        }).data;
+        Some(XmlResult{data: WhiteSpace(whitespace), errors: ~[]})
     }
 
     /// If we find a namespace start character this method
@@ -492,11 +487,11 @@ impl XmlLexer {
             }else if( peek_sec == ~"<!D"){
                 result = self.get_doctype_start_token();
             }else if(peek_sec == ~"<!E"){
-                result = None;
+                result = self.get_entity_or_element_token();
             }else if(peek_sec == ~"<!A"){
-                result = None;
+                result = self.get_attlist_token();
             }else if(peek_sec == ~"<!N"){
-                result = None;
+                result = self.get_notation_token();
             }else{
                 result = Some(XmlResult{data: ErrorToken, errors: ~[]});
             }
@@ -608,9 +603,58 @@ impl XmlLexer {
         None
     }
 
+
     fn get_sqbracket_right_token(&mut self) -> Option<XmlResult<XmlToken>> {
         assert_eq!(Char(']'),       self.peek_chr());
-        return Some(XmlResult{data: RightSqBracket, errors: ~[]})
+        let result;
+        if(~"]]>" == self.peek_str(3u).data){
+            self.read_str(3u);
+            result = Some(XmlResult{ data: DoctypeClose, errors: ~[]});
+        }else{
+            self.read();
+            result = Some(XmlResult{data: RightSqBracket, errors: ~[]});
+        }
+        result
+    }
+
+    fn get_bracket_left_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_bracket_right_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_entity_or_element_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_attlist_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_notation_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_star_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_plus_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_pipe_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_quote_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_text_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
     }
 
     fn get_pi_token(&mut self) -> Option<XmlResult<XmlToken>> {
@@ -704,7 +748,7 @@ mod tests {
     #[test]
     fn test_tokens(){
         let r = @BytesReader {
-            bytes: "<?xml?> <?php stuff?><![CDATA[<test>]]> <!DOCTYPE &#x3123;&#212;!><br></br><e/><!-- -->".as_bytes(),
+            bytes: "<?xml?> <?php stuff?><![CDATA[<test>]]>\t".as_bytes(),
             pos: @mut 0
         } as @Reader;
 
@@ -714,21 +758,53 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: PrologEnd, errors: ~[] }),
                    lexer.next());
-        assert_eq!(Some(XmlResult{ data: WhiteSpace, errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: WhiteSpace(~" "), errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: PI(~"php stuff"), errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: CData(~"<test>"), errors: ~[] }),
                    lexer.next());
-        assert_eq!(Some(XmlResult{ data: WhiteSpace, errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: WhiteSpace(~"\t"), errors: ~[] }),
+                   lexer.next());
+
+        let r2 = @BytesReader {
+            bytes: "<![]]><!DOCTYPE &#x3123;&#212;%name;&name2;".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        lexer = XmlLexer::from_reader(r2);
+
+        assert_eq!(Some(XmlResult{ data: DoctypeOpen, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: DoctypeClose, errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: DoctypeStart, errors: ~[] }),
                    lexer.next());
-        assert_eq!(Some(XmlResult{ data: WhiteSpace, errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: WhiteSpace(~" "), errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: CharRef('\u3123'), errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: CharRef('\xD4'), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: PERef(~"name"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: EntityRef(~"name2"), errors: ~[] }),
+                   lexer.next());
+
+        let r3 = @BytesReader {
+            bytes: "<!ENTITY<!NOTATION<!ELEMENT<!ATTRLIST!><br>".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        lexer = XmlLexer::from_reader(r3);
+
+        assert_eq!(Some(XmlResult{ data: EntityType, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: NotationType, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: ElementType, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: AttlistType, errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: DoctypeEnd, errors: ~[] }),
                    lexer.next());
@@ -738,6 +814,15 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: GreaterBracket, errors: ~[] }),
                    lexer.next());
+       
+
+        let r4 = @BytesReader {
+            bytes: "</br><e/><!-- -->()|+?*".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        lexer = XmlLexer::from_reader(r4);
+
         assert_eq!(Some(XmlResult{ data: CloseTag, errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: NameToken(~"br"), errors: ~[] }),
@@ -751,6 +836,16 @@ mod tests {
         assert_eq!(Some(XmlResult{ data: EmptyTag, errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Comment(~" "), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: LeftBracket, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: RightBracket, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Pipe, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: QuestionMark, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Star, errors: ~[] }),
                    lexer.next());
     }
 
@@ -807,7 +902,7 @@ mod tests {
         } as @Reader;
 
         let mut lexer = XmlLexer::from_reader(r);
-        let whitespace = XmlResult{ data: WhiteSpace, errors: ~[]};
+        let whitespace = XmlResult{ data: WhiteSpace(~"   \t\n  "), errors: ~[]};
         assert_eq!(Some(whitespace),    lexer.next());
         assert_eq!(7u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
@@ -940,7 +1035,6 @@ mod tests {
         assert_eq!(Char('t'),   lexer.read());
         assert_eq!(2,           lexer.line);
         assert_eq!(1,           lexer.col);
-
 
         let r4 = @BytesReader {
                 bytes : "a\x85t".as_bytes(),
