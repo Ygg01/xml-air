@@ -993,6 +993,24 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Star, errors: ~[] }),
                    lexer.next());
+
+        let r5 = @BytesReader {
+            bytes: "'quote'\"funny\"$BLA<&apos;".as_bytes(),
+            pos: @mut 0
+        } as @Reader;
+
+        lexer = XmlLexer::from_reader(r5);
+
+        assert_eq!(Some(XmlResult{ data: SingleQuoted(~"quote"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: DoubleQuoted(~"funny"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Text(~"$BLA"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: LessBracket, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Text(~"'"), errors: ~[] }),
+                   lexer.next());
     }
 
     #[test]
