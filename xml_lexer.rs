@@ -813,29 +813,28 @@ impl XmlLexer {
     }
 
     fn process_comment(&mut self) -> XmlResult<~str> {
-        let mut peek = self.peek_str(2u);
+        let mut peek = self.peek_str(3u);
         let mut result = ~"";
         let mut found_end = false;
         let mut found_errs = ~[];
 
         while(!found_end){
-            if(peek.data == ~"--"){
-                let arrow = self.peek_str(3u);
-                if(arrow.data != ~"-->"){
-                    found_end = true;
-                }else{
+            if(peek.data.starts_with("--") && peek.data == ~"-->"){
+                self.read_str(3u);
+                found_end = true;
+            }else{
+                if(peek.data.starts_with("--") && peek.data != ~"-->"){
+
                     found_errs.push(self.get_error(~"Can't have -- in comments"));
-
                 }
-            }
 
-            let extracted_char = self.read().extract_char();
-            match extracted_char {
-                None => {/*Error processing*/},
-                Some(a) => {result.push_char(a)}
+                let extracted_char = self.read().extract_char();
+                    match extracted_char {
+                            None => {},
+                            Some(a) => {result.push_char(a)}
+                }
+                peek = self.peek_str(3u);
             }
-
-            peek = self.peek_str(2u);
         }
         XmlResult{ data: result, errors: ~[]}
     }
