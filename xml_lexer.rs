@@ -1007,6 +1007,8 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Pipe, errors: ~[] }),
                    lexer.next());
+        assert_eq!(Some(XmlResult{ data: Plus, errors: ~[] }),
+                   lexer.next());
         assert_eq!(Some(XmlResult{ data: QuestionMark, errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Star, errors: ~[] }),
