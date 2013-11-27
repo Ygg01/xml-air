@@ -121,7 +121,7 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
             -> Option<XmlResult<XmlToken>>{
         let chr_peek = self.peek_chr();
 
-        //println(fmt!("Chr peek %?", chr_peek));
+        debug!(fmt!("Chr peek %?", chr_peek));
 
         let token = match chr_peek {
 
@@ -145,7 +145,7 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
             Char(_) => self.get_text_token(),
             _ => None
         };
-        //println(fmt!("token: %?", token));
+        debug!(fmt!("token: %?", token));
         token
 
     }
@@ -278,6 +278,7 @@ impl XmlLexer {
                 None => {/* FIXME: Error processing*/},
                 Some(a) => {result.push_char(a)}
             }
+            debug!(fmt!("Peek char: %?", extracted_char));
             peek = self.peek_str(peek_look.char_len());
         }
         XmlResult{ data: result, errors: ~[]}
@@ -476,7 +477,7 @@ impl XmlLexer {
         let peek_first = self.peek_str(2u);
         let result;
 
-        //println(fmt!("peek first: %?", peek_first.data));
+        //debug!(fmt!("peek first: %?", peek_first.data));
 
         if(peek_first.data == ~"<?") {
             result = self.get_pi_token();
