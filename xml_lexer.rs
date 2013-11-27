@@ -768,7 +768,19 @@ impl XmlLexer {
     }
 
     fn get_text_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        None
+        let mut peek;
+        let mut text = ~"";
+        let mut run_loop = true;
+        while(run_loop) {
+            peek = self.peek_str(3u).data;
+            run_loop = !peek.starts_with("&")
+                    && !peek.starts_with("<")
+                    && peek != ~"]]>";
+            if(run_loop){
+                text.push_str(self.read_str(1u).data);
+            }
+        }
+        Some(XmlResult{ data: Text(text), errors: ~[]})
     }
 
     fn get_pi_token(&mut self) -> Option<XmlResult<XmlToken>> {
