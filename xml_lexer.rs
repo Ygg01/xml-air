@@ -57,10 +57,7 @@ pub enum Character {
     EndFile
 }
 
-pub enum CharData {
-    No,
-    PIChar,
-    CDataChar,
+pub enum CharType {
     ElemData
 }
 
@@ -175,6 +172,11 @@ impl XmlLexer {
     /// string.
     pub fn read_str(&mut self, len: uint) -> XmlResult<~str> {
         XmlLexer::clean_restricted(self.read_str_raw(len))
+    }
+
+
+    pub fn next_special(&mut self, style: CharType) -> Option<XmlResult<~str>> {
+        None
     }
 
     /// Method that peeks incoming strings
