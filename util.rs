@@ -1,4 +1,4 @@
-use std::str;
+use std::str::*;
 
 #[deriving(Eq, Clone, ToStr)]
 /// If an error occurs while parsing some XML, this is the structure which is
@@ -76,7 +76,7 @@ pub fn is_digit(input: &char) -> bool {
         _ => false
     }
 }
-
+#[inline]
 pub fn is_hex_digit(input: &char) -> bool {
     match *input {
         '0'..'9'
