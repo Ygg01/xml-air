@@ -41,8 +41,8 @@ pub enum XmlToken {
     EntityRef(~str),    // Entity reference, symbol '&'
     PERef(~str),        // Entity reference, symbol '%'
     CharRef(char),      // Encoded char or '&#'
-    SingleQuoted(~str), // Single quoted string e.g. 'example'
-    DoubleQuoted(~str), // Single quoted string e.g. "example"
+    QuotedString(~str), // Single or double quoted string
+                        // e.g. 'example' or "example"
     RequiredDecl,       // Symbol #REQUIRED
     ImpliedDecl,        // Symbol #IMPLIED
     FixedDecl,          // Symbol #FIXED
@@ -758,7 +758,13 @@ impl XmlLexer {
     }
 
     fn get_quote_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        None
+        let quote = self.read_str(1u).data;
+        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
+
+        let text = self.read_until_peek(quote).data;
+
+        self.read_str(1u);
+        Some(XmlResult{ data: QuotedString(text), errors: ~[]})
     }
 
     fn get_text_token(&mut self) -> Option<XmlResult<XmlToken>> {
@@ -1000,9 +1006,9 @@ mod tests {
 
         lexer = XmlLexer::from_reader(r5);
 
-        assert_eq!(Some(XmlResult{ data: SingleQuoted(~"quote"), errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: QuotedString(~"quote"), errors: ~[] }),
                    lexer.next());
-        assert_eq!(Some(XmlResult{ data: DoubleQuoted(~"funny"), errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: QuotedString(~"funny"), errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Text(~"$BLA"), errors: ~[] }),
                    lexer.next());
@@ -1010,8 +1016,8 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Text(~"'"), errors: ~[] }),
                    lexer.next());
-    }
 
+    }
     #[test]
     fn test_multi_peek(){
         let r = @BytesReader {
