@@ -30,9 +30,9 @@ pub struct Mark {
 }
 
 //TODO replace this with
-pub enum XmlResult2<'self, T> {
+pub enum XmlResult2<T> {
     Data(T),
-    Recoverable(T, &'self [XmlError]),
+    Recoverable(T, ~[XmlError]),
     FatalError(XmlError)
 }
 
