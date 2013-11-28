@@ -15,7 +15,7 @@ pub enum XmlToken {
     RightSqBracket,     // Symbol ']'
     LeftParen,          // Symbol '('
     RightParen,         // Symbol ')'
-    Equal,              // Symbol '='
+    EqTok,              // Symbol '='
     Plus,               // Symbol '+'
     Pipe,               // Symbol '|'
     Star,               // Symbol '*'
@@ -136,8 +136,9 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
             Char('>') => self.get_right_bracket_token(),
             Char('/') => self.get_empty_tag_token(),
             Char(';') => self.get_semicolon_token(),
-            Char('\'') | Char('"') => self.get_quote_token(),
+            Char('=') => self.get_equal_token(),
             Char('#') => self.get_entity_def_token(),
+            Char('\'') | Char('"') => self.get_quote_token(),
             Char(_) => self.get_text_token(),
             _ => None
         };
@@ -561,6 +562,10 @@ impl XmlLexer {
         assert_eq!(Char('%'),       self.read());
         Some(XmlResult{ data: Percent, errors: ~[]})
     }
+
+    fn get_equal_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        assert_eq!(Char('='),       self.read());
+        Some(XmlResult{ data: EqTok, errors: ~[]})
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlResult<XmlToken>> {
@@ -958,7 +963,7 @@ mod tests {
        
 
         let r4 = @BytesReader {
-            bytes: "</br><e/><!-- -->()|+?*".as_bytes(),
+            bytes: "</br><e/><!-- -->()|+?*=".as_bytes(),
             pos: @mut 0
         } as @Reader;
 
