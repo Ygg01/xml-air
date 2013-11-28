@@ -72,13 +72,14 @@ pub fn unescape(input: &str) -> ~str {
     replace(tmp, "&amp;", "&")
 }
 
-
+#[inline]
 pub fn is_digit(input: &char) -> bool {
     match *input {
         '0'..'9' => true,
         _ => false
     }
 }
+
 #[inline]
 pub fn is_hex_digit(input: &char) -> bool {
     match *input {
@@ -88,7 +89,7 @@ pub fn is_hex_digit(input: &char) -> bool {
     }
 }
 
-#[inline]
+
 pub fn is_pubid_char(input: &char) -> bool {
     match *input {
         '\x20'
@@ -103,6 +104,26 @@ pub fn is_pubid_char(input: &char) -> bool {
 }
 
 #[inline]
+pub fn is_encoding_start_char(input: &char) -> bool {
+    match *input {
+        'a'.. 'z'
+        | 'A'..'Z' => true,
+        _ => false
+    }
+}
+
+#[inline]
+pub fn is_encoding_char(input: &char) -> bool {
+    match *input {
+        'a'.. 'z'
+        | 'A'..'Z'
+        | '0'..'9'
+        | '.' | '_'
+        | '-' => true,
+        _ => false
+    }
+}
+
 pub fn is_name_start(chr: &char) -> bool {
     match *chr {
         ':'
@@ -153,8 +174,8 @@ pub fn is_char(chr : &char) -> bool {
 
 #[inline]
 /// Determines if the character is one of allowed whitespaces
-pub fn is_whitespace(chr: char) -> bool {
-    chr == ' ' || chr == '\t' || chr == '\n' || chr == '\r'
+pub fn is_whitespace(chr: &char) -> bool {
+    *chr == ' ' || *chr == '\t' || *chr == '\n' || *chr == '\r'
 }
 
 #[inline]
