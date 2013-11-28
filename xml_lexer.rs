@@ -38,8 +38,8 @@ pub enum XmlToken {
     ElementType,        // Symbol <!ELEMENT
     NotationType,       // Symbol <!NOTATION
     Comment(~str),      // Comment token
-    EntityRef(~str),    // Entity reference, symbol '&'
-    PERef(~str),        // Entity reference, symbol '%'
+    EntityRef(~str),    // Entity reference, starts with symbol '&'
+    PERef(~str),        // Entity reference, starts withsymbol '%'
     CharRef(char),      // Encoded char or '&#'
     QuotedString(~str), // Single or double quoted string
                         // e.g. 'example' or "example"
@@ -55,10 +55,6 @@ pub enum Character {
     Char(char),
     RestrictedChar(char),
     EndFile
-}
-
-pub enum CharType {
-    ElemData
 }
 
 impl Character {
@@ -172,11 +168,6 @@ impl XmlLexer {
     /// string.
     pub fn read_str(&mut self, len: uint) -> XmlResult<~str> {
         XmlLexer::clean_restricted(self.read_str_raw(len))
-    }
-
-
-    pub fn next_special(&mut self, style: CharType) -> Option<XmlResult<~str>> {
-        None
     }
 
     /// Method that peeks incoming strings

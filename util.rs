@@ -1,4 +1,5 @@
-use std::str::*;
+use std::str::{with_capacity,replace};
+
 
 #[deriving(Eq, Clone, ToStr)]
 /// If an error occurs while parsing some XML, this is the structure which is
@@ -30,9 +31,10 @@ pub struct Mark {
 }
 
 //TODO replace this with
-pub enum XmlResult2<T> {
-    Data(T),
-    Recoverable(T, ~[XmlError]),
+pub enum XmlResult2<D> {
+    Data(D),
+    Warning(D, ~[XmlError]),
+    Failure(D, ~[XmlError]),
     FatalError(XmlError)
 }
 
@@ -45,7 +47,7 @@ pub struct XmlResult<T> {
 #[inline]
 /// Escapes unallowed character //TODO CHECK WHICH
 pub fn escape(input: &str) -> ~str {
-    let mut result = str::with_capacity(input.len());
+    let mut result = with_capacity(input.len());
 
     for c in input.iter() {
         match c {
@@ -63,12 +65,13 @@ pub fn escape(input: &str) -> ~str {
 #[inline]
 /// Unescapes all valid XML entities in a string.
 pub fn unescape(input: &str) -> ~str {
-    let tmp = str::replace(input, "&quot;", "\"");
-    let tmp = str::replace(tmp, "&apos;", "'");
-    let tmp = str::replace(tmp, "&gt;", ">");
-    let tmp = str::replace(tmp, "&lt;", "<");
-    str::replace(tmp, "&amp;", "&")
+    let tmp = replace(input, "&quot;", "\"");
+    let tmp = replace(tmp, "&apos;", "'");
+    let tmp = replace(tmp, "&gt;", ">");
+    let tmp = replace(tmp, "&lt;", "<");
+    replace(tmp, "&amp;", "&")
 }
+
 
 pub fn is_digit(input: &char) -> bool {
     match *input {
@@ -81,6 +84,20 @@ pub fn is_hex_digit(input: &char) -> bool {
     match *input {
         '0'..'9'
         | 'A'..'F' => true,
+        _ => false
+    }
+}
+
+#[inline]
+pub fn is_pubid_char(input: &char) -> bool {
+    match *input {
+        '\x20'
+        | '\x0D'
+        | '\x0A'
+        | 'a'..'z'
+        | 'A'..'Z'
+        | '0'..'9' => true,
+        a if("-'()+,./:=?;!*#@$_%".contains_char(a)) => true,
         _ => false
     }
 }
