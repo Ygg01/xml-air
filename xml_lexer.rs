@@ -96,6 +96,12 @@ impl Character {
     }
 }
 
+pub enum QuoteStyle {
+    Attlist,
+    Entity,
+    Pubid,
+    Encoding
+}
 
 pub struct XmlLexer {
     line: uint,
@@ -191,6 +197,47 @@ impl XmlLexer {
         XmlLexer::clean_restricted(peek_result)
     }
 
+    pub fn next_special(&mut self, expect: QuoteStyle)
+                        -> Option<XmlResult<XmlToken>> {
+        let result;
+
+        match self.peek_chr() {
+            Char('\'') | Char('"') => {
+                result = match expect {
+                    Attlist => self.get_attl_quote(),
+                    Entity  => self.get_ent_quote(),
+                    Pubid   => self.get_pubid_quote(),
+                    Encoding => self.get_encoding_quote()
+                };
+
+            },
+            _ => {result = self.next();}
+
+        };
+        result
+    }
+
+    fn get_encoding_quote(&mut self) -> Option<XmlResult<XmlToken>> {
+        let quote = self.read_str(1u).data;
+        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
+
+        let text = self.read_until_peek(quote).data;
+
+        self.read_str(1u);
+        Some(XmlResult{ data: QuotedString(text), errors: ~[]})
+    }
+
+    fn get_pubid_quote(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_ent_quote(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
+
+    fn get_attl_quote(&mut self) -> Option<XmlResult<XmlToken>> {
+        None
+    }
     /// This method reads a character and returns an enum that might be
     /// either a value of character, a new-line sign or a restricted character.
     /// 
