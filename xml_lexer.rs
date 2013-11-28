@@ -26,6 +26,7 @@ pub enum XmlToken {
     CloseTag,           // Symbol '</'
     EmptyTag,           // Symbol '/>'
     NameToken(~str),    // Tag name
+    NMToken(~str),      // NMToken
     Text(~str),         // Various characters
     WhiteSpace(~str),   // Whitespace
     PI(~str),           // Processing instruction token
@@ -120,7 +121,8 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
         let token = match chr_peek {
 
             Char(chr) if(is_whitespace(chr)) => self.get_whitespace_token(),
-            Char(chr) if(is_name_start(&chr))=> self.get_name_token(),
+            Char(chr) if(is_name_start(&chr)) => self.get_name_token(),
+            Char(chr) if(is_name_char(&chr))  => self.get_nmtoken(),
             Char('<') => self.get_left_bracket_token(),
             Char('?') => self.get_pi_end_token(),
             Char(']') => self.get_sqbracket_right_token(),
@@ -457,16 +459,26 @@ impl XmlLexer {
     /// consumes all namespace token until it reaches a non-name
     /// character.
     fn get_name_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        let start_char = self.read();
-        assert_eq!(true, start_char.is_valid_char());
-
-
         let mut name = ~"";
+        let start_char = self.read();
         match start_char.extract_char() {
             Some(a) if(is_name_start(&a)) => name.push_char(a),
             _                             => fail!(~"Expected name start token")
-        }
+        };
 
+        let result = self.process_name_token();
+        name.push_str(result.data);
+
+        Some(XmlResult{data: NameToken(name), errors: result.errors.clone()})
+    }
+
+    fn get_nmtoken(&mut self) -> Option<XmlResult<XmlToken>> {
+        let mut name = ~"";
+        let start_char = self.peek_chr();
+        match start_char.extract_char() {
+            Some(a) if(is_name_start(&a)) => {},
+            _                             => fail!(~"Expected name start token")
+        };
 
         let result = self.process_name_token();
         name.push_str(result.data);
