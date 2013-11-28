@@ -19,7 +19,10 @@ pub enum XmlToken {
     Plus,               // Symbol '+'
     Pipe,               // Symbol '|'
     Star,               // Symbol '*'
+    Amp,                // Symbol '&'
     QuestionMark,       // Symbol '?'
+    Semicolon,          // Symbol ';'
+    Percent,            // Percent '%'
     CloseTag,           // Symbol '</'
     EmptyTag,           // Symbol '/>'
     NameToken(~str),    // Tag name
@@ -38,8 +41,6 @@ pub enum XmlToken {
     ElementType,        // Symbol <!ELEMENT
     NotationType,       // Symbol <!NOTATION
     Comment(~str),      // Comment token
-    EntityRef(~str),    // Entity reference, starts with symbol '&'
-    PERef(~str),        // Entity reference, starts withsymbol '%'
     CharRef(char),      // Encoded char or '&#'
     QuotedString(~str), // Single or double quoted string
                         // e.g. 'example' or "example"
@@ -134,6 +135,7 @@ impl Iterator<XmlResult<XmlToken>> for XmlLexer {
             Char('!') => self.get_doctype_end_token(),
             Char('>') => self.get_right_bracket_token(),
             Char('/') => self.get_empty_tag_token(),
+            Char(';') => self.get_semicolon_token(),
             Char('\'') | Char('"') => self.get_quote_token(),
             Char('#') => self.get_entity_def_token(),
             Char(_) => self.get_text_token(),
@@ -546,7 +548,7 @@ impl XmlLexer {
                 self.get_char_ref_token()
             },
             Char(_) => {
-                self.get_entity_ref_token()
+                Some(XmlResult{ data: Amp, errors: ~[]})
             },
             _ => {
                 Some(XmlResult{ data: EndOfFile, errors: ~[self.get_error(~"mock error")]})
@@ -555,50 +557,10 @@ impl XmlLexer {
         token
     }
 
-    fn get_entity_ref_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        let text = self.process_name_token().data;
-        let result;
-        let token;
-        if(text == ~"apos"){
-            token = Text(~"'");
-        }else if(text == ~"quot"){
-            token = Text(~"\"");
-        }else if(text == ~"amp"){
-            token = Text(~"&");
-        }else if(text == ~"lt"){
-            token = Text(~"<");
-        }else if(text == ~"gt"){
-            token = Text(~">");
-        }else{
-            token = EntityRef(text);
-        }
-        match self.peek_chr() {
-                Char(';') => {
-                    self.read();
-                    result = XmlResult{ data: token, errors: ~[]};
-                },
-                _ => {
-                    result = XmlResult{ data: token, errors: ~[]};
-                }
-        };
-        Some(result)
-    }
-
     fn get_peref_token(&mut self) -> Option<XmlResult<XmlToken>> {
         assert_eq!(Char('%'),       self.read());
-        let text = self.process_name_token().data;
-        let result;
-        let peref = PERef(text);
-        match self.peek_chr() {
-                Char(';') => {
-                    self.read();
-                    result = Some(XmlResult{ data: peref, errors: ~[]});
-                },
-                _ => {
-                    result = Some(XmlResult{ data: peref, errors: ~[]})
-                }
-        };
-        result
+        Some(XmlResult{ data: Percent, errors: ~[]})
+    }
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlResult<XmlToken>> {
@@ -687,6 +649,11 @@ impl XmlLexer {
     fn get_paren_right_token(&mut self) -> Option<XmlResult<XmlToken>> {
         assert_eq!(Char(')'),       self.read());
         Some(XmlResult{data: RightParen, errors: ~[]})
+    }
+
+    fn get_semicolon_token(&mut self) -> Option<XmlResult<XmlToken>> {
+        assert_eq!(Char(';'),       self.read());
+        Some(XmlResult{data: Semicolon, errors: ~[]})
     }
 
     fn get_entity_def_token(&mut self) -> Option<XmlResult<XmlToken>> {
@@ -952,9 +919,17 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: CharRef('\xD4'), errors: ~[] }),
                    lexer.next());
-        assert_eq!(Some(XmlResult{ data: PERef(~"name"), errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: Percent, errors: ~[] }),
                    lexer.next());
-        assert_eq!(Some(XmlResult{ data: EntityRef(~"name2"), errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: NameToken(~"name"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Semicolon, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Amp, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: NameToken(~"name2"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Semicolon, errors: ~[] }),
                    lexer.next());
 
         let r3 = @BytesReader {
@@ -1015,6 +990,8 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Star, errors: ~[] }),
                    lexer.next());
+        assert_eq!(Some(XmlResult{ data: EqTok, errors: ~[] }),
+                   lexer.next());
 
         let r5 = @BytesReader {
             bytes: "'quote'\"funny\"$BLA<&apos;".as_bytes(),
@@ -1031,7 +1008,11 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: LessBracket, errors: ~[] }),
                    lexer.next());
-        assert_eq!(Some(XmlResult{ data: Text(~"'"), errors: ~[] }),
+        assert_eq!(Some(XmlResult{ data: Amp, errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: NameToken(~"apos"), errors: ~[] }),
+                   lexer.next());
+        assert_eq!(Some(XmlResult{ data: Semicolon, errors: ~[] }),
                    lexer.next());
 
     }
