@@ -1,14 +1,12 @@
 // Crate linkage metadata
-#[link(name = "xml", vers = "0.1", author = "DanielFath")];
+#[link(name = "xml", vers = "0.1", author = "DanielFath", package_id="xml")];
 
 //Metadata
-#[ desc = "XML pull parser for rust"];
-#[ licence = "LGPL"];
-#[ author = "DanielFath"];
+#[desc = "XML pull parser for rust"];
+#[licence = "MIT"];
+#[author = "DanielFath"];
+#[crate_type = "lib"];
 
-
-// Make a library ("bin" is the default)
-#[crate_type = "bin"];
 
 // Forbidden things
 #[forbid(non_camel_case_types)];
