@@ -109,7 +109,7 @@ impl XmlElem {
 
 impl PINode {
     pub fn to_str(&self) -> ~str {
-       fmt!("<?%s %s ?>", self.target, self.value)
+       format!("<?{} {} ?>", self.target, self.value)
     }
 }
 
@@ -123,7 +123,7 @@ impl XmlNS {
 
 #[cfg(test)]
 mod tests{
-    use super::*;
+    use super::{PINode};
 
     #[test]
     fn test_pi_to_str(){

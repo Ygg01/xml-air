@@ -20,15 +20,6 @@
 #[warn(missing_doc)];
 //#[warn(owned_heap_memory)];
 
-pub use xml_parser::*;
-pub use xml_node::*;
-pub use std::io::*;
-pub use xml_lexer::*;
-
-pub mod xml_parser;
-pub mod xml_node;
-pub mod util;
-pub mod xml_lexer;
 
 fn main() {
     error!("This is an error log");

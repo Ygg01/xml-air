@@ -1,7 +1,6 @@
-use xml_node::*;
-use std::io::*;
-use util::*;
-use xml_lexer::*;
+use xml_node::{XmlDoc};
+use util::{XmlError};
+use xml_lexer::{XmlLexer};
 
 
 mod xml_node;
@@ -39,12 +38,12 @@ pub enum ParseResult {
     ParseNode(XNode)
 }
 
-pub struct XmlParser {
+pub struct XmlParser<R> {
     line: uint,
     col: uint,
     depth: uint,
     elem: Option<XmlElem>,
-    priv lexer: XmlLexer,
+    priv lexer: XmlLexer<R>,
     priv name: ~str,
     priv attrName: ~str,
     priv attributes: ~[XmlAttr],
@@ -66,14 +65,14 @@ impl Iterator<Result<XNode,XmlError>> for XmlParser {
     }
 }
 
-impl XmlParser {
+impl<R: io::Buffer> XmlParser {
     /// Constructs a new XmlParser from Reader `data`
     /// The XmlParser will use the given reader as the source for parsing.
     /// ~~~
     /// let mut p = XmlParser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
-    pub fn from_reader(data : @Reader)
+    pub fn from_reader(data : std::io::Buffer)
                      -> XmlParser {
         XmlParser {
             line: 1,

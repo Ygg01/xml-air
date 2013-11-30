@@ -11,8 +11,8 @@ pub struct XmlError {
     col: uint,
     /// A message describing the type of the error
     msg: ~str,
-    ///TODO Type of error
-
+    /// Type of error
+    //kind: ErrKind,
     /// Position and context of error in Context
     mark: Option<Mark>
 }
@@ -49,7 +49,7 @@ pub struct XmlResult<T> {
 pub fn escape(input: &str) -> ~str {
     let mut result = with_capacity(input.len());
 
-    for c in input.iter() {
+    for c in input.chars() {
         match c {
             '&'     => result.push_str("&amp;"),
             '<'     => result.push_str("&lt;"),
@@ -61,6 +61,24 @@ pub fn escape(input: &str) -> ~str {
     }
     result
 }
+
+    /// This methods removes all restricted character from a given XmlResult<~str>,
+    /// Without changing errors
+    pub fn clean_restricted(input: XmlResult<~str>) -> XmlResult<~str> {
+        let mut clean_str = ~"";
+
+        for c in input.data.chars() {
+            if (!is_restricted(&c)){
+                clean_str.push_char(c);
+            }
+        }
+
+        let result = XmlResult {
+                        data: clean_str,
+                        errors: input.errors.clone()
+        };
+        result
+    }
 
 #[inline]
 /// Unescapes all valid XML entities in a string.
@@ -216,9 +234,13 @@ pub fn is_restricted(chr: &char) -> bool {
 }
 
 
+pub fn main() {
+    
+}
+
 #[cfg(test)]
 mod tests{
-    use super::*;
+    use super::{is_restricted};
 
     #[test]
     fn test_is_whitespace(){
