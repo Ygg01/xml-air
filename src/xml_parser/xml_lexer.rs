@@ -293,22 +293,21 @@ impl<R: Reader+Buffer+Seek> XmlLexer<R> {
     fn read_until_fn(&mut self, filter_fn: |Character|-> bool ) -> XmlResult<~str>{
         let mut col = 0u;
         let mut line = 1u;
-        let mut char_read = self.read();
+        let mut peek_char = self.peek_chr();
         let mut ret_str = ~"";
 
-        while(filter_fn(char_read)){
-            match char_read {
+        while(filter_fn(peek_char)){
+            match peek_char {
                 Char(a) => {
+                    ret_str.push_char(a);
+                    self.read();
                     col = self.col;
                     line = self.line;
-                    ret_str.push_char(a);
-                    char_read = self.read();
-
-                }
+                    peek_char = self.peek_chr();
+                },
                 _ => {}
             }
         }
-        self.raw_unread();
         self.col = col;
         self.line = line;
         //TODO error checking
@@ -387,8 +386,9 @@ impl<R: Reader+Buffer+Seek> XmlLexer<R> {
     #[inline]
     /// This method unreads the source and simply updates position
     /// This method WILL NOT update new col or row
-    fn raw_unread(&mut self) {
-        self.source.seek(-1, std::io::SeekCur);
+    fn raw_unread(&mut self, c: char) {
+        //self.source.seek(-1, std::io::SeekCur); Can't use seek on BufReader
+        self.peek_buf.push_char(c);
     }
 
     /// Processes the input `char` as it was a newline
@@ -406,7 +406,7 @@ impl<R: Reader+Buffer+Seek> XmlLexer<R> {
         if(c == '\r'){
             let chrPeek = self.raw_read();
             if(chrPeek != '\x85' && chrPeek != '\n'){
-                self.raw_unread();
+                self.raw_unread(chrPeek);
             }
         }
 
@@ -933,7 +933,6 @@ mod tests {
     use super::{EqTok,Star,QuestionMark,Plus,Pipe,LeftParen,RightParen,EmptyTag};
     use super::{QuotedString,Text};
     use std::io::mem::BufReader;
-    use std::io::{SeekSet};
     use util::{XmlResult,XmlError};
 
     #[test]
@@ -1096,14 +1095,18 @@ mod tests {
     fn test_whitespace(){
         let r = BufReader::new(bytes!("   \t\n  a "));
         let mut lexer =         XmlLexer::from_reader(r);
-        let whitespace = XmlResult{ 
-                            data: WhiteSpace(~"   \t\n  "), 
+        let whitespace = XmlResult{
+                            data: WhiteSpace(~"   \t\n  "),
                             errors: ~[]
                         };
-
+        let name_token = XmlResult{ 
+                            data: NameToken(~"a"), 
+                            errors: ~[]
+                        };
         assert_eq!(Some(whitespace),    lexer.next());
         assert_eq!(7u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
+        assert_eq!(Some(name_token),    lexer.next());
     }
 
     #[test]
@@ -1123,24 +1126,32 @@ mod tests {
     }
 
     #[test]
-    fn test_read_str(){
-        let mut r = BufReader::new(bytes!("as"));
-        let mut lexer = XmlLexer::from_reader(r);
-
-        assert_eq!(XmlResult{ data: ~"as", errors :~[]},               lexer.read_str(2u));
-        r.seek(0, SeekSet);
-        lexer = XmlLexer::from_reader(r);
-        assert_eq!(XmlResult{ data: ~"as", errors: ~[XmlError{ line: 1u, col: 2u, msg: ~"Unexpected end of file", mark: None}]},
-                    lexer.read_str(3u));
-    }
-
-    #[test]
     fn test_eof(){
         let r = BufReader::new(bytes!("a"));
         let mut lexer = XmlLexer::from_reader(r);
 
         assert_eq!(Char('a'),           lexer.read());
         assert_eq!(EndFile,             lexer.read())
+    }
+
+    #[test]
+    fn test_read_until(){
+        let r = BufReader::new(bytes!("aaaab"));
+        let mut lexer = XmlLexer::from_reader(r);
+
+        let result = lexer.read_until_fn(|c|{
+            match c {
+                Char('a') => true,
+                _ => false
+            }
+        });
+
+        assert_eq!(~"aaaa",      result.data);
+        assert_eq!(1,            lexer.line);
+        assert_eq!(4,            lexer.col);
+        assert_eq!(~"b",         lexer.read_str(1u).data);
+        assert_eq!(1,            lexer.line);
+        assert_eq!(5,            lexer.col);
     }
 
     #[test]
