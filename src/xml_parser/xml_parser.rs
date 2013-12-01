@@ -1,7 +1,8 @@
-use xml_node::{XmlDoc};
-use util::{XmlError};
-use xml_lexer::{XmlLexer};
+use std::io::{Reader, Buffer};
 
+use xml_node::{XmlDoc, XmlElem, XNode};
+use util::{XmlError, XmlResult};
+use xml_lexer::{XmlLexer};
 
 mod xml_node;
 mod util;
@@ -29,15 +30,6 @@ enum State {
     Namespace
 }
 
-
-
-#[deriving(Eq)]
-pub enum ParseResult {
-    NoNode,
-    ParseError(XmlError),
-    ParseNode(XNode)
-}
-
 pub struct XmlParser<R> {
     line: uint,
     col: uint,
@@ -45,35 +37,32 @@ pub struct XmlParser<R> {
     elem: Option<XmlElem>,
     priv lexer: XmlLexer<R>,
     priv name: ~str,
-    priv attrName: ~str,
-    priv attributes: ~[XmlAttr],
     priv state: State
 
 }
 
-impl Iterator<Result<XNode,XmlError>> for XmlParser {
+impl<R: Reader+Buffer> Iterator<XmlResult<XNode>> for XmlParser<R> {
     /// This method pulls tokens, until it reaches a fully formed XML node.
     /// Once it finds a node, it stops returning said node or error
     /// if it there was an error during processing.
     ///
     /// This method should be used similar to an outer iterator.
     fn next(&mut self)
-            -> Option<Result<XNode,XmlError>>{
-        let mut node = NoNode;
+            -> Option<XmlResult<XNode>>{
         None
 
     }
 }
 
-impl<R: io::Buffer> XmlParser {
+impl<R: Reader+Buffer> XmlParser<R> {
     /// Constructs a new XmlParser from Reader `data`
     /// The XmlParser will use the given reader as the source for parsing.
     /// ~~~
     /// let mut p = XmlParser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
-    pub fn from_reader(data : std::io::Buffer)
-                     -> XmlParser {
+    pub fn from_reader(data: R)
+                     -> XmlParser<R> {
         XmlParser {
             line: 1,
             col: 0,
@@ -81,8 +70,6 @@ impl<R: io::Buffer> XmlParser {
             elem: None,
             lexer: XmlLexer::from_reader(data),
             name: ~"",
-            attrName: ~"",
-            attributes: ~[],
             state: OutsideTag
         }
     }

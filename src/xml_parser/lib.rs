@@ -3,8 +3,6 @@
 
 //Metadata
 #[desc = "XML pull parser for rust"];
-#[licence = "MIT"];
-#[author = "DanielFath"];
 #[crate_type = "lib"];
 
 
@@ -19,6 +17,14 @@
 #[warn(managed_heap_memory)];
 #[warn(missing_doc)];
 //#[warn(owned_heap_memory)];
+
+
+pub use util::{XmlResult, XmlError, is_whitespace, is_name_start, is_name_char};
+
+mod xml_lexer;
+mod xml_parser;
+mod xml_node;
+mod util;
 
 
 fn main() {

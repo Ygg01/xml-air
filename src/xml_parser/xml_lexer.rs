@@ -1,6 +1,10 @@
 use std::ascii::StrAsciiExt;
-use std::io::{Reader, Seek, Buffer};
+use std::io::{Reader, Buffer};
+use std::char::from_u32;
+use std::num::from_str_radix;
+
 use util::{XmlResult, XmlError, is_whitespace, is_name_start, is_name_char};
+use util::{is_char, is_restricted, clean_restricted};
 
 mod util;
 
@@ -81,9 +85,9 @@ impl Character {
     }
 
     pub fn from_char(chr: char) -> Character {
-        if(util::is_restricted(&chr)){
+        if(is_restricted(&chr)){
             RestrictedChar(chr)
-        }else if(util::is_char(&chr)){
+        }else if(is_char(&chr)){
             Char(chr)
         }else{
             // If we encounter unknown character we replace it with
@@ -110,7 +114,7 @@ pub struct XmlLexer<R> {
     priv source: R
 }
 
-impl<R: Reader+Buffer+Seek> Iterator<XmlResult<XmlToken>> for XmlLexer<R>{
+impl<R: Reader+Buffer> Iterator<XmlResult<XmlToken>> for XmlLexer<R>{
     /// This method pulls tokens from stream until it reaches end of file.
     /// From that point on, it will return None.
     ///
@@ -153,7 +157,7 @@ impl<R: Reader+Buffer+Seek> Iterator<XmlResult<XmlToken>> for XmlLexer<R>{
     }
 }
 
-impl<R: Reader+Buffer+Seek> XmlLexer<R> {
+impl<R: Reader+Buffer> XmlLexer<R> {
     /// Constructs a new `XmlLexer` from @Reader `data`
     /// The `XmlLexer` will use the given reader as the source for parsing.
     pub fn from_reader(data : R) -> XmlLexer<R> {
@@ -175,7 +179,7 @@ impl<R: Reader+Buffer+Seek> XmlLexer<R> {
     /// Restricted characters are *not included* into the output
     /// string.
     pub fn read_str(&mut self, len: uint) -> XmlResult<~str> {
-        util::clean_restricted(self.read_str_raw(len))
+        clean_restricted(self.read_str_raw(len))
     }
 
     /// Method that peeks incoming strings
@@ -191,7 +195,7 @@ impl<R: Reader+Buffer+Seek> XmlLexer<R> {
              self.peek_buf.push_char(c);
         }
 
-        util::clean_restricted(peek_result)
+        clean_restricted(peek_result)
     }
 
     pub fn next_special(&mut self, expect: QuoteStyle)
@@ -645,11 +649,11 @@ impl<R: Reader+Buffer+Seek> XmlLexer<R> {
                     })
         }
 
-        let parse_char = std::num::from_str_radix::<uint>(char_ref.data, radix);
+        let parse_char = from_str_radix::<uint>(char_ref.data, radix);
 
         match parse_char {
             Some(a) => {
-                let ref_char = std::char::from_u32(a as u32);
+                let ref_char = from_u32(a as u32);
 
 
                 match ref_char {
