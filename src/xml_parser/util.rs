@@ -23,15 +23,35 @@ enum ErrKind {
     EndOfFileError
 }
 
-#[deriving(Eq, Clone, ToStr)]
+#[deriving(Eq, Clone)]
 pub struct Mark {
     pos: uint,
-
+    length: uint,
     context: ~str
 }
 
-//TODO replace this with
-pub enum XmlResult2<D> {
+impl ToStr for Mark {
+    fn to_str(&self) -> ~str {
+        let mut mark_str = ~"";
+        mark_str.push_str(self.context);
+        mark_str.push_char('\n');
+        self.pos.times(|| {
+            mark_str.push_char(' ');
+        });
+        let mut first_char = true;
+        self.length.times (|| {
+            if first_char {
+                mark_str.push_char('^');
+                first_char = false;
+            } else {
+                mark_str.push_char('~');
+            }
+
+        });
+        mark_str
+    }
+}
+
     Data(D),
     Warning(D, ~[XmlError]),
     Failure(D, ~[XmlError]),
@@ -235,7 +255,12 @@ pub fn is_restricted(chr: &char) -> bool {
 
 
 pub fn main() {
-    
+    let mark = Mark {
+        pos: 6,
+        length: 4,
+        context: ~" Well that went well"
+    };
+    println(mark.to_str());
 }
 
 #[cfg(test)]
@@ -249,7 +274,6 @@ mod tests{
 
     #[test]
     fn test_is_char(){
-        
     }
 
     #[test]
