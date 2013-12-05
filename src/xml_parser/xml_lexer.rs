@@ -85,11 +85,11 @@ impl Character {
     }
 
     pub fn from_char(chr: char) -> Character {
-        if(is_restricted(&chr)){
+        if is_restricted(&chr) {
             RestrictedChar(chr)
-        }else if(is_char(&chr)){
+        } else if is_char(&chr) {
             Char(chr)
-        }else{
+        } else {
             // If we encounter unknown character we replace it with
             // space.
             // TODO check if this is OK
@@ -127,9 +127,9 @@ impl<R: Reader+Buffer> Iterator<XmlResult<XmlToken>> for XmlLexer<R>{
 
         let token = match chr_peek {
 
-            Char(chr) if(is_whitespace(&chr)) => self.get_whitespace_token(),
-            Char(chr) if(is_name_start(&chr)) => self.get_name_token(),
-            Char(chr) if(is_name_char(&chr))  => self.get_nmtoken(),
+            Char(chr) if is_whitespace(&chr) => self.get_whitespace_token(),
+            Char(chr) if is_name_start(&chr) => self.get_name_token(),
+            Char(chr) if is_name_char(&chr)  => self.get_nmtoken(),
             Char('<') => self.get_left_bracket_token(),
             Char('?') => self.get_pi_end_token(),
             Char(']') => self.get_sqbracket_right_token(),
@@ -158,7 +158,7 @@ impl<R: Reader+Buffer> Iterator<XmlResult<XmlToken>> for XmlLexer<R>{
 }
 
 impl<R: Reader+Buffer> XmlLexer<R> {
-    /// Constructs a new `XmlLexer` from @Reader `data`
+    /// Constructs a new `XmlLexer` from  `data`
     /// The `XmlLexer` will use the given reader as the source for parsing.
     pub fn from_reader(data : R) -> XmlLexer<R> {
         XmlLexer {
@@ -241,7 +241,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
     /// This method reads a character and returns an enum that might be
     /// either a value of character, a new-line sign or a restricted character.
-    /// 
+    ///
     /// Encountering Restricted characters will not result in an error,
     /// Instead the position will be update but no information about such
     /// characters will not be preserved.
@@ -252,24 +252,24 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// '\n' character.
     /// encountered will not be preserved.
     ///TODO add line char buffer
-    fn read(&mut self) -> Character {
+    fn read_chr(&mut self) -> Character {
 
         let chr;
 
-        if(self.peek_buf.is_empty()){
+        if self.peek_buf.is_empty() {
 
-            if(self.source.eof()){
+            if self.source.eof() {
                 return EndFile
             }
 
             chr = self.raw_read();
-        }else{
+        } else {
             chr = self.peek_buf.pop_char();
         }
 
-        if("\r\u2028\x85".contains_char(chr)){
+        if "\r\u2028\x85".contains_char(chr) {
            return self.process_newline(chr)
-        }else{
+        } else {
            return self.process_char(chr)
         }
 
@@ -281,7 +281,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let col = self.col;
         let line = self.line;
 
-        let peek_char = self.read();
+        let peek_char = self.read_chr();
         self.col = col;
         self.line = line;
         match peek_char.extract_char() {
@@ -304,7 +304,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             match peek_char {
                 Char(a) => {
                     ret_str.push_char(a);
-                    self.read();
+                    self.read_chr();
                     col = self.col;
                     line = self.line;
                     peek_char = self.peek_chr();
@@ -325,7 +325,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
 
 
-            let extracted_char = self.read().extract_char();
+            let extracted_char = self.read_chr().extract_char();
             match extracted_char {
                 None => {/* FIXME: Error processing*/},
                 Some(a) => {result.push_char(a)}
@@ -346,7 +346,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let mut l = 0u;
 
         while (l < len && !eof) {
-            let chr = self.read();
+            let chr = self.read_chr();
             l += 1;
             match chr {
                 Char(a) => string.push_char(a),
@@ -438,7 +438,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     fn process_name_token2(&mut self) -> XmlResult<~str> {
         let mut str_buf = ~"";
         let mut errs = ~[];
-        match self.read() {
+        match self.read_chr() {
             Char(a) if(util::is_name_start(&a)) => str_buf.push_char(a),
             _ => {str_buf = ~""; errs.push(XmlError{line: 0u, col: 0u, msg: ~"", mark:None}); }
         }
@@ -454,7 +454,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn process_hex_digit(&mut self) -> XmlResult<~str> {
-        self.read();
+        self.read_chr();
         self.read_until_fn( |val| {
             match val {
                 RestrictedChar(_)   => false,
@@ -494,7 +494,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// character.
     fn get_name_token(&mut self) -> Option<XmlResult<XmlToken>> {
         let mut name = ~"";
-        let start_char = self.read();
+        let start_char = self.read_chr();
         match start_char.extract_char() {
             Some(a) if(util::is_name_start(&a)) => name.push_char(a),
             _                             => fail!(~"Expected name start token")
@@ -547,11 +547,11 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 result = self.get_attlist_token();
             }else if(peek_sec == ~"<!N"){
                 result = self.get_notation_token();
-            }else{
+            } else {
                 result = Some(XmlResult{data: ErrorToken(~""), errors: ~[]});
             }
         } else {
-            self.read();
+            self.read_chr();
             result = Some(XmlResult{data: LessBracket, errors: ~[]});
         }
         result
@@ -567,7 +567,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             let text = self.read_until_peek("]]>").data;
             self.read_str(3u);
             result = Some(XmlResult{data: CData(text), errors: ~[]});
-        }else{
+        } else {
             result = Some(XmlResult{data: DoctypeOpen, errors: ~[]});
         }
         result
@@ -580,14 +580,14 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         if(peeked_str == ~"OCTYPE"){
             self.read_str(6u);
             result = Some(XmlResult{data: DoctypeStart, errors: ~[]});
-        }else{
+        } else {
             result = Some(XmlResult{data: ErrorToken(~"<!D"), errors: ~[]});
         }
         result
     }
 
     fn get_ref_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('&'),       self.read());
+        assert_eq!(Char('&'),       self.read_chr());
         let peek_char = self.peek_chr();
 
         let token = match peek_char {
@@ -605,17 +605,17 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_peref_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('%'),       self.read());
+        assert_eq!(Char('%'),       self.read_chr());
         Some(XmlResult{ data: Percent, errors: ~[]})
     }
 
     fn get_equal_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('='),       self.read());
+        assert_eq!(Char('='),       self.read_chr());
         Some(XmlResult{ data: EqTok, errors: ~[]})
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('#'),       self.read());
+        assert_eq!(Char('#'),       self.read_chr());
         let peek_char = self.peek_chr();
 
         let radix;
@@ -635,13 +635,13 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         if(is_radix){
             char_ref = self.process_hex_digit();
-        }else{
+        } else {
             char_ref = self.process_digit();
         }
         let end_char_ref = self.peek_chr();
 
         match end_char_ref {
-            Char(';') => { self.read();},
+            Char(';') => { self.read_chr();},
             _ => return Some(
                     XmlResult{
                         data: EndOfFile,
@@ -674,7 +674,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_sqbracket_left_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('['),       self.read());
+        assert_eq!(Char('['),       self.read_chr());
         Some(XmlResult{data: LeftSqBracket, errors: ~[]})
     }
 
@@ -685,30 +685,30 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         if(~"]]>" == self.peek_str(3u).data){
             self.read_str(3u);
             result = Some(XmlResult{ data: DoctypeClose, errors: ~[]});
-        }else{
-            self.read();
+        } else {
+            self.read_chr();
             result = Some(XmlResult{data: RightSqBracket, errors: ~[]});
         }
         result
     }
 
     fn get_paren_left_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('('),       self.read());
+        assert_eq!(Char('('),       self.read_chr());
         Some(XmlResult{data: LeftParen, errors: ~[]})
     }
 
     fn get_paren_right_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char(')'),       self.read());
+        assert_eq!(Char(')'),       self.read_chr());
         Some(XmlResult{data: RightParen, errors: ~[]})
     }
 
     fn get_semicolon_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char(';'),       self.read());
+        assert_eq!(Char(';'),       self.read_chr());
         Some(XmlResult{data: Semicolon, errors: ~[]})
     }
 
     fn get_entity_def_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('#'),       self.read());
+        assert_eq!(Char('#'),       self.read_chr());
         let result;
         if(self.peek_str(8u).data == ~"REQUIRED"){
             result = Some(XmlResult{data: RequiredDecl, errors: ~[]});
@@ -718,7 +718,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             result = Some(XmlResult{data: PCDataDecl, errors: ~[]});
         }else if(self.peek_str(5u).data == ~"FIXED"){
             result = Some(XmlResult{data: FixedDecl, errors: ~[]});
-        }else{
+        } else {
             result = Some(XmlResult{data: Text(~"#"), errors: ~[]});
         }
         result
@@ -734,7 +734,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }else if(self.peek_str(6u).data == ~"ENTITY"){
             self.read_str(6u);
             result = Some(XmlResult{ data: EntityType, errors: ~[]});
-        }else{
+        } else {
             result = Some(XmlResult{
                             data: ErrorToken(~"<!"),
                             errors: ~[self.get_error(~"Error in g_e_o_e_t")]
@@ -750,7 +750,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         if(self.peek_str(7u).data == ~"ATTLIST"){
             self.read_str(7u).data;
             result = Some(XmlResult{ data: AttlistType, errors: ~[]});
-        }else{
+        } else {
             result = Some(XmlResult{
                 data: ErrorToken(~"<!"),
                 errors: ~[self.get_error(~"Error in get_attlist_token")]
@@ -765,7 +765,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         if(self.peek_str(8u).data == ~"NOTATION"){
             self.read_str(8u);
             result = Some(XmlResult{ data: NotationType, errors: ~[]});
-        }else{
+        } else {
             result = Some(XmlResult{
                 data: ErrorToken(~"<!"),
                 errors: ~[self.get_error(~"Error in get_attlist_token")]
@@ -775,17 +775,17 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_star_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('*'),       self.read());
+        assert_eq!(Char('*'),       self.read_chr());
         Some(XmlResult{data: Star, errors: ~[]})
     }
 
     fn get_plus_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('+'),       self.read());
+        assert_eq!(Char('+'),       self.read_chr());
         Some(XmlResult{data: Plus, errors: ~[]})
     }
 
     fn get_pipe_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('|'),       self.read());
+        assert_eq!(Char('|'),       self.read_chr());
         Some(XmlResult{data: Pipe, errors: ~[]})
     }
 
@@ -823,7 +823,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         if(name.eq_ignore_ascii_case("xml")){
             self.read_str(3u);
             return Some(XmlResult{ data: PrologStart, errors: ~[]});
-        }else{
+        } else {
             let text = self.read_until_peek("?>").data;
             self.read_str(2u);
             return Some(XmlResult{ data: PI(text), errors: ~[]});
@@ -836,14 +836,14 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         if(peek_str.data == ~"!>"){
             self.read_str(2u);
             return Some(XmlResult{ data: DoctypeEnd, errors: ~[]})
-        }else{
+        } else {
             let text = self.read_str(1u);
             return Some(XmlResult{ data: ErrorToken(text.data), errors: ~[self.get_error(~"mock error")]})
         }
     }
 
     fn get_right_bracket_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('>'), self.read());
+        assert_eq!(Char('>'), self.read_chr());
         return Some(XmlResult{ data: GreaterBracket, errors: ~[]})
     }
 
@@ -857,7 +857,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
             let text = self.process_comment().data;
             return Some(XmlResult{ data: Comment(text), errors: ~[]})
-        }else{
+        } else {
             return Some(XmlResult{ data: ErrorToken(~"<!-"), errors: ~[self.get_error(~"mock error")]})
         }
     }
@@ -872,13 +872,13 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             if(peek.data.starts_with("--") && peek.data == ~"-->"){
                 self.read_str(3u);
                 found_end = true;
-            }else{
+            } else {
                 if(peek.data.starts_with("--") && peek.data != ~"-->"){
 
                     found_errs.push(self.get_error(~"Can't have -- in comments"));
                 }
 
-                let extracted_char = self.read().extract_char();
+                let extracted_char = self.read_chr().extract_char();
                     match extracted_char {
                             None => {},
                             Some(a) => {result.push_char(a)}
@@ -895,25 +895,25 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_empty_tag_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(Char('/'), self.read());
+        assert_eq!(Char('/'), self.read_chr());
 
         let result;
         if(self.read_str(1u).data == ~">"){
             result = Some(XmlResult{ data: EmptyTag, errors: ~[]});
-        }else{
+        } else {
             result = Some(XmlResult{ data: ErrorToken(~"/"), errors: ~[]});
         }
         result
     }
 
     fn get_pi_end_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        let chr_assert = self.read();
+        let chr_assert = self.read_chr();
         assert_eq!(Char('?'),   chr_assert);
 
         let chr_peek = self.peek_chr();
         let result = match chr_peek {
             Char('>')    => {
-                self.read();
+                self.read_chr();
                 Some(XmlResult{ data: PrologEnd, errors: ~[]})
             },
             _ => Some(XmlResult{ data: QuestionMark, errors: ~[]})
@@ -923,7 +923,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 }
 
 pub fn main() {
-    
+
 }
 
 #[cfg(test)]
@@ -944,7 +944,7 @@ mod tests {
         let r = BufReader::new(bytes!("<?xml?> <?php stuff?><![CDATA[<test>]]>\t"));
         let mut lexer =         XmlLexer::from_reader(r);
 
-        
+
         assert_eq!(Some(XmlResult{ data: PrologStart, errors: ~[] }),
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: PrologEnd, errors: ~[] }),
@@ -957,7 +957,7 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: WhiteSpace(~"\t"), errors: ~[] }),
                    lexer.next());
-    
+
 
         let r2 = BufReader::new(bytes!("<![]]><!DOCTYPE &#x3123;&#212;%name;&name2;"));
         lexer = XmlLexer::from_reader(r2);
@@ -986,7 +986,7 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: Semicolon, errors: ~[] }),
                    lexer.next());
-    
+
         let r3 = BufReader::new(bytes!("<!ENTITY<!NOTATION<!ELEMENT<!ATTLIST!><br>"));
         lexer = XmlLexer::from_reader(r3);
 
@@ -1006,7 +1006,7 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: GreaterBracket, errors: ~[] }),
                    lexer.next());
-    
+
         let r4 = BufReader::new(bytes!("</br><e/><!-- -->()|+?*="));
         lexer = XmlLexer::from_reader(r4);
 
@@ -1038,7 +1038,7 @@ mod tests {
                    lexer.next());
         assert_eq!(Some(XmlResult{ data: EqTok, errors: ~[] }),
                    lexer.next());
-   
+
         let r5 = BufReader::new(bytes!("'quote'\"funny\"$BLA<&apos;"));
         lexer = XmlLexer::from_reader(r5);
 
@@ -1121,7 +1121,7 @@ mod tests {
         assert_eq!(~"as",               lexer.peek_str(2u).data);
         assert_eq!(0u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
-        assert_eq!(Char('a'),           lexer.read());
+        assert_eq!(Char('a'),           lexer.read_chr());
         assert_eq!(1u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
         assert_eq!(~"s",                lexer.read_str(1u).data);
@@ -1134,8 +1134,8 @@ mod tests {
         let r = BufReader::new(bytes!("a"));
         let mut lexer = XmlLexer::from_reader(r);
 
-        assert_eq!(Char('a'),           lexer.read());
-        assert_eq!(EndFile,             lexer.read())
+        assert_eq!(Char('a'),           lexer.read_chr());
+        assert_eq!(EndFile,             lexer.read_chr())
     }
 
     #[test]
@@ -1165,24 +1165,24 @@ mod tests {
         let r1 = BufReader::new(bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F"));
         let mut lexer = XmlLexer::from_reader(r1);
 
-        assert_eq!(RestrictedChar('\x01'),      lexer.read());
-        assert_eq!(RestrictedChar('\x04'),      lexer.read());
-        assert_eq!(RestrictedChar('\x08'),      lexer.read());
-        assert_eq!(Char('a'),                   lexer.read());
-        assert_eq!(RestrictedChar('\x0B'),      lexer.read());
-        assert_eq!(RestrictedChar('\x0C'),      lexer.read());
-        assert_eq!(Char('b'),                   lexer.read());
-        assert_eq!(RestrictedChar('\x0E'),      lexer.read());
-        assert_eq!(RestrictedChar('\x10'),      lexer.read());
-        assert_eq!(RestrictedChar('\x1F'),      lexer.read());
-        assert_eq!(Char('c'),                   lexer.read());
-        assert_eq!(RestrictedChar('\x7F'),      lexer.read());
-        assert_eq!(RestrictedChar('\x80'),      lexer.read());
-        assert_eq!(RestrictedChar('\x84'),      lexer.read());
-        assert_eq!(Char('d'),                   lexer.read());
-        assert_eq!(RestrictedChar('\x86'),      lexer.read());
-        assert_eq!(RestrictedChar('\x90'),      lexer.read());
-        assert_eq!(RestrictedChar('\x9F'),      lexer.read());
+        assert_eq!(RestrictedChar('\x01'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x04'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x08'),      lexer.read_chr());
+        assert_eq!(Char('a'),                   lexer.read_chr());
+        assert_eq!(RestrictedChar('\x0B'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x0C'),      lexer.read_chr());
+        assert_eq!(Char('b'),                   lexer.read_chr());
+        assert_eq!(RestrictedChar('\x0E'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x10'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x1F'),      lexer.read_chr());
+        assert_eq!(Char('c'),                   lexer.read_chr());
+        assert_eq!(RestrictedChar('\x7F'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x80'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x84'),      lexer.read_chr());
+        assert_eq!(Char('d'),                   lexer.read_chr());
+        assert_eq!(RestrictedChar('\x86'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x90'),      lexer.read_chr());
+        assert_eq!(RestrictedChar('\x9F'),      lexer.read_chr());
     }
 
     #[test]
@@ -1190,66 +1190,66 @@ mod tests {
         let r1 = BufReader::new(bytes!("a\r\nt"));
         let mut lexer = XmlLexer::from_reader(r1);
 
-        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(Char('a'),   lexer.read_chr());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),  lexer.read());
+        assert_eq!(Char('\n'),  lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
-        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(Char('t'),   lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(1,           lexer.col);
 
         let r2 = BufReader::new(bytes!("a\rt"));
         lexer = XmlLexer::from_reader(r2);
 
-        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(Char('a'),   lexer.read_chr());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),  lexer.read());
+        assert_eq!(Char('\n'),  lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
-        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(Char('t'),   lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(1,           lexer.col);
 
         let r3 = BufReader::new(bytes!("a\r\x85t"));
         lexer = XmlLexer::from_reader(r3);
 
-        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(Char('a'),   lexer.read_chr());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),  lexer.read());
+        assert_eq!(Char('\n'),  lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
-        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(Char('t'),   lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(1,           lexer.col);
 
         let r4 = BufReader::new(bytes!("a\x85t"));
         let mut lexer = XmlLexer::from_reader(r4);
 
-        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(Char('a'),   lexer.read_chr());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),  lexer.read());
+        assert_eq!(Char('\n'),  lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
-        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(Char('t'),   lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(1,           lexer.col);
-      
+
 
         let r5 = BufReader::new(bytes!("a\u2028t"));
         let mut lexer = XmlLexer::from_reader(r5);
 
-        assert_eq!(Char('a'),   lexer.read());
+        assert_eq!(Char('a'),   lexer.read_chr());
         assert_eq!(1,           lexer.line);
         assert_eq!(1,           lexer.col);
-        assert_eq!(Char('\n'),  lexer.read());
+        assert_eq!(Char('\n'),  lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(0,           lexer.col);
-        assert_eq!(Char('t'),   lexer.read());
+        assert_eq!(Char('t'),   lexer.read_chr());
         assert_eq!(2,           lexer.line);
         assert_eq!(1,           lexer.col);
     }
