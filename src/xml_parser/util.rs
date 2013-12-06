@@ -18,9 +18,11 @@ pub struct XmlError {
 }
 
 #[deriving(Eq, Clone, ToStr)]
-enum ErrKind {
-    RestrictedCharError,
-    EndOfFileError
+pub enum ErrKind {
+    UnexpCharErr,
+    RestrictedCharErr,
+    MinMinErr,
+    EOFErr
 }
 
 #[deriving(Eq, Clone)]
@@ -52,18 +54,6 @@ impl ToStr for Mark {
     }
 }
 
-    Data(D),
-    Warning(D, ~[XmlError]),
-    Failure(D, ~[XmlError]),
-    FatalError(XmlError)
-}
-
-#[deriving(Eq, Clone, ToStr)]
-pub struct XmlResult<T> {
-    data: T,
-    errors: ~[XmlError]
-}
-
 #[inline]
 /// Escapes unallowed character //TODO CHECK WHICH
 pub fn escape(input: &str) -> ~str {
@@ -84,19 +74,15 @@ pub fn escape(input: &str) -> ~str {
 
     /// This methods removes all restricted character from a given XmlResult<~str>,
     /// Without changing errors
-    pub fn clean_restricted(input: XmlResult<~str>) -> XmlResult<~str> {
-        let mut clean_str = ~"";
+    pub fn clean_restricted(input: ~str) -> ~str {
+        let mut result = ~"";
 
-        for c in input.data.chars() {
+        for c in input.chars() {
             if (!is_restricted(&c)){
-                clean_str.push_char(c);
+                result.push_char(c);
             }
         }
 
-        let result = XmlResult {
-                        data: clean_str,
-                        errors: input.errors.clone()
-        };
         result
     }
 

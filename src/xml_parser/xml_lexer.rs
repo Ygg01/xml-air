@@ -3,8 +3,9 @@ use std::io::{Reader, Buffer};
 use std::char::from_u32;
 use std::num::from_str_radix;
 
-use util::{XmlResult, XmlError, is_whitespace, is_name_start, is_name_char};
+use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 use util::{is_char, is_restricted, clean_restricted};
+use util::{ErrKind,RestrictedCharErr,MinMinErr,EOFErr,UnexpCharErr};
 
 mod util;
 
@@ -108,27 +109,28 @@ pub enum QuoteStyle {
 pub struct XmlLexer<R> {
     line: uint,
     col: uint,
-    token: Option<XmlToken>,
     priv peek_buf: ~str,
     priv err_buf: ~str,
     priv source: R
 }
 
-impl<R: Reader+Buffer> Iterator<XmlResult<XmlToken>> for XmlLexer<R>{
-    /// This method pulls tokens from stream until it reaches end of file.
-    /// From that point on, it will return None.
+impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
+    /// This method pulls tokens from Reader until it reaches
+    //  end of file. From that point on, it will return None.
     ///
     /// Example:
     /// TODO
-    fn next(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn next(&mut self) -> Option<XmlToken> {
         let chr_peek = self.peek_chr();
 
         //debug!(format!("Chr peek {}", chr_peek));
 
         let token = match chr_peek {
 
-            Char(chr) if is_whitespace(&chr) => self.get_whitespace_token(),
-            Char(chr) if is_name_start(&chr) => self.get_name_token(),
+            Char(chr) if is_whitespace(&chr)
+                      => self.get_whitespace_token(),
+            Char(chr) if is_name_start(&chr)
+                      => self.get_name_token(),
             Char(chr) if is_name_char(&chr)  => self.get_nmtoken(),
             Char('<') => self.get_left_bracket_token(),
             Char('?') => self.get_pi_end_token(),
@@ -158,13 +160,13 @@ impl<R: Reader+Buffer> Iterator<XmlResult<XmlToken>> for XmlLexer<R>{
 }
 
 impl<R: Reader+Buffer> XmlLexer<R> {
-    /// Constructs a new `XmlLexer` from  `data`
-    /// The `XmlLexer` will use the given reader as the source for parsing.
+    /// Constructs a new `XmlLexer` from `data` Reader
+    /// The `XmlLexer` will use the given reader as the source for
+    /// parsing.
     pub fn from_reader(data : R) -> XmlLexer<R> {
         XmlLexer {
             line: 1,
             col: 0,
-            token: None,
             peek_buf: ~"",
             err_buf: ~"",
             source: data
@@ -178,20 +180,21 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     ///
     /// Restricted characters are *not included* into the output
     /// string.
-    pub fn read_str(&mut self, len: uint) -> XmlResult<~str> {
-        clean_restricted(self.read_str_raw(len))
+    pub fn read_str(&mut self, len: uint) -> ~str {
+        clean_restricted(self.read_raw_str(len))
     }
 
     /// Method that peeks incoming strings
-    pub fn peek_str(&mut self, len: uint) -> XmlResult<~str>{
+    pub fn peek_str(&mut self, len: uint) -> ~str {
         let col = self.col;
         let line = self.line;
 
-        let peek_result  = self.read_str_raw(len);
+        let peek_result  = self.read_raw_str(len);
         self.col = col;
         self.line = line;
 
-        for c in peek_result.data.chars_rev(){
+        //FIXME: With different access function
+        for c in peek_result.chars_rev(){
              self.peek_buf.push_char(c);
         }
 
@@ -199,7 +202,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     pub fn next_special(&mut self, expect: QuoteStyle)
-                        -> Option<XmlResult<XmlToken>> {
+                        -> Option<XmlToken> {
         let result;
 
         match self.peek_chr() {
@@ -218,40 +221,39 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         result
     }
 
-    fn get_encoding_quote(&mut self) -> Option<XmlResult<XmlToken>> {
-        let quote = self.read_str(1u).data;
+    fn get_encoding_quote(&mut self) -> Option<XmlToken> {
+        let quote = self.read_str(1u);
         assert_eq!(true, (quote == ~"'" || quote == ~"\""));
 
-        let text = self.read_until_peek(quote).data;
+        let text = self.read_until_peek(quote);
 
         self.read_str(1u);
-        Some(XmlResult{ data: QuotedString(text), errors: ~[]})
+        Some(QuotedString(text))
     }
 
-    fn get_pubid_quote(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_pubid_quote(&mut self) -> Option<XmlToken> {
         None
     }
 
-    fn get_ent_quote(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_ent_quote(&mut self) -> Option<XmlToken> {
         None
     }
 
-    fn get_attl_quote(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_attl_quote(&mut self) -> Option<XmlToken> {
         None
     }
-    /// This method reads a character and returns an enum that might be
-    /// either a value of character, a new-line sign or a restricted character.
-    ///
-    /// Encountering Restricted characters will not result in an error,
-    /// Instead the position will be update but no information about such
-    /// characters will not be preserved.
+    /// This method reads a character and returns an enum that
+    /// might be either a value of character, a new-line sign or a
+    /// restricted character. Encountering Restricted characters
+    /// will not result in an error, Instead the position will be
+    /// update but no information about such characters will not be
+    /// preserved.
     ///
     /// Method short-circuits if the End of file has been reached
     ///
-    /// Note: This method will normalize all accepted newline characters into
-    /// '\n' character.
-    /// encountered will not be preserved.
-    ///TODO add line char buffer
+    /// Note: This method will normalize all accepted newline
+    /// characters into '\n' character. Encountered will not be
+    /// preserved.
     fn read_chr(&mut self) -> Character {
 
         let chr;
@@ -294,7 +296,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
 
     //TODO Doc
-    fn read_until_fn(&mut self, filter_fn: |Character|-> bool ) -> XmlResult<~str>{
+    fn read_until_fn(&mut self, filter_fn: |Character|-> bool )
+                     -> ~str {
         let mut col = 0u;
         let mut line = 1u;
         let mut peek_char = self.peek_chr();
@@ -315,15 +318,13 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         self.col = col;
         self.line = line;
         //TODO error checking
-        XmlResult{ data: ret_str, errors: ~[]}
+        ret_str
     }
 
-    fn read_until_peek(&mut self, peek_look: &str) -> XmlResult<~str>{
+    fn read_until_peek(&mut self, peek_look: &str) -> ~str {
         let mut peek = self.peek_str(peek_look.char_len());
         let mut result = ~"";
-        while(peek.data != peek_look.to_owned()){
-
-
+        while peek != peek_look.to_owned() {
 
             let extracted_char = self.read_chr().extract_char();
             match extracted_char {
@@ -331,17 +332,17 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 Some(a) => {result.push_char(a)}
             }
             //debug!(format!("Peek char: %?", extracted_char));
+
             peek = self.peek_str(peek_look.char_len());
         }
-        XmlResult{ data: result, errors: ~[]}
+        result
     }
 
     /// This method reads a string of given length, adding any
     /// restricted char  into the error section.
     /// Restricted character are *included* into the output string
-    fn read_str_raw(&mut self, len: uint) -> XmlResult<~str> {
-        let mut string = ~"";
-        let mut found_errs = ~[];
+    fn read_raw_str(&mut self, len: uint) -> ~str {
+        let mut raw_str = ~"";
         let mut eof = false;
         let mut l = 0u;
 
@@ -349,22 +350,27 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             let chr = self.read_chr();
             l += 1;
             match chr {
-                Char(a) => string.push_char(a),
+                Char(a) => raw_str.push_char(a),
                 EndFile => {
-                    found_errs = ~[self.get_error(~"Unexpected end of file")];
+                    self.handle_errors(EOFErr);
                     eof = true;
                 },
                 RestrictedChar(a) =>{
-                    found_errs = ~[self.get_error(~"Illegal character")];
-                    string.push_char(a);
+                    self.handle_errors(RestrictedCharErr);
+                    raw_str.push_char(a);
                 }
             };
 
         };
-        XmlResult{ data: string, errors:found_errs}
+        raw_str
     }
 
-    fn get_error(&mut self, err: ~str) -> XmlError {
+
+    fn handle_errors(&self, kind: ErrKind) {
+
+    }
+
+    fn get_error (&mut self, err: ~str) -> XmlError {
         XmlError {
             line: self.line,
             col: self.col,
@@ -373,16 +379,15 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
     }
 
-
-
     #[inline]
     /// This method reads the source and updates position of
     /// pointer in said structure.
     /// This method WILL NOT update new col or row
     fn raw_read(&mut self) -> char {
         match self.source.read_char() {
-            None    => '\x01',//FIX: do proper error handling 
-                              //     and not just making restricted chars
+            None    => '\x01',//FIX: do proper error handling
+                              //     and not just making restricted
+                              // chars
             Some(a) => a
         }
     }
@@ -391,18 +396,19 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// This method unreads the source and simply updates position
     /// This method WILL NOT update new col or row
     fn raw_unread(&mut self, c: char) {
-        //self.source.seek(-1, std::io::SeekCur); Can't use seek on BufReader
         self.peek_buf.push_char(c);
     }
 
     /// Processes the input `char` as it was a newline
-    /// Note if char read is `\r` it must peek to check if `\x85` or `\n`
-    /// are next, because they are part of same newline group.
-    /// See to `http://www.w3.org/TR/xml11/#sec-line-ends` for details
-    /// This method updates column and line position accordingly.
+    /// Note if char read is `\r` it must peek to check if
+    /// `\x85` or `\n` are next, because they are part of same
+    /// newline group.
+    /// See to `http://www.w3.org/TR/xml11/#sec-line-ends`
+    /// for details. This method updates column and line position
+    /// accordingly.
     ///
-    /// Note: Lines and column start at 1 but the read character will be
-    /// update after a new character is read.
+    /// Note: Lines and column start at 1 but the read character
+    /// will be update after a new character is read.
     fn process_newline(&mut self, c: char) -> Character {
         self.line += 1u;
         self.col = 0u;
@@ -425,7 +431,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         Character::from_char(c)
     }
 
-    fn process_name_token(&mut self) -> XmlResult<~str> {
+    fn process_name_token(&mut self) -> ~str {
         self.read_until_fn( |val| {
             match val {
                 RestrictedChar(_)   => false,
@@ -435,12 +441,23 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         })
     }
 
-    fn process_name_token2(&mut self) -> XmlResult<~str> {
+    fn process_name_token2(&mut self) -> ~str {
         let mut str_buf = ~"";
-        let mut errs = ~[];
+
         match self.read_chr() {
-            Char(a) if(util::is_name_start(&a)) => str_buf.push_char(a),
-            _ => {str_buf = ~""; errs.push(XmlError{line: 0u, col: 0u, msg: ~"", mark:None}); }
+            Char(a) if(util::is_name_start(&a))
+                    => str_buf.push_char(a),
+            Char(_) => {
+                self.handle_errors(UnexpCharErr);
+            }
+            RestrictedChar(_) => {
+                str_buf = ~"";
+                self.handle_errors(RestrictedCharErr);
+            },
+            EndFile => {
+                str_buf = ~"";
+                self.handle_errors(EOFErr);
+            }
         }
         self.read_until_fn( |val| {
             match val {
@@ -450,10 +467,10 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             }
         });
 
-        XmlResult{ data: str_buf, errors: errs}
+        str_buf
     }
 
-    fn process_hex_digit(&mut self) -> XmlResult<~str> {
+    fn process_hex_digit(&mut self) -> ~str {
         self.read_chr();
         self.read_until_fn( |val| {
             match val {
@@ -464,7 +481,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         })
     }
 
-    fn process_digit(&mut self) -> XmlResult<~str> {
+    fn process_digit(&mut self) -> ~str {
         self.read_until_fn( |val| {
             match val {
                 RestrictedChar(_)   => false,
@@ -478,115 +495,120 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// consumes all following whitespace characters until it
     /// reaches a non white space character be it Restricted char,
     /// EndFile or  a non-white space char.
-    fn get_whitespace_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        let whitespace = self.read_until_fn( |val| {
+    fn get_whitespace_token(&mut self) -> Option<XmlToken> {
+        let ws = self.read_until_fn( |val| {
             match val {
                 RestrictedChar(_)   => false,
                 EndFile             => false,
                 Char(v)             => util::is_whitespace(&v)
             }
-        }).data;
-        Some(XmlResult{data: WhiteSpace(whitespace), errors: ~[]})
+        });
+        Some(WhiteSpace(ws))
     }
 
     /// If we find a namespace start character this method
     /// consumes all namespace token until it reaches a non-name
     /// character.
-    fn get_name_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_name_token(&mut self) -> Option<XmlToken> {
         let mut name = ~"";
         let start_char = self.read_chr();
         match start_char.extract_char() {
-            Some(a) if(util::is_name_start(&a)) => name.push_char(a),
-            _                             => fail!(~"Expected name start token")
+            Some(a) if(util::is_name_start(&a))
+              => name.push_char(a),
+            _ => fail!(~"Expected name start token")
         };
 
         let result = self.process_name_token();
-        name.push_str(result.data);
+        name.push_str(result);
 
-        Some(XmlResult{data: NameToken(name), errors: result.errors.clone()})
+        Some(NameToken(name))
     }
 
-    fn get_nmtoken(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_nmtoken(&mut self) -> Option<XmlToken> {
         let mut name = ~"";
         let start_char = self.peek_chr();
         match start_char.extract_char() {
-            Some(a) if(util::is_name_start(&a)) => {},
-            _                             => fail!(~"Expected name start token")
+            Some(a) if(util::is_name_start(&a))
+              => {},
+            _ => fail!(~"Expected name start token")
         };
 
         let result = self.process_name_token();
-        name.push_str(result.data);
+        name.push_str(result);
 
-        Some(XmlResult{data: NameToken(name), errors: result.errors.clone()})
+        Some(NameToken(name))
     }
 
-    fn get_left_bracket_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_left_bracket_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('<'),   self.peek_chr());
 
         let peek_first = self.peek_str(2u);
         let result;
 
-        //debug!(fmt!("peek first: %?", peek_first.data));
+        //debug!(fmt!("peek first: %?", peek_first));
 
-        if(peek_first.data == ~"<?") {
+        if peek_first  == ~"<?" {
             result = self.get_pi_token();
-        } else if(peek_first.data == ~"</"){
+        } else if peek_first == ~"</" {
             result = self.get_close_tag_token();
-        } else if(peek_first.data == ~"<!"){
-            let peek_sec = self.peek_str(3u).data;
+        } else if peek_first == ~"<!" {
+            let peek_sec = self.peek_str(3u);
 
-            if(peek_sec == ~"<!-"){
+            if peek_sec == ~"<!-" {
                 result = self.get_comment_token();
-            }else if( peek_sec == ~"<!["){
+            } else if peek_sec == ~"<![" {
                 result = self.get_cdata_token();
-            }else if( peek_sec == ~"<!D"){
+            } else if peek_sec == ~"<!D" {
                 result = self.get_doctype_start_token();
-            }else if(peek_sec == ~"<!E"){
+            } else if peek_sec == ~"<!E" {
                 result = self.get_entity_or_element_token();
-            }else if(peek_sec == ~"<!A"){
+            } else if peek_sec == ~"<!A" {
                 result = self.get_attlist_token();
-            }else if(peek_sec == ~"<!N"){
+            } else if peek_sec == ~"<!N" {
                 result = self.get_notation_token();
             } else {
-                result = Some(XmlResult{data: ErrorToken(~""), errors: ~[]});
+                result = Some(ErrorToken(~""));
             }
         } else {
             self.read_chr();
-            result = Some(XmlResult{data: LessBracket, errors: ~[]});
+            result = Some(LessBracket);
         }
         result
     }
 
     //FIX THIS: possible element ignore section
-    fn get_cdata_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"<![",       self.read_str(3u).data);
-        let peek = self.peek_str(6u).data;
-        let result; 
-        if(peek == ~"CDATA["){
-            self.read_str(6u);
-            let text = self.read_until_peek("]]>").data;
-            self.read_str(3u);
-            result = Some(XmlResult{data: CData(text), errors: ~[]});
-        } else {
-            result = Some(XmlResult{data: DoctypeOpen, errors: ~[]});
-        }
-        result
-    }
+    fn get_cdata_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<![",       self.read_str(3u));
 
-    fn get_doctype_start_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"<!D",       self.read_str(3u).data);
-        let peeked_str = self.peek_str(6u).data;
+        let peek = self.peek_str(6u);
         let result;
-        if(peeked_str == ~"OCTYPE"){
+        if(peek == ~"CDATA["){
+
             self.read_str(6u);
-            result = Some(XmlResult{data: DoctypeStart, errors: ~[]});
+            let text = self.read_until_peek("]]>");
+            self.read_str(3u);
+
+            result = Some(CData(text));
         } else {
-            result = Some(XmlResult{data: ErrorToken(~"<!D"), errors: ~[]});
+            result = Some(DoctypeOpen);
         }
         result
     }
 
-    fn get_ref_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_doctype_start_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!D",       self.read_str(3u));
+        let peeked_str = self.peek_str(6u);
+        let result;
+        if peeked_str == ~"OCTYPE" {
+            self.read_str(6u);
+            result = Some(DoctypeStart);
+        } else {
+            result = Some(ErrorToken(~"<!D"));
+        }
+        result
+    }
+
+    fn get_ref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('&'),       self.read_chr());
         let peek_char = self.peek_chr();
 
@@ -595,26 +617,26 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 self.get_char_ref_token()
             },
             Char(_) => {
-                Some(XmlResult{ data: Amp, errors: ~[]})
+                Some(Amp)
             },
             _ => {
-                Some(XmlResult{ data: EndOfFile, errors: ~[self.get_error(~"mock error")]})
+                Some(EndOfFile)
             }
         };
         token
     }
 
-    fn get_peref_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_peref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('%'),       self.read_chr());
-        Some(XmlResult{ data: Percent, errors: ~[]})
+        Some(Percent)
     }
 
-    fn get_equal_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_equal_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('='),       self.read_chr());
-        Some(XmlResult{ data: EqTok, errors: ~[]})
+        Some(EqTok)
     }
 
-    fn get_char_ref_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_char_ref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('#'),       self.read_chr());
         let peek_char = self.peek_chr();
 
@@ -624,16 +646,15 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 radix = 16;
             },
             Char(_) => radix = 10,
-            _ => return Some(XmlResult{
-                                data: EndOfFile,
-                                errors: ~[self.get_error(~"mock error")]
-                            })
+            _ => return {
+                Some(EndOfFile)
+            }
         }
 
         let is_radix = (radix == 16);
         let char_ref;
 
-        if(is_radix){
+        if is_radix {
             char_ref = self.process_hex_digit();
         } else {
             char_ref = self.process_digit();
@@ -641,272 +662,262 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let end_char_ref = self.peek_chr();
 
         match end_char_ref {
-            Char(';') => { self.read_chr();},
-            _ => return Some(
-                    XmlResult{
-                        data: EndOfFile,
-                        errors: ~[self.get_error(~"mock error char ref")]
-                    })
+            Char(';') => {
+                self.read_chr();
+            },
+            _ => {
+                let mut err_token = ~"#";
+                match peek_char.extract_char() {
+                    Some(a) => err_token.push_char(a),
+                    _ => {}
+                }
+                err_token.push_str(char_ref);
+                return Some(ErrorToken(~""))
+            }
         }
 
-        let parse_char = from_str_radix::<uint>(char_ref.data, radix);
+        let parse_char = from_str_radix::<uint>(char_ref,radix);
 
         match parse_char {
             Some(a) => {
                 let ref_char = from_u32(a as u32);
 
-
                 match ref_char {
-                    Some(a) => { Some(XmlResult{
-                                        data: CharRef(a),
-                                        errors: ~[]})
+                    Some(a) => {
+                         Some(CharRef(a))
                     }
-                    _ => Some(XmlResult{
-                                data: EndOfFile,
-                                errors: ~[self.get_error(~"unparsable stuff")]
-                            })
+                    _ => Some(EndOfFile)
                 }
             },
-            None =>Some(XmlResult{
-                            data: EndOfFile,
-                            errors: ~[self.get_error(~"invalid stuff")]})
+            None => {
+                Some(EndOfFile)
+            }
         }
     }
 
-    fn get_sqbracket_left_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_sqbracket_left_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('['),       self.read_chr());
-        Some(XmlResult{data: LeftSqBracket, errors: ~[]})
+        Some(LeftSqBracket)
     }
 
 
-    fn get_sqbracket_right_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_sqbracket_right_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char(']'),       self.peek_chr());
         let result;
-        if(~"]]>" == self.peek_str(3u).data){
+        if ~"]]>" == self.peek_str(3u) {
             self.read_str(3u);
-            result = Some(XmlResult{ data: DoctypeClose, errors: ~[]});
+            result = Some(DoctypeClose);
         } else {
             self.read_chr();
-            result = Some(XmlResult{data: RightSqBracket, errors: ~[]});
+            result = Some(RightSqBracket);
         }
         result
     }
 
-    fn get_paren_left_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_paren_left_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('('),       self.read_chr());
-        Some(XmlResult{data: LeftParen, errors: ~[]})
+        Some(LeftParen)
     }
 
-    fn get_paren_right_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_paren_right_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char(')'),       self.read_chr());
-        Some(XmlResult{data: RightParen, errors: ~[]})
+        Some(RightParen)
     }
 
-    fn get_semicolon_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_semicolon_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char(';'),       self.read_chr());
-        Some(XmlResult{data: Semicolon, errors: ~[]})
+        Some(Semicolon)
     }
 
-    fn get_entity_def_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_entity_def_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('#'),       self.read_chr());
         let result;
-        if(self.peek_str(8u).data == ~"REQUIRED"){
-            result = Some(XmlResult{data: RequiredDecl, errors: ~[]});
-        }else if(self.peek_str(7u).data == ~"IMPLIED"){
-            result = Some(XmlResult{data: ImpliedDecl, errors: ~[]});
-        }else if(self.peek_str(6u).data == ~"PCDATA"){
-            result = Some(XmlResult{data: PCDataDecl, errors: ~[]});
-        }else if(self.peek_str(5u).data == ~"FIXED"){
-            result = Some(XmlResult{data: FixedDecl, errors: ~[]});
+        if self.peek_str(8u) == ~"REQUIRED" {
+            result = Some(RequiredDecl);
+        } else if self.peek_str(7u) == ~"IMPLIED" {
+            result = Some(ImpliedDecl);
+        } else if self.peek_str(6u) == ~"PCDATA" {
+            result = Some(PCDataDecl);
+        } else if self.peek_str(5u) == ~"FIXED" {
+            result = Some(FixedDecl);
         } else {
-            result = Some(XmlResult{data: Text(~"#"), errors: ~[]});
+            result = Some(Text(~"#"));
         }
         result
     }
 
-    fn get_entity_or_element_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"<!", self.read_str(2u).data);
+    fn get_entity_or_element_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!", self.read_str(2u));
 
         let result;
-        if(self.peek_str(7u).data == ~"ELEMENT"){
+        if self.peek_str(7u) == ~"ELEMENT" {
             self.read_str(7u);
-            result = Some(XmlResult{ data: ElementType, errors: ~[]});
-        }else if(self.peek_str(6u).data == ~"ENTITY"){
+            result = Some(ElementType);
+        } else if self.peek_str(6u) == ~"ENTITY" {
             self.read_str(6u);
-            result = Some(XmlResult{ data: EntityType, errors: ~[]});
+            result = Some(EntityType);
         } else {
-            result = Some(XmlResult{
-                            data: ErrorToken(~"<!"),
-                            errors: ~[self.get_error(~"Error in g_e_o_e_t")]
-                         });
+            result = Some(ErrorToken(~"<!"));
         }
         result
     }
 
-    fn get_attlist_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"<!", self.read_str(2u).data);
+    fn get_attlist_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!", self.read_str(2u));
         let result;
 
-        if(self.peek_str(7u).data == ~"ATTLIST"){
-            self.read_str(7u).data;
-            result = Some(XmlResult{ data: AttlistType, errors: ~[]});
+        if self.peek_str(7u) == ~"ATTLIST" {
+            self.read_str(7u);
+            result = Some(AttlistType);
         } else {
-            result = Some(XmlResult{
-                data: ErrorToken(~"<!"),
-                errors: ~[self.get_error(~"Error in get_attlist_token")]
-            });
+            result = Some(ErrorToken(~"<!"));
         }
         result
     }
 
-    fn get_notation_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"<!", self.read_str(2u).data);
+    fn get_notation_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!", self.read_str(2u));
         let result;
-        if(self.peek_str(8u).data == ~"NOTATION"){
+        if self.peek_str(8u) == ~"NOTATION" {
             self.read_str(8u);
-            result = Some(XmlResult{ data: NotationType, errors: ~[]});
+            result = Some(NotationType);
         } else {
-            result = Some(XmlResult{
-                data: ErrorToken(~"<!"),
-                errors: ~[self.get_error(~"Error in get_attlist_token")]
-            });
+            result = Some(ErrorToken(~"<!"));
         }
         result
     }
 
-    fn get_star_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_star_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('*'),       self.read_chr());
-        Some(XmlResult{data: Star, errors: ~[]})
+        Some(Star)
     }
 
-    fn get_plus_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_plus_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('+'),       self.read_chr());
-        Some(XmlResult{data: Plus, errors: ~[]})
+        Some(Plus)
     }
 
-    fn get_pipe_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_pipe_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('|'),       self.read_chr());
-        Some(XmlResult{data: Pipe, errors: ~[]})
+        Some(Pipe)
     }
 
-    fn get_quote_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        let quote = self.read_str(1u).data;
+    fn get_quote_token(&mut self) -> Option<XmlToken> {
+        let quote = self.read_str(1u);
         assert_eq!(true, (quote == ~"'" || quote == ~"\""));
 
-        let text = self.read_until_peek(quote).data;
+        let text = self.read_until_peek(quote);
 
         self.read_str(1u);
-        Some(XmlResult{ data: QuotedString(text), errors: ~[]})
+        Some(QuotedString(text))
     }
 
-    fn get_text_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_text_token(&mut self) -> Option<XmlToken> {
         let mut peek;
         let mut text = ~"";
         let mut run_loop = true;
-        while(run_loop) {
-            peek = self.peek_str(3u).data;
+        while run_loop {
+            peek = self.peek_str(3u);
             run_loop = !peek.starts_with("&")
                     && !peek.starts_with("<")
                     && peek != ~"]]>";
-            if(run_loop){
-                text.push_str(self.read_str(1u).data);
+            if run_loop {
+                text.push_str(self.read_str(1u));
             }
         }
-        Some(XmlResult{ data: Text(text), errors: ~[]})
+        Some(Text(text))
     }
 
-    fn get_pi_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"<?",       self.read_str(2u).data);
+    fn get_pi_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<?",       self.read_str(2u));
 
-        let name = self.peek_str(3u).data;
+        let name = self.peek_str(3u);
 
-        if(name.eq_ignore_ascii_case("xml")){
+        if name.eq_ignore_ascii_case("xml") {
             self.read_str(3u);
-            return Some(XmlResult{ data: PrologStart, errors: ~[]});
+            return Some(PrologStart);
         } else {
-            let text = self.read_until_peek("?>").data;
+            let text = self.read_until_peek("?>");
             self.read_str(2u);
-            return Some(XmlResult{ data: PI(text), errors: ~[]});
+            return Some(PI(text));
         }
     }
 
-    fn get_doctype_end_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_doctype_end_token(&mut self) -> Option<XmlToken> {
         let peek_str = self.peek_str(2u);
 
-        if(peek_str.data == ~"!>"){
+        if peek_str == ~"!>" {
             self.read_str(2u);
-            return Some(XmlResult{ data: DoctypeEnd, errors: ~[]})
+            return Some(DoctypeEnd)
         } else {
             let text = self.read_str(1u);
-            return Some(XmlResult{ data: ErrorToken(text.data), errors: ~[self.get_error(~"mock error")]})
+            return Some(ErrorToken(text))
         }
     }
 
-    fn get_right_bracket_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_right_bracket_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('>'), self.read_chr());
-        return Some(XmlResult{ data: GreaterBracket, errors: ~[]})
+        return Some(GreaterBracket)
     }
 
-    fn get_comment_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"<!-", self.read_str(3u).data);
+    fn get_comment_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!-", self.read_str(3u));
 
-        let peek_str = self.peek_str(1u).data;
+        let peek_str = self.peek_str(1u);
 
-        if(peek_str == ~"-"){
+        if peek_str == ~"-" {
             self.read_str(1u);
 
-            let text = self.process_comment().data;
-            return Some(XmlResult{ data: Comment(text), errors: ~[]})
+            let text = self.process_comment();
+            return Some(Comment(text))
         } else {
-            return Some(XmlResult{ data: ErrorToken(~"<!-"), errors: ~[self.get_error(~"mock error")]})
+            return Some(ErrorToken(~"<!-"))
         }
     }
 
-    fn process_comment(&mut self) -> XmlResult<~str> {
+    fn process_comment(&mut self) -> ~str {
         let mut peek = self.peek_str(3u);
         let mut result = ~"";
         let mut found_end = false;
-        let mut found_errs = ~[];
 
-        while(!found_end){
-            if(peek.data.starts_with("--") && peek.data == ~"-->"){
+        while !found_end {
+            if peek.starts_with("--") && peek == ~"-->" {
                 self.read_str(3u);
                 found_end = true;
             } else {
-                if(peek.data.starts_with("--") && peek.data != ~"-->"){
-
-                    found_errs.push(self.get_error(~"Can't have -- in comments"));
+                if peek.starts_with("--") && peek != ~"-->" {
+                    self.handle_errors(MinMinErr);
                 }
 
                 let extracted_char = self.read_chr().extract_char();
-                    match extracted_char {
-                            None => {},
-                            Some(a) => {result.push_char(a)}
+                match extracted_char {
+                    None => {},
+                    Some(a) => {result.push_char(a)}
                 }
                 peek = self.peek_str(3u);
             }
         }
-        XmlResult{ data: result, errors: ~[]}
+        result
     }
 
-    fn get_close_tag_token(&mut self) -> Option<XmlResult<XmlToken>> {
-        assert_eq!(~"</",  self.read_str(2u).data);
-        return Some(XmlResult{ data: CloseTag, errors: ~[]})
+    fn get_close_tag_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"</",  self.read_str(2u));
+        return Some(CloseTag)
     }
 
-    fn get_empty_tag_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_empty_tag_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('/'), self.read_chr());
 
         let result;
-        if(self.read_str(1u).data == ~">"){
-            result = Some(XmlResult{ data: EmptyTag, errors: ~[]});
+        if self.read_str(1u) == ~">" {
+            result = Some(EmptyTag);
         } else {
-            result = Some(XmlResult{ data: ErrorToken(~"/"), errors: ~[]});
+            result = Some(ErrorToken(~"/"));
         }
         result
     }
 
-    fn get_pi_end_token(&mut self) -> Option<XmlResult<XmlToken>> {
+    fn get_pi_end_token(&mut self) -> Option<XmlToken> {
         let chr_assert = self.read_chr();
         assert_eq!(Char('?'),   chr_assert);
 
@@ -914,9 +925,9 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let result = match chr_peek {
             Char('>')    => {
                 self.read_chr();
-                Some(XmlResult{ data: PrologEnd, errors: ~[]})
+                Some(PrologEnd)
             },
-            _ => Some(XmlResult{ data: QuestionMark, errors: ~[]})
+            _=> Some(QuestionMark)
         };
         result
     }
@@ -930,14 +941,17 @@ pub fn main() {
 mod tests {
 
     use super::{XmlLexer, Char, EndFile, RestrictedChar};
-    use super::{PrologEnd,PrologStart,PI,CData,WhiteSpace,DoctypeOpen};
-    use super::{DoctypeStart,DoctypeEnd,CharRef,Percent,NameToken}; 
-    use super::{DoctypeClose,Amp, Semicolon,EntityType,NotationType,Comment}; 
-    use super::{AttlistType,GreaterBracket,LessBracket,ElementType,CloseTag};
-    use super::{EqTok,Star,QuestionMark,Plus,Pipe,LeftParen,RightParen,EmptyTag};
-    use super::{QuotedString,Text};
+    use super::{PrologEnd,PrologStart,PI,CData,WhiteSpace};
+    use super::{DoctypeOpen,DoctypeStart,DoctypeEnd,CharRef};
+    use super::{Percent,NameToken,DoctypeClose,Amp, Semicolon};
+    use super::{EntityType,NotationType,Comment};
+    use super::{AttlistType,GreaterBracket,LessBracket,ElementType};
+    use super::{CloseTag,EqTok,Star,QuestionMark,Plus,Pipe};
+    use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
+
     use std::io::mem::BufReader;
-    use util::{XmlResult,XmlError};
+
+    use util::{XmlError};
 
     #[test]
     fn test_tokens(){
@@ -945,117 +959,70 @@ mod tests {
         let mut lexer =         XmlLexer::from_reader(r);
 
 
-        assert_eq!(Some(XmlResult{ data: PrologStart, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: PrologEnd, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: WhiteSpace(~" "), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: PI(~"php stuff"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: CData(~"<test>"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: WhiteSpace(~"\t"), errors: ~[] }),
-                   lexer.next());
+        assert_eq!(Some(PrologStart),               lexer.next());
+        assert_eq!(Some(PrologEnd),                 lexer.next());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.next());
+        assert_eq!(Some(PI(~"php stuff")),          lexer.next());
+        assert_eq!(Some(CData(~"<test>")),          lexer.next());
+        assert_eq!(Some(WhiteSpace(~"\t")),         lexer.next());
 
 
         let r2 = BufReader::new(bytes!("<![]]><!DOCTYPE &#x3123;&#212;%name;&name2;"));
         lexer = XmlLexer::from_reader(r2);
 
-        assert_eq!(Some(XmlResult{ data: DoctypeOpen, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: DoctypeClose, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: DoctypeStart, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: WhiteSpace(~" "), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: CharRef('\u3123'), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: CharRef('\xD4'), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Percent, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: NameToken(~"name"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Semicolon, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Amp, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: NameToken(~"name2"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Semicolon, errors: ~[] }),
-                   lexer.next());
+        assert_eq!(Some(DoctypeOpen),           lexer.next());
+        assert_eq!(Some(DoctypeClose),          lexer.next());
+        assert_eq!(Some(DoctypeStart),          lexer.next());
+        assert_eq!(Some(WhiteSpace(~" ")),      lexer.next());
+        assert_eq!(Some(CharRef('\u3123')),     lexer.next());
+        assert_eq!(Some(CharRef('\xD4')),       lexer.next());
+        assert_eq!(Some(Percent),               lexer.next());
+        assert_eq!(Some(NameToken(~"name")),    lexer.next());
+        assert_eq!(Some(Semicolon),             lexer.next());
+        assert_eq!(Some(Amp),                   lexer.next());
+        assert_eq!(Some(NameToken(~"name2")),   lexer.next());
+        assert_eq!(Some(Semicolon),             lexer.next());
 
         let r3 = BufReader::new(bytes!("<!ENTITY<!NOTATION<!ELEMENT<!ATTLIST!><br>"));
         lexer = XmlLexer::from_reader(r3);
 
-        assert_eq!(Some(XmlResult{ data: EntityType, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: NotationType, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: ElementType, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: AttlistType, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: DoctypeEnd, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: LessBracket, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: NameToken(~"br"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: GreaterBracket, errors: ~[] }),
-                   lexer.next());
+        assert_eq!(Some(EntityType),        lexer.next());
+        assert_eq!(Some(NotationType),      lexer.next());
+        assert_eq!(Some(ElementType),       lexer.next());
+        assert_eq!(Some(AttlistType),       lexer.next());
+        assert_eq!(Some(DoctypeEnd),        lexer.next());
+        assert_eq!(Some(LessBracket),       lexer.next());
+        assert_eq!(Some(NameToken(~"br")),  lexer.next());
+        assert_eq!(Some(GreaterBracket),    lexer.next());
 
         let r4 = BufReader::new(bytes!("</br><e/><!-- -->()|+?*="));
         lexer = XmlLexer::from_reader(r4);
 
-        assert_eq!(Some(XmlResult{ data: CloseTag, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: NameToken(~"br"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: GreaterBracket, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: LessBracket, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: NameToken(~"e"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: EmptyTag, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Comment(~" "), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: LeftParen, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: RightParen, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Pipe, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Plus, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: QuestionMark, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Star, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: EqTok, errors: ~[] }),
-                   lexer.next());
+        assert_eq!(Some(CloseTag),          lexer.next());
+        assert_eq!(Some(NameToken(~"br")),  lexer.next());
+        assert_eq!(Some(GreaterBracket),    lexer.next());
+        assert_eq!(Some(LessBracket),       lexer.next());
+        assert_eq!(Some(NameToken(~"e")),   lexer.next());
+        assert_eq!(Some(EmptyTag),          lexer.next());
+        assert_eq!(Some(Comment(~" ")),     lexer.next());
+        assert_eq!(Some(LeftParen),         lexer.next());
+        assert_eq!(Some(RightParen),        lexer.next());
+        assert_eq!(Some(Pipe),              lexer.next());
+        assert_eq!(Some(Plus),              lexer.next());
+        assert_eq!(Some(QuestionMark),      lexer.next());
+        assert_eq!(Some(Star),              lexer.next());
+        assert_eq!(Some(EqTok),             lexer.next());
 
         let r5 = BufReader::new(bytes!("'quote'\"funny\"$BLA<&apos;"));
         lexer = XmlLexer::from_reader(r5);
 
-        assert_eq!(Some(XmlResult{ data: QuotedString(~"quote"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: QuotedString(~"funny"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Text(~"$BLA"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: LessBracket, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Amp, errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: NameToken(~"apos"), errors: ~[] }),
-                   lexer.next());
-        assert_eq!(Some(XmlResult{ data: Semicolon, errors: ~[] }),
-                   lexer.next());
+        assert_eq!(Some(QuotedString(~"quote")),    lexer.next());
+        assert_eq!(Some(QuotedString(~"funny")),    lexer.next());
+        assert_eq!(Some(Text(~"$BLA")),             lexer.next());
+        assert_eq!(Some(LessBracket),               lexer.next());
+        assert_eq!(Some(Amp),                       lexer.next());
+        assert_eq!(Some(NameToken(~"apos")),        lexer.next());
+        assert_eq!(Some(Semicolon),                 lexer.next());
 
     }
 
@@ -1064,11 +1031,11 @@ mod tests {
         let r = BufReader::new(bytes!("123"));
         let mut lexer =             XmlLexer::from_reader(r);
 
-        assert_eq!(~"12",           lexer.peek_str(2u).data);
-        assert_eq!(~"12",           lexer.peek_str(2u).data);
-        assert_eq!(~"1",            lexer.read_str(1u).data);
-        assert_eq!(~"23",           lexer.peek_str(2u).data);
-        assert_eq!(~"23",           lexer.peek_str(2u).data);
+        assert_eq!(~"12",           lexer.peek_str(2u));
+        assert_eq!(~"12",           lexer.peek_str(2u));
+        assert_eq!(~"1",            lexer.read_str(1u));
+        assert_eq!(~"23",           lexer.peek_str(2u));
+        assert_eq!(~"23",           lexer.peek_str(2u));
     }
 
     #[test]
@@ -1076,41 +1043,35 @@ mod tests {
         let r = BufReader::new(bytes!("1\x0123"));
         let mut lexer =             XmlLexer::from_reader(r);
 
-        assert_eq!(~"1",            lexer.peek_str(2u).data);
-        assert_eq!(~"12",           lexer.peek_str(3u).data);
+        assert_eq!(~"1",            lexer.peek_str(2u));
+        assert_eq!(~"12",           lexer.peek_str(3u));
     }
 
     #[test]
-    /// This method test buffer to ensure that adding characters into it
-    /// will not cause premature end of line. 
-    /// If program has six characters and lexer peeks 6 the reader will
-    /// be moved, and those characters added to buffer.
-    /// If reader isn't set back the read() method will end prematurely
-    /// because it encountered an EOF sign, but it hasn't read all characters
+    /// This method test buffer to ensure that adding characters
+    /// into it will not cause premature end of line.
+    /// If program has six characters and lexer peeks 6 the reader
+    /// will be moved, and those characters added to buffer.
+    /// If reader isn't set back the read() method will end
+    /// prematurely because it encountered an EOF sign, but it
+    /// hasn't read all characters
     fn test_premature_eof(){
         let r = BufReader::new(bytes!("012345"));
         let mut lexer =         XmlLexer::from_reader(r);
 
         lexer.peek_str(6u);
-        assert_eq!(~"012345",       lexer.read_str(6u).data);
+        assert_eq!(~"012345",       lexer.read_str(6u));
     }
 
     #[test]
     fn test_whitespace(){
-        let r = BufReader::new(bytes!("   \t\n  a "));
+        let r = BufReader::new(bytes!("  \t\n  a "));
         let mut lexer =         XmlLexer::from_reader(r);
-        let whitespace = XmlResult{
-                            data: WhiteSpace(~"   \t\n  "),
-                            errors: ~[]
-                        };
-        let name_token = XmlResult{ 
-                            data: NameToken(~"a"), 
-                            errors: ~[]
-                        };
-        assert_eq!(Some(whitespace),    lexer.next());
-        assert_eq!(7u,                  lexer.col);
-        assert_eq!(1u,                  lexer.line);
-        assert_eq!(Some(name_token),    lexer.next());
+
+        assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.next());
+        assert_eq!(6u,                                 lexer.col);
+        assert_eq!(1u,                                 lexer.line);
+        assert_eq!(Some(NameToken(~"a")),              lexer.next());
     }
 
     #[test]
@@ -1118,13 +1079,13 @@ mod tests {
         let r = BufReader::new(bytes!("as"));
         let mut lexer = XmlLexer::from_reader(r);
 
-        assert_eq!(~"as",               lexer.peek_str(2u).data);
+        assert_eq!(~"as",               lexer.peek_str(2u));
         assert_eq!(0u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
         assert_eq!(Char('a'),           lexer.read_chr());
         assert_eq!(1u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
-        assert_eq!(~"s",                lexer.read_str(1u).data);
+        assert_eq!(~"s",                lexer.read_str(1u));
         assert_eq!(2u,                  lexer.col);
         assert_eq!(1u,                  lexer.line);
     }
@@ -1150,10 +1111,10 @@ mod tests {
             }
         });
 
-        assert_eq!(~"aaaa",      result.data);
+        assert_eq!(~"aaaa",      result);
         assert_eq!(1,            lexer.line);
         assert_eq!(4,            lexer.col);
-        assert_eq!(~"b",         lexer.read_str(1u).data);
+        assert_eq!(~"b",         lexer.read_str(1u));
         assert_eq!(1,            lexer.line);
         assert_eq!(5,            lexer.col);
     }
