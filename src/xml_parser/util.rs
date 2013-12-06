@@ -26,13 +26,21 @@ pub enum ErrKind {
 }
 
 #[deriving(Eq, Clone)]
+/// This struct models the pretty error output
 pub struct Mark {
+    /// Position of error within context string
     pos: uint,
+    /// Length of the erroneous underline in context
     length: uint,
+    /// Context that describes where error occured
     context: ~str
 }
 
 impl ToStr for Mark {
+    /// Displays the string represenation to error mark
+    /// E.g.
+    ///       Thes text isn't spelt properly
+    ///       ^~~~
     fn to_str(&self) -> ~str {
         let mut mark_str = ~"";
         mark_str.push_str(self.context);
@@ -55,7 +63,7 @@ impl ToStr for Mark {
 }
 
 #[inline]
-/// Escapes unallowed character //TODO CHECK WHICH
+/// Escapes unallowed character
 pub fn escape(input: &str) -> ~str {
     let mut result = with_capacity(input.len());
 
@@ -72,19 +80,19 @@ pub fn escape(input: &str) -> ~str {
     result
 }
 
-    /// This methods removes all restricted character from a given XmlResult<~str>,
-    /// Without changing errors
-    pub fn clean_restricted(input: ~str) -> ~str {
-        let mut result = ~"";
+/// This methods removes all restricted character from a given ~str
+/// It emites no error or causes failures
+pub fn clean_restricted(input: ~str) -> ~str {
+    let mut result = ~"";
 
-        for c in input.chars() {
-            if (!is_restricted(&c)){
-                result.push_char(c);
-            }
+    for c in input.chars() {
+        if (!is_restricted(&c)){
+            result.push_char(c);
         }
-
-        result
     }
+
+    result
+}
 
 #[inline]
 /// Unescapes all valid XML entities in a string.
@@ -96,7 +104,9 @@ pub fn unescape(input: &str) -> ~str {
     replace(tmp, "&amp;", "&")
 }
 
-#[inline]
+#[inline(always)]
+/// Returns `true` if a character can be part of
+/// a decimal number. False otherwise.
 pub fn is_digit(input: &char) -> bool {
     match *input {
         '0'..'9' => true,
@@ -104,16 +114,21 @@ pub fn is_digit(input: &char) -> bool {
     }
 }
 
-#[inline]
+#[inline(always)]
+/// Returns `true` if a character can be part of
+/// a hexadecimal number. False otherwise
 pub fn is_hex_digit(input: &char) -> bool {
     match *input {
         '0'..'9'
+        | 'a'..'f'
         | 'A'..'F' => true,
         _ => false
     }
 }
 
-
+#[inline]
+/// Returns true  if a character belongs to a public id literal,
+/// as defined in http://www.w3.org/TR/xml11/#NT-PubidChar
 pub fn is_pubid_char(input: &char) -> bool {
     match *input {
         '\x20'
@@ -128,6 +143,10 @@ pub fn is_pubid_char(input: &char) -> bool {
 }
 
 #[inline]
+/// Returns true if a character can be starting character of
+/// XML document encoding.
+///
+/// See: http://www.w3.org/TR/xml11/#NT-EncName
 pub fn is_encoding_start_char(input: &char) -> bool {
     match *input {
         'a'.. 'z'
@@ -137,6 +156,10 @@ pub fn is_encoding_start_char(input: &char) -> bool {
 }
 
 #[inline]
+/// Returns true if a character can be non-starting character of
+/// XML document encoding.
+///
+/// See: http://www.w3.org/TR/xml11/#NT-EncName
 pub fn is_encoding_char(input: &char) -> bool {
     match *input {
         'a'.. 'z'
@@ -148,6 +171,10 @@ pub fn is_encoding_char(input: &char) -> bool {
     }
 }
 
+/// Determines if a character can be a start of a name
+/// token in XML. Name token can be attribute, tag and other names
+///
+/// See: http://www.w3.org/TR/xml11/#NT-NameStartChar
 pub fn is_name_start(chr: &char) -> bool {
     match *chr {
         ':'
@@ -170,6 +197,9 @@ pub fn is_name_start(chr: &char) -> bool {
     }
 }
 
+/// Determines if a character can be in a name token
+///
+/// See:http://www.w3.org/TR/xml11/#NT-NameChar
 pub fn is_name_char(chr: &char) -> bool {
     if(is_name_start(chr)){
         return true;
@@ -255,7 +285,7 @@ mod tests{
 
     #[test]
     fn test_is_whitespace(){
-        
+
     }
 
     #[test]
