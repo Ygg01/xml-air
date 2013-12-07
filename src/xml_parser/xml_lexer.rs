@@ -5,7 +5,8 @@ use std::num::from_str_radix;
 
 use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 use util::{is_char, is_restricted, clean_restricted};
-use util::{ErrKind,RestrictedCharErr,MinMinErr,EOFErr,UnexpCharErr};
+use util::{ErrKind,UnreadableChar,UnexpectedChar};
+use util::{RestrictedCharError,MinMinInComment,PrematureEOF};
 
 mod util;
 
@@ -331,7 +332,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 None => {/* FIXME: Error processing*/},
                 Some(a) => {result.push_char(a)}
             }
-            //debug!(format!("Peek char: %?", extracted_char));
 
             peek = self.peek_str(peek_look.char_len());
         }
@@ -352,11 +352,11 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             match chr {
                 Char(a) => raw_str.push_char(a),
                 EndFile => {
-                    self.handle_errors(EOFErr);
+                    self.handle_errors(PrematureEOF);
                     eof = true;
                 },
                 RestrictedChar(a) =>{
-                    self.handle_errors(RestrictedCharErr);
+                    self.handle_errors(RestrictedCharError);
                     raw_str.push_char(a);
                 }
             };
@@ -441,15 +441,15 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             Char(a) if(util::is_name_start(&a))
                     => str_buf.push_char(a),
             Char(_) => {
-                self.handle_errors(UnexpCharErr);
+                self.handle_errors(UnexpectedChar);
             }
             RestrictedChar(_) => {
                 str_buf = ~"";
-                self.handle_errors(RestrictedCharErr);
+                self.handle_errors(RestrictedCharError);
             },
             EndFile => {
                 str_buf = ~"";
-                self.handle_errors(EOFErr);
+                self.handle_errors(PrematureEOF);
             }
         }
         self.read_until_fn( |val| {
@@ -864,7 +864,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 found_end = true;
             } else {
                 if peek.starts_with("--") && peek != ~"-->" {
-                    self.handle_errors(MinMinErr);
+                    self.handle_errors(MinMinInComment);
                 }
 
                 let extracted_char = self.read_chr().extract_char();
