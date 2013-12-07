@@ -265,7 +265,17 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 return EndFile
             }
 
-            chr = self.raw_read();
+            let temp_chr = self.source.read_char();
+            match temp_chr {
+                Some(a) => chr = a,
+                None => {
+                    self.handle_errors(UnreadableChar);
+                    // If error on read is encountered handle errors
+                    // method should fail, but if it doesn't
+                    // then value of restricted char is `\x01`
+                    chr = '\x01';
+                }
+            }
         } else {
             chr = self.peek_buf.pop_char();
         }
@@ -379,19 +389,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
     }
 
-    #[inline]
-    /// This method reads the source and updates position of
-    /// pointer in said structure.
-    /// This method WILL NOT update new col or row
-    fn raw_read(&mut self) -> char {
-        match self.source.read_char() {
-            None    => '\x01',//FIX: do proper error handling
-                              //     and not just making restricted
-                              // chars
-            Some(a) => a
-        }
-    }
-
     /// Processes the input `char` as it was a newline
     /// Note if char read is `\r` it must peek to check if
     /// `\x85` or `\n` are next, because they are part of same
@@ -407,9 +404,15 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         self.col = 0u;
 
         if(c == '\r'){
-            let chrPeek = self.raw_read();
-            if(chrPeek != '\x85' && chrPeek != '\n'){
-                self.peek_buf.push_char(chrPeek);
+            let chrPeek = self.source.read_char();
+            match chrPeek {
+                // If the read character isn't a double
+                // new-line character (\r\85 or \n),
+                // it's added to peek buffer
+                Some(a) if a != '\x85' && a != '\n'
+                        => self.peek_buf.push_char(a),
+                _ => {}
+
             }
         }
 
