@@ -10,7 +10,7 @@ use util::{RestrictedCharError,MinMinInComment,PrematureEOF};
 
 mod util;
 
-#[deriving(Eq)]
+#[deriving(Eq, ToStr)]
 pub enum XmlToken {
     ErrorToken(~str),   // Error token
     LessBracket,        // Symbol '<'
@@ -117,10 +117,20 @@ pub struct XmlLexer<R> {
 
 impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
     /// This method pulls tokens from Reader until it reaches
-    //  end of file. From that point on, it will return None.
+    /// end of file. From that point on, it will return None.
     ///
     /// Example:
-    /// TODO
+    ///     let reader = Reader::new(bytes!("<a></a>"));
+    ///     let mut lexer = XmlLexer::from_reader(reader);
+    ///
+    ///     // Calling lexer for each individual element
+    ///     let token = lexer.next();
+    ///
+    ///     // Calling lexer in a loop
+    ///     for tok in lexer {
+    ///         println!(tok);
+    ///     }
+    ///     assert_eq!(None, lexer.next());
     fn next(&mut self) -> Option<XmlToken> {
         let chr_peek = self.peek_chr();
 
@@ -132,7 +142,8 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
                       => self.get_whitespace_token(),
             Char(chr) if is_name_start(&chr)
                       => self.get_name_token(),
-            Char(chr) if is_name_char(&chr)  => self.get_nmtoken(),
+            Char(chr) if is_name_char(&chr)
+                      => self.get_nmtoken(),
             Char('<') => self.get_left_bracket_token(),
             Char('?') => self.get_pi_end_token(),
             Char(']') => self.get_sqbracket_right_token(),
@@ -161,9 +172,9 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
 }
 
 impl<R: Reader+Buffer> XmlLexer<R> {
-    /// Constructs a new `XmlLexer` from `data` Reader
-    /// The `XmlLexer` will use the given reader as the source for
-    /// parsing.
+    /// Constructs a new `XmlLexer` from data given.
+    /// Data structure that is shared, must implement Reader
+    /// and Writer traits.
     pub fn from_reader(data : R) -> XmlLexer<R> {
         XmlLexer {
             line: 1,
@@ -246,15 +257,18 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// This method reads a character and returns an enum that
     /// might be either a value of character, a new-line sign or a
     /// restricted character. Encountering Restricted characters
-    /// will not result in an error, Instead the position will be
-    /// update but no information about such characters will not be
-    /// preserved.
+    /// by default will not result in an error, only a warning.
+    /// Position will still be updated upon finding Restricted
+    /// characters. Characters that are neither restricted nor
+    /// allowed will be ignored.
     ///
-    /// Method short-circuits if the End of file has been reached
+    /// Method short-circuits if the End of file has been reached.
     ///
     /// Note: This method will normalize all accepted newline
     /// characters into '\n' character. Encountered will not be
     /// preserved.
+    /// See http://www.w3.org/TR/xml11/#sec-line-ends for more
+    /// information
     fn read_chr(&mut self) -> Character {
 
         let chr;
@@ -935,7 +949,7 @@ mod tests {
     use util::{XmlError};
 
     #[test]
-    fn test_iteration(){
+    fn test_iteration() {
         let r = BufReader::new(bytes!("<a>"));
         let mut lexer = XmlLexer::from_reader(r);
         for token in lexer {
@@ -945,7 +959,7 @@ mod tests {
     }
 
     #[test]
-    fn test_tokens(){
+    fn test_tokens() {
         let r = BufReader::new(bytes!("<?xml?> <?php stuff?><![CDATA[<test>]]>\t"));
         let mut lexer =         XmlLexer::from_reader(r);
 
@@ -1018,7 +1032,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multi_peek(){
+    fn test_multi_peek() {
         let r = BufReader::new(bytes!("123"));
         let mut lexer =             XmlLexer::from_reader(r);
 
@@ -1030,7 +1044,7 @@ mod tests {
     }
 
     #[test]
-    fn test_peek_restricted(){
+    fn test_peek_restricted() {
         let r = BufReader::new(bytes!("1\x0123"));
         let mut lexer =             XmlLexer::from_reader(r);
 
@@ -1039,14 +1053,14 @@ mod tests {
     }
 
     #[test]
-    /// This method test buffer to ensure that adding characters
+    /// This method tests buffer to ensure that adding characters
     /// into it will not cause premature end of line.
-    /// If program has six characters and lexer peeks 6 the reader
-    /// will be moved, and those characters added to buffer.
-    /// If reader isn't set back the read() method will end
-    /// prematurely because it encountered an EOF sign, but it
-    /// hasn't read all characters
-    fn test_premature_eof(){
+    /// If lexer takes six characters and then peeks six
+    /// character the reader will be moved, and those characters
+    /// added to peek buffer.
+    /// If reader doesn't check peek buffer before the reader field
+    /// it will cause premature end of file
+    fn test_premature_eof() {
         let r = BufReader::new(bytes!("012345"));
         let mut lexer =         XmlLexer::from_reader(r);
 
@@ -1055,7 +1069,7 @@ mod tests {
     }
 
     #[test]
-    fn test_whitespace(){
+    fn test_whitespace() {
         let r = BufReader::new(bytes!("  \t\n  a "));
         let mut lexer =         XmlLexer::from_reader(r);
 
@@ -1066,7 +1080,7 @@ mod tests {
     }
 
     #[test]
-    fn test_peek_str(){
+    fn test_peek_str() {
         let r = BufReader::new(bytes!("as"));
         let mut lexer = XmlLexer::from_reader(r);
 
@@ -1082,7 +1096,7 @@ mod tests {
     }
 
     #[test]
-    fn test_eof(){
+    fn test_eof() {
         let r = BufReader::new(bytes!("a"));
         let mut lexer = XmlLexer::from_reader(r);
 
@@ -1091,7 +1105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_read_until(){
+    fn test_read_until() {
         let r = BufReader::new(bytes!("aaaab"));
         let mut lexer = XmlLexer::from_reader(r);
 
@@ -1113,7 +1127,7 @@ mod tests {
     #[test]
     /// Tests if it reads a restricted character
     /// and recognize a char correctly
-    fn test_restricted_char(){
+    fn test_restricted_char() {
         let r1 = BufReader::new(bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F"));
         let mut lexer = XmlLexer::from_reader(r1);
 
@@ -1138,7 +1152,7 @@ mod tests {
     }
 
     #[test]
-    fn test_read_newline(){
+    fn test_read_newline() {
         let r1 = BufReader::new(bytes!("a\r\nt"));
         let mut lexer = XmlLexer::from_reader(r1);
 
