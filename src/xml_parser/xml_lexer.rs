@@ -932,6 +932,16 @@ mod tests {
     use util::{XmlError};
 
     #[test]
+    fn test_iteration(){
+        let r = BufReader::new(bytes!("<a>"));
+        let mut lexer = XmlLexer::from_reader(r);
+        for token in lexer {
+
+        }
+        assert_eq!(None, lexer.next());
+    }
+
+    #[test]
     fn test_tokens(){
         let r = BufReader::new(bytes!("<?xml?> <?php stuff?><![CDATA[<test>]]>\t"));
         let mut lexer =         XmlLexer::from_reader(r);
