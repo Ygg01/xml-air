@@ -100,7 +100,7 @@ impl Character {
     }
 }
 
-pub enum QuoteStyle {
+pub enum ExpectElem {
     Attlist,
     Entity,
     Pubid,
@@ -202,7 +202,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         clean_restricted(peek_result)
     }
 
-    pub fn next_special(&mut self, expect: QuoteStyle)
+    pub fn next_special(&mut self, expect: ExpectElem)
                         -> Option<XmlToken> {
         let result;
 
