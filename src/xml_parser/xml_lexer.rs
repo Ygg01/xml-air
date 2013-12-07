@@ -392,13 +392,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
     }
 
-    #[inline]
-    /// This method unreads the source and simply updates position
-    /// This method WILL NOT update new col or row
-    fn raw_unread(&mut self, c: char) {
-        self.peek_buf.push_char(c);
-    }
-
     /// Processes the input `char` as it was a newline
     /// Note if char read is `\r` it must peek to check if
     /// `\x85` or `\n` are next, because they are part of same
@@ -416,7 +409,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         if(c == '\r'){
             let chrPeek = self.raw_read();
             if(chrPeek != '\x85' && chrPeek != '\n'){
-                self.raw_unread(chrPeek);
+                self.peek_buf.push_char(chrPeek);
             }
         }
 
@@ -470,18 +463,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         str_buf
     }
 
-    fn process_hex_digit(&mut self) -> ~str {
-        self.read_chr();
-        self.read_until_fn( |val| {
-            match val {
-                RestrictedChar(_)   => false,
-                EndFile             => false,
-                Char(v)             => util::is_hex_digit(&v)
-            }
-        })
-    }
-
-    fn process_digit(&mut self) -> ~str {
+    fn process_digits(&mut self, is_hex: &bool) -> ~str {
+        if *is_hex { self.read_chr();}
         self.read_until_fn( |val| {
             match val {
                 RestrictedChar(_)   => false,
@@ -652,13 +635,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
 
         let is_radix = (radix == 16);
-        let char_ref;
+        let char_ref = self.process_digits(&is_radix);
 
-        if is_radix {
-            char_ref = self.process_hex_digit();
-        } else {
-            char_ref = self.process_digit();
-        }
         let end_char_ref = self.peek_chr();
 
         match end_char_ref {
