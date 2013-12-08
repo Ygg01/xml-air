@@ -131,8 +131,6 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
     fn next(&mut self) -> Option<XmlToken> {
         let chr_peek = self.peek_chr();
 
-        //debug!(format!("Chr peek {}", chr_peek));
-
         let token = match chr_peek {
 
             Char(chr) if is_whitespace(&chr)
@@ -162,7 +160,7 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
             Char(_) => self.get_text_token(),
             _ => None
         };
-        //debug!(fmt!("token: %?", token));
+
         token
 
     }
@@ -182,6 +180,30 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
     }
 
+    /// Since XmlLexer has no concept of state, some tokens
+    /// generated will not provide good enough error messages.
+    /// For those types of tokens, it's best to use
+    /// `next_special` and specify the expected token type.
+    /// Works same as `next()` method.
+    pub fn next_special(&mut self, expect: ExpectElem)
+                        -> Option<XmlToken> {
+        let result;
+
+        match self.peek_chr() {
+            Char('\'') | Char('"') => {
+                result = match expect {
+                    Attlist => self.get_attl_quote(),
+                    Entity  => self.get_ent_quote(),
+                    Pubid   => self.get_pubid_quote(),
+                    Encoding => self.get_encoding_quote()
+                };
+
+            },
+            _ => {result = self.next();}
+
+        };
+        result
+    }
 
     /// This method reads a string of given length skipping over any
     /// restricted character and adding an error for each such
@@ -202,7 +224,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         self.col = col;
         self.line = line;
 
-        //FIXME: With different access function
+
         for c in peek_result.chars_rev(){
              self.peek_buf.push_char(c);
         }
@@ -210,25 +232,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         clean_restricted(peek_result)
     }
 
-    pub fn next_special(&mut self, expect: ExpectElem)
-                        -> Option<XmlToken> {
-        let result;
 
-        match self.peek_chr() {
-            Char('\'') | Char('"') => {
-                result = match expect {
-                    Attlist => self.get_attl_quote(),
-                    Entity  => self.get_ent_quote(),
-                    Pubid   => self.get_pubid_quote(),
-                    Encoding => self.get_encoding_quote()
-                };
-
-            },
-            _ => {result = self.next();}
-
-        };
-        result
-    }
 
     fn get_encoding_quote(&mut self) -> Option<XmlToken> {
         let quote = self.read_str(1u);
@@ -251,6 +255,22 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     fn get_attl_quote(&mut self) -> Option<XmlToken> {
         None
     }
+
+    fn peek_chr(&mut self) -> Character {
+        let col = self.col;
+        let line = self.line;
+
+        let peek_char = self.read_chr();
+        self.col = col;
+        self.line = line;
+        match peek_char.extract_char() {
+            Some(a) => self.peek_buf.push_char(a),
+            None => {}
+        };
+
+        peek_char
+    }
+
     /// This method reads a character and returns an enum that
     /// might be either a value of character, a new-line sign or a
     /// restricted character. Encountering Restricted characters
@@ -299,23 +319,71 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
     }
 
+    /// Processes the input `char` as it was a newline
+    /// Note if char read is `\r` it must peek to check if
+    /// `\x85` or `\n` are next, because they are part of same
+    /// newline group.
+    /// See to `http://www.w3.org/TR/xml11/#sec-line-ends`
+    /// for details. This method updates column and line position
+    /// accordingly.
+    ///
+    /// Note: Lines and column start at 1 but the read character
+    /// will be update after a new character is read.
+    fn process_newline(&mut self, c: char) -> Character {
+        self.line += 1u;
+        self.col = 0u;
 
+        if(c == '\r'){
+            let chrPeek = self.source.read_char();
+            match chrPeek {
+                // If the read character isn't a double
+                // new-line character (\r\85 or \n),
+                // it's added to peek buffer
+                Some(a) if a != '\x85' && a != '\n'
+                        => self.peek_buf.push_char(a),
+                _ => {}
 
-    fn peek_chr(&mut self) -> Character {
-        let col = self.col;
-        let line = self.line;
+            }
+        }
 
-        let peek_char = self.read_chr();
-        self.col = col;
-        self.line = line;
-        match peek_char.extract_char() {
-            Some(a) => self.peek_buf.push_char(a),
-            None => {}
-        };
-
-        peek_char
+        Char('\n')
     }
 
+    /// This method expects to takes an input `char` *c* that isn't a
+    /// newline sigil. According to it, it then processes the given
+    /// *c*, increasing position in reader.
+    #[inline(always)]
+    fn process_char(&mut self, c: char) -> Character {
+        self.col += 1u;
+        Character::from_char(c)
+    }
+
+    /// This method reads a string of given length, adding any
+    /// restricted char  into the error section.
+    /// Restricted character are *included* into the output string
+    fn read_raw_str(&mut self, len: uint) -> ~str {
+        let mut raw_str = ~"";
+        let mut eof = false;
+        let mut l = 0u;
+
+        while (l < len && !eof) {
+            let chr = self.read_chr();
+            l += 1;
+            match chr {
+                Char(a) => raw_str.push_char(a),
+                EndFile => {
+                    self.handle_errors(PrematureEOF);
+                    eof = true;
+                },
+                RestrictedChar(a) =>{
+                    self.handle_errors(RestrictedCharError);
+                    raw_str.push_char(a);
+                }
+            };
+
+        };
+        raw_str
+    }
 
     //TODO Doc
     fn read_until_fn(&mut self, filter_fn: |Character|-> bool )
@@ -359,32 +427,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         result
     }
 
-    /// This method reads a string of given length, adding any
-    /// restricted char  into the error section.
-    /// Restricted character are *included* into the output string
-    fn read_raw_str(&mut self, len: uint) -> ~str {
-        let mut raw_str = ~"";
-        let mut eof = false;
-        let mut l = 0u;
-
-        while (l < len && !eof) {
-            let chr = self.read_chr();
-            l += 1;
-            match chr {
-                Char(a) => raw_str.push_char(a),
-                EndFile => {
-                    self.handle_errors(PrematureEOF);
-                    eof = true;
-                },
-                RestrictedChar(a) =>{
-                    self.handle_errors(RestrictedCharError);
-                    raw_str.push_char(a);
-                }
-            };
-
-        };
-        raw_str
-    }
 
 
     fn handle_errors(&self, kind: ErrKind) {
@@ -400,43 +442,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
     }
 
-    /// Processes the input `char` as it was a newline
-    /// Note if char read is `\r` it must peek to check if
-    /// `\x85` or `\n` are next, because they are part of same
-    /// newline group.
-    /// See to `http://www.w3.org/TR/xml11/#sec-line-ends`
-    /// for details. This method updates column and line position
-    /// accordingly.
-    ///
-    /// Note: Lines and column start at 1 but the read character
-    /// will be update after a new character is read.
-    fn process_newline(&mut self, c: char) -> Character {
-        self.line += 1u;
-        self.col = 0u;
-
-        if(c == '\r'){
-            let chrPeek = self.source.read_char();
-            match chrPeek {
-                // If the read character isn't a double
-                // new-line character (\r\85 or \n),
-                // it's added to peek buffer
-                Some(a) if a != '\x85' && a != '\n'
-                        => self.peek_buf.push_char(a),
-                _ => {}
-
-            }
-        }
-
-        Char('\n')
-    }
-
-    /// This method expects to takes an input `char` *c* that isn't a
-    /// newline sigil. According to it, it then processes the given
-    /// *c*, increasing position in reader.
-    fn process_char(&mut self, c: char) -> Character {
-        self.col += 1u;
-        Character::from_char(c)
-    }
 
     fn process_name_token(&mut self) -> ~str {
         self.read_until_fn( |val| {
@@ -446,35 +451,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 Char(v)             => util::is_name_char(&v)
             }
         })
-    }
-
-    fn process_name_token2(&mut self) -> ~str {
-        let mut str_buf = ~"";
-
-        match self.read_chr() {
-            Char(a) if(util::is_name_start(&a))
-                    => str_buf.push_char(a),
-            Char(_) => {
-                self.handle_errors(UnexpectedChar);
-            }
-            RestrictedChar(_) => {
-                str_buf = ~"";
-                self.handle_errors(RestrictedCharError);
-            },
-            EndFile => {
-                str_buf = ~"";
-                self.handle_errors(PrematureEOF);
-            }
-        }
-        self.read_until_fn( |val| {
-            match val {
-                RestrictedChar(_)   => false,
-                EndFile             => false,
-                Char(v)             => util::is_name_char(&v)
-            }
-        });
-
-        str_buf
     }
 
     fn process_digits(&mut self, is_hex: &bool) -> ~str {
@@ -542,7 +518,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let peek_first = self.peek_str(2u);
         let result;
 
-        //debug!(fmt!("peek first: %?", peek_first));
 
         if peek_first  == ~"<?" {
             result = self.get_pi_token();
@@ -617,6 +592,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 Some(Amp)
             },
             _ => {
+                //FIXME
                 Some(EndOfFile)
             }
         };
@@ -644,6 +620,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             },
             Char(_) => radix = 10,
             _ => return {
+                //FIXME proper error
                 Some(EndOfFile)
             }
         }
