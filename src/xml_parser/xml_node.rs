@@ -17,6 +17,124 @@ pub struct PINode {
     value: ~str
 }
 
+pub struct Doctype {
+    /// Doctype name
+    name: ~str,
+    /// External unparsed entity
+    external: Option<Doctype>,
+    /// Internal Doctype definition
+    internal: ~[DoctypeDecl]
+}
+
+pub enum DoctypeDecl {
+    /// Element declaration
+    ElementDecl(~DTDElem),
+    /// Attlist declaration
+    AttDecl(~DTDAttlist),
+    /// Entity declaration
+    EntityDecl(~DTDEntity),
+    /// Notation declaration
+    NotationDecl(~DTDNota)
+}
+
+pub struct DTDElem {
+    name: ~str,
+    spec: ContentSpec
+}
+
+pub enum ContentSpec {
+    Empty,
+    Any,
+    Mixed(~[MixedSpec]),
+    Children(~ChildSpec)
+}
+
+pub enum MixedSpec {
+    PCData,
+    Name
+}
+
+pub struct ChildSpec {
+    multi: Multi,
+    elem: Either<ChoiceNode, SeqNode>
+}
+
+pub struct CP {
+    multi: Multi,
+    elem: ChildNode
+}
+
+pub enum ChildNode {
+    ChildName(~str),
+    ChildChoice(ChoiceNode),
+    ChildSeq(SeqNode)
+}
+
+pub struct ChoiceNode {
+    elems: ~[CP]
+}
+
+pub struct SeqNode {
+    elems: ~[CP]
+}
+
+pub enum Multi {
+    Single,
+    OneOrZero,
+    ZeroOrMany,
+    Many
+}
+pub struct DTDAttlist {
+    name: ~str,
+    defs: ~[AttDef]
+}
+
+pub struct AttDef {
+    name: ~str,
+    att_type: AttType,
+    default: DefaultVal
+}
+
+pub enum DefaultVal {
+    Required,
+    Implied,
+    Fixed(~[AttVal])
+}
+
+pub enum AttVal {
+    AttText(~str),
+    AttRef(~str)
+}
+
+pub enum EntVal {
+    EntText(~str),
+    PERef(~str),
+    EntRef(~str)
+}
+
+pub enum AttType {
+    CData,
+    Id,
+    Idref,
+    Idrefs,
+    Entity,
+    Entities,
+    Nmtoken,
+    Nmtokens/*,
+    Nota(~),
+    Enum(~)*/
+}
+
+pub enum DTDEntity {
+
+}
+
+pub enum DTDNota {
+
+}
+
+
+
 #[deriving(Clone,Eq,ToStr)]
 /// A struct representing an XML element
 pub struct XmlElem {
@@ -69,7 +187,7 @@ pub enum XNode {
 }
 
 fn main() {
-    
+
 }
 
 
