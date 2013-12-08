@@ -92,10 +92,7 @@ impl Character {
         } else if is_char(&chr) {
             Char(chr)
         } else {
-            // If we encounter unknown character we replace it with
-            // space.
-            // TODO check if this is OK
-            Char(' ')
+            RestrictedChar(chr)
         }
     }
 }
