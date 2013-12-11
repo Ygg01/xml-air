@@ -41,14 +41,14 @@ pub struct XmlParser<R> {
 
 }
 
-impl<R: Reader+Buffer> Iterator<XmlResult<XNode>> for XmlParser<R> {
+impl<R: Reader+Buffer> Iterator<XNode> for XmlParser<R> {
     /// This method pulls tokens, until it reaches a fully formed XML node.
     /// Once it finds a node, it stops returning said node or error
     /// if it there was an error during processing.
     ///
     /// This method should be used similar to an outer iterator.
     fn next(&mut self)
-            -> Option<XmlResult<XNode>>{
+            -> Option<XNode>{
         None
 
     }
