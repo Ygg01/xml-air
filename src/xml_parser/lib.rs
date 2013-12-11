@@ -19,7 +19,7 @@
 //#[warn(owned_heap_memory)];
 
 
-pub use util::{XmlResult, XmlError, is_whitespace, is_name_start, is_name_char};
+pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 
 mod xml_lexer;
 mod xml_parser;
