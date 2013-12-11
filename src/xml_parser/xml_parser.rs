@@ -1,7 +1,7 @@
 use std::io::{Reader, Buffer};
 
 use xml_node::{XmlDoc, XmlElem, XNode};
-use util::{XmlError, XmlResult};
+use util::{XmlError};
 use xml_lexer::{XmlLexer};
 
 mod xml_node;
