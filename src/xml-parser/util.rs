@@ -19,8 +19,11 @@ pub struct XmlError {
 
 #[deriving(Eq, Clone, ToStr)]
 pub enum ErrKind {
+    NonDigitError,
     UnreadableChar,
     UnexpectedChar,
+    CharParsingError,
+    NumParsingError,
     RestrictedCharError,
     MinMinInComment,
     PrematureEOF

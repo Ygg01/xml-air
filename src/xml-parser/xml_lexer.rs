@@ -5,8 +5,9 @@ use std::num::from_str_radix;
 
 use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 use util::{is_char, is_restricted, clean_restricted};
-use util::{ErrKind,UnreadableChar,UnexpectedChar};
-use util::{RestrictedCharError,MinMinInComment,PrematureEOF};
+use util::{ErrKind,UnreadableChar};
+use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
+use util::{NumParsingError,CharParsingError};
 
 mod util;
 
@@ -52,8 +53,8 @@ pub enum XmlToken {
     RequiredDecl,       // Symbol #REQUIRED
     ImpliedDecl,        // Symbol #IMPLIED
     FixedDecl,          // Symbol #FIXED
-    PCDataDecl,         // Symbol #PCDATA
-    EndOfFile           // Denotes end of file
+    PCDataDecl          // Symbol #PCDATA
+
 }
 
 #[deriving(Eq,ToStr)]
@@ -239,6 +240,12 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         assert_eq!(true, (quote == ~"'" || quote == ~"\""));
 
         let text = self.read_until_peek(quote);
+
+        if(self.peek_str(1u) != quote){
+            let mut err_token = quote;
+            err_token.push_str(text);
+            return Some(ErrorToken(err_token));
+        }
 
         self.read_str(1u);
         Some(QuotedString(text))
@@ -479,8 +486,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         Some(WhiteSpace(ws))
     }
 
-    /// If we find a namespace start character this method
-    /// consumes all namespace token until it reaches a non-name
+    /// If we find a name start character this method
+    /// consumes all name token until it reaches a non-name
     /// character.
     fn get_name_token(&mut self) -> Option<XmlToken> {
         let mut name = ~"";
@@ -591,9 +598,13 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             Char(_) => {
                 Some(Amp)
             },
-            _ => {
-                //FIXME
-                Some(EndOfFile)
+            RestrictedChar(_) => {
+                self.handle_errors(RestrictedCharError);
+                Some(ErrorToken(~"&"))
+            },
+            EndFile => {
+                self.handle_errors(RestrictedCharError);
+                Some(ErrorToken(~"&"))
             }
         };
         token
@@ -612,36 +623,41 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('#'),       self.read_chr());
         let peek_char = self.peek_chr();
+        let mut err_token = ~"#";
 
         let radix;
         match peek_char {
             Char('x') => {
+                err_token.push_char('x');
                 radix = 16;
             },
-            Char(_) => radix = 10,
-            _ => return {
-                //FIXME proper error
-                Some(EndOfFile)
+            Char(a) if (util::is_digit(&a)) => {
+                err_token.push_char(a);
+                radix = 10
+            },
+            Char(a)
+            | RestrictedChar(a) => {
+                err_token.push_char(a);
+                self.handle_errors(NonDigitError);
+                return Some(ErrorToken(err_token));
+            },
+            _ => {
+                self.handle_errors(PrematureEOF);
+                return Some(ErrorToken(~"#"));
             }
         }
 
         let is_radix = (radix == 16);
         let char_ref = self.process_digits(&is_radix);
+        err_token.push_str(char_ref);
 
-        let end_char_ref = self.peek_chr();
-
-        match end_char_ref {
+        match self.peek_chr() {
             Char(';') => {
+                err_token.push_char(';');
                 self.read_chr();
             },
             _ => {
-                let mut err_token = ~"#";
-                match peek_char.extract_char() {
-                    Some(a) => err_token.push_char(a),
-                    _ => {}
-                }
-                err_token.push_str(char_ref);
-                return Some(ErrorToken(~""))
+                return Some(ErrorToken(err_token));
             }
         }
 
@@ -655,11 +671,15 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                     Some(a) => {
                          Some(CharRef(a))
                     }
-                    _ => Some(EndOfFile)
+                    _ => {
+                        self.handle_errors(CharParsingError);
+                        Some(ErrorToken(err_token))
+                    }
                 }
             },
             None => {
-                Some(EndOfFile)
+                self.handle_errors(NumParsingError);
+                Some(ErrorToken(err_token))
             }
         }
     }
