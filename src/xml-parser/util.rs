@@ -1,4 +1,4 @@
-use std::str::{with_capacity,replace};
+
 
 
 #[deriving(Eq, Clone, ToStr)]
@@ -32,6 +32,8 @@ pub enum ErrKind {
 #[deriving(Eq, Clone)]
 /// This struct models the pretty error output
 pub struct Mark {
+    /// Message displayed in first in marked message
+    offset_msg: ~str,
     /// Position of error within context string
     pos: uint,
     /// Length of the erroneous underline in context
@@ -46,12 +48,15 @@ impl ToStr for Mark {
     ///       Thes text isn't spelt properly
     ///       ^~~~
     fn to_str(&self) -> ~str {
-        let mut mark_str = ~"";
+        let mut mark_str = self.offset_msg.clone();
+
         mark_str.push_str(self.context);
         mark_str.push_char('\n');
-        self.pos.times(|| {
+        let margin = self.pos + self.offset_msg.char_len();
+        margin.times(|| {
             mark_str.push_char(' ');
         });
+
         let mut first_char = true;
         self.length.times (|| {
             if first_char {
@@ -247,11 +252,12 @@ pub fn is_restricted(chr: &char) -> bool {
 
 pub fn main() {
     let mark = Mark {
+        offset_msg: ~"Error on line 1:  ",
         pos: 6,
         length: 4,
         context: ~" Well that went well"
     };
-    println(mark.to_str());
+    println!("{}", mark.to_str());
 }
 
 #[cfg(test)]
