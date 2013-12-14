@@ -66,24 +66,6 @@ impl ToStr for Mark {
     }
 }
 
-#[inline]
-/// Escapes unallowed character
-pub fn escape(input: &str) -> ~str {
-    let mut result = with_capacity(input.len());
-
-    for c in input.chars() {
-        match c {
-            '&'     => result.push_str("&amp;"),
-            '<'     => result.push_str("&lt;"),
-            '>'     => result.push_str("&gt;"),
-            '\''    => result.push_str("&apos;"),
-            '"'     => result.push_str("&quot;"),
-            chr     => result.push_char(chr)
-        }
-    }
-    result
-}
-
 /// This methods removes all restricted character from a given ~str
 /// It emites no error or causes failures
 pub fn clean_restricted(input: ~str) -> ~str {
@@ -97,17 +79,6 @@ pub fn clean_restricted(input: ~str) -> ~str {
 
     result
 }
-
-#[inline]
-/// Unescapes all valid XML entities in a string.
-pub fn unescape(input: &str) -> ~str {
-    let tmp = replace(input, "&quot;", "\"");
-    let tmp = replace(tmp, "&apos;", "'");
-    let tmp = replace(tmp, "&gt;", ">");
-    let tmp = replace(tmp, "&lt;", "<");
-    replace(tmp, "&amp;", "&")
-}
-
 #[inline(always)]
 /// Returns `true` if a character can be part of
 /// a decimal number. False otherwise.
