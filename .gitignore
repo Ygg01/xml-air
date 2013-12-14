@@ -1,10 +1,7 @@
+/src/xml-parser/lex_test
+/src/xml-parser/util
+/src/xml-parser/xml_parser
 /.travis.yml~
-/src/xml_parser/xml_node
-/src/xml_parser/xml_parser
-/src/xml_parser/lex_test
-/src/xml_parser/parser_example
-/src/xml_parser/util
-/src/xml_parser/xml_lexer
 .rust
 *.so
 *.dll
