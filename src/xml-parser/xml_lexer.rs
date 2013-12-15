@@ -461,14 +461,24 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn process_digits(&mut self, is_hex: &bool) -> ~str {
-        if *is_hex { self.read_chr();}
-        self.read_until_fn( |val| {
-            match val {
-                RestrictedChar(_)   => false,
-                EndFile             => false,
-                Char(v)             => util::is_digit(&v)
-            }
-        })
+        if *is_hex {
+            self.read_chr();
+            self.read_until_fn( |val| {
+                match val {
+                    RestrictedChar(_)   => false,
+                    EndFile             => false,
+                    Char(v)             => util::is_hex_digit(&v)
+                }
+            })
+        } else {
+            self.read_until_fn( |val| {
+                match val {
+                    RestrictedChar(_)   => false,
+                    EndFile             => false,
+                    Char(v)             => util::is_digit(&v)
+                }
+            })
+        }
     }
 
     /// If we find a whitespace character this method
@@ -966,14 +976,14 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~"\t")),         lexer.next());
 
 
-        let r2 = BufReader::new(bytes!("<![]]><!DOCTYPE &#x3123;&#212;%name;&name2;"));
+        let r2 = BufReader::new(bytes!("<![]]><!DOCTYPE &#x10F3;&#212;%name;&name2;"));
         lexer = XmlLexer::from_reader(r2);
 
         assert_eq!(Some(DoctypeOpen),           lexer.next());
         assert_eq!(Some(DoctypeClose),          lexer.next());
         assert_eq!(Some(DoctypeStart),          lexer.next());
         assert_eq!(Some(WhiteSpace(~" ")),      lexer.next());
-        assert_eq!(Some(CharRef('\u3123')),     lexer.next());
+        assert_eq!(Some(CharRef('\u10F3')),     lexer.next());
         assert_eq!(Some(CharRef('\xD4')),       lexer.next());
         assert_eq!(Some(Percent),               lexer.next());
         assert_eq!(Some(NameToken(~"name")),    lexer.next());
