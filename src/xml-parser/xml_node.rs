@@ -112,9 +112,9 @@ pub enum AttType {
     Entity,
     Entities,
     Nmtoken,
-    Nmtokens/*,
-    Nota(~),
-    Enum(~)*/
+    Nmtokens,
+    Notation(~[~str]),
+    Enumeration(~[~str])
 }
 
 pub enum DTDEntity {
