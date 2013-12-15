@@ -1,3 +1,4 @@
+/src/xml-parser/xml_node
 /src/xml-parser/xml_lexer
 /src/xml-parser/lex_test
 /src/xml-parser/util
