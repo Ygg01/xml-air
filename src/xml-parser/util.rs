@@ -21,7 +21,7 @@ pub struct XmlError {
 pub enum ErrKind {
     NonDigitError,
     UnreadableChar,
-    UnexpectedChar,
+    IllegalChar,
     CharParsingError,
     NumParsingError,
     RestrictedCharError,

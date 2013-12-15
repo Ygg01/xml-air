@@ -7,7 +7,7 @@ use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 use util::{is_char, is_restricted, clean_restricted};
 use util::{ErrKind,UnreadableChar};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
-use util::{NumParsingError,CharParsingError};
+use util::{NumParsingError,CharParsingError,IllegalChar};
 
 mod util;
 
@@ -231,36 +231,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
 
         clean_restricted(peek_result)
-    }
-
-
-
-    fn get_encoding_quote(&mut self) -> Option<XmlToken> {
-        let quote = self.read_str(1u);
-        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
-
-        let text = self.read_until_peek(quote);
-
-        if(self.peek_str(1u) != quote){
-            let mut err_token = quote;
-            err_token.push_str(text);
-            return Some(ErrorToken(err_token));
-        }
-
-        self.read_str(1u);
-        Some(QuotedString(text))
-    }
-
-    fn get_pubid_quote(&mut self) -> Option<XmlToken> {
-        None
-    }
-
-    fn get_ent_quote(&mut self) -> Option<XmlToken> {
-        None
-    }
-
-    fn get_attl_quote(&mut self) -> Option<XmlToken> {
-        None
     }
 
     fn peek_chr(&mut self) -> Character {
@@ -805,10 +775,87 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let quote = self.read_str(1u);
         assert_eq!(true, (quote == ~"'" || quote == ~"\""));
 
-        let text = self.read_until_peek(quote);
+        let result = self.process_quotes(quote);
 
-        self.read_str(1u);
-        Some(QuotedString(text))
+        Some(result)
+    }
+
+    fn process_quotes(&mut self, quote: ~str) -> XmlToken {
+        let text = self.read_until_peek(quote);
+        let peek = self.peek_str(1u);
+
+        if peek != quote {
+            let mut err_token = quote.clone();
+            err_token.push_str(text);
+            err_token.push_str(quote);
+            self.handle_errors(IllegalChar);
+            return ErrorToken(err_token);
+        } else {
+            self.read_str(1u);
+        }
+
+        QuotedString(text)
+    }
+
+    fn get_encoding_quote(&mut self) -> Option<XmlToken> {
+        let quote = self.read_str(1u);
+        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
+
+        let result = self.process_quotes(quote.clone());
+
+        match result {
+            QuotedString(ref text) => {
+                let mut first_char = true;
+                let mut err_token = quote.clone();
+
+                for c in text.chars() {
+                    if first_char {
+                        if !util::is_encoding_start_char(&c) {
+                            self.handle_errors(IllegalChar);
+                            return Some(ErrorToken(err_token));
+                        }
+                        first_char = false;
+                    } else {
+                        if util::is_encoding_char(&c) {
+                            self.handle_errors(IllegalChar);
+                            return Some(ErrorToken(err_token));
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        Some(result)
+    }
+
+    fn get_pubid_quote(&mut self) -> Option<XmlToken> {
+        let quote = self.read_str(1u);
+        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
+        let mut err_token = quote.clone();
+
+        let result = self.process_quotes(quote.clone());
+
+        match result {
+            QuotedString(ref text) => {
+                for c in text.chars() {
+                    if util::is_pubid_char(&c) {
+                        self.handle_errors(IllegalChar);
+                        return Some(ErrorToken(err_token));
+                    }
+                }
+            },
+            _ => {}
+        }
+
+        Some(result)
+    }
+
+    fn get_ent_quote(&mut self) -> Option<XmlToken> {
+        None
+    }
+
+    fn get_attl_quote(&mut self) -> Option<XmlToken> {
+        None
     }
 
     fn get_text_token(&mut self) -> Option<XmlToken> {
