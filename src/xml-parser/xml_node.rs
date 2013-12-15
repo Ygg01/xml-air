@@ -56,26 +56,18 @@ pub enum MixedSpec {
 
 pub struct ChildSpec {
     multi: Multi,
-    elem: Either<ChoiceNode, SeqNode>
+    children: CPList,
+    is_choice: bool
 }
 
-pub struct CP {
-    multi: Multi,
-    elem: ChildNode
+pub struct CPList {
+    elems: ~[ElemType]
 }
 
-pub enum ChildNode {
-    ChildName(~str),
-    ChildChoice(ChoiceNode),
-    ChildSeq(SeqNode)
-}
-
-pub struct ChoiceNode {
-    elems: ~[CP]
-}
-
-pub struct SeqNode {
-    elems: ~[CP]
+pub enum ElemType {
+    ChildName(~str, Multi),
+    ChildChoice(~CPList, Multi),
+    ChildSeq(~CPList, Multi)
 }
 
 pub enum Multi {
