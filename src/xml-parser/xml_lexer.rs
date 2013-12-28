@@ -3,15 +3,14 @@ use std::io::{Reader, Buffer};
 use std::char::from_u32;
 use std::num::from_str_radix;
 
-use util::{XmlError, is_whitespace, is_name_start, is_name_char};
-use util::{is_char, is_restricted, clean_restricted};
-use util::{ErrKind,UnreadableChar};
+use util::{is_whitespace, is_name_start, is_name_char};
+use util::{ErrKind,UnreadableChar,is_char, is_restricted, clean_restricted};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
-use util::{NumParsingError,CharParsingError,IllegalChar};
+use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
 mod util;
 
-#[deriving(Eq, ToStr)]
+#[deriving(Eq, ToStr, Clone)]
 pub enum XmlToken {
     ErrorToken(~str),   // Error token
     LessBracket,        // Symbol '<'
@@ -132,6 +131,7 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
     fn next(&mut self) -> Option<XmlToken> {
         let chr_peek = self.peek_chr();
 
+        self.start_error_track();
         let token = match chr_peek {
 
             Char(chr) if is_whitespace(&chr)
@@ -277,7 +277,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             match temp_chr {
                 Some(a) => chr = a,
                 None => {
-                    self.handle_errors(UnreadableChar);
+                    self.handle_errors(UnreadableChar, None, None);
                     // If error on read is encountered handle errors
                     // method should fail, but if it doesn't
                     // then value of restricted char is `\x01`
@@ -349,11 +349,11 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             match chr {
                 Char(a) => raw_str.push_char(a),
                 EndFile => {
-                    self.handle_errors(PrematureEOF);
+                    self.handle_errors(PrematureEOF, None, None);
                     eof = true;
                 },
                 RestrictedChar(a) =>{
-                    self.handle_errors(RestrictedCharError);
+                    self.handle_errors(RestrictedCharError, None, None);
                     raw_str.push_char(a);
                 }
             };
@@ -406,19 +406,15 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
 
 
-    fn handle_errors(&self, kind: ErrKind) {
-
+    fn handle_errors(&self, kind: ErrKind, fail: Option<XmlToken>,
+                     pass: Option<XmlToken>)
+                     -> XmlToken {
+        ErrorToken(~"")
     }
 
-    fn get_error (&mut self, err: ~str) -> XmlError {
-        XmlError {
-            line: self.line,
-            col: self.col,
-            msg: err,
-            mark: None
-        }
-    }
+    fn start_error_track(&mut self) {
 
+    }
 
     fn process_name_token(&mut self) -> ~str {
         self.read_until_fn( |val| {
@@ -526,7 +522,12 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             } else if peek_sec == ~"<!N" {
                 result = self.get_notation_token();
             } else {
-                result = Some(ErrorToken(~""));
+                result = Some(self.handle_errors(
+                                IllegalChar,
+                                Some(ErrorToken(~"<")),
+                                Some(LessBracket)
+                             )
+                        );
             }
         } else {
             self.read_chr();
@@ -562,7 +563,12 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             self.read_str(6u);
             result = Some(DoctypeStart);
         } else {
-            result = Some(ErrorToken(~"<!D"));
+            result = Some(self.handle_errors(
+                            UnknownToken,
+                            Some(ErrorToken(~"<!D")),
+                            Some(Text(~"<!D"))
+                            )
+                    );
         }
         result
     }
@@ -579,12 +585,16 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 Some(Amp)
             },
             RestrictedChar(_) => {
-                self.handle_errors(RestrictedCharError);
-                Some(ErrorToken(~"&"))
+                Some(self.handle_errors(
+                    RestrictedCharError,
+                    Some(ErrorToken(~"&")), None
+                ))
             },
             EndFile => {
-                self.handle_errors(RestrictedCharError);
-                Some(ErrorToken(~"&"))
+                Some(self.handle_errors(
+                    RestrictedCharError,
+                    Some(ErrorToken(~"&")), None
+                ))
             }
         };
         token
@@ -603,7 +613,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('#'),       self.read_chr());
         let peek_char = self.peek_chr();
-        let mut err_token = ~"#";
+        let mut err_token = ~"&#";
 
         let radix;
         match peek_char {
@@ -618,12 +628,20 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             Char(a)
             | RestrictedChar(a) => {
                 err_token.push_char(a);
-                self.handle_errors(NonDigitError);
-                return Some(ErrorToken(err_token));
+                return Some(self.handle_errors(
+                                NonDigitError,
+                                Some(ErrorToken(err_token.clone())),
+                                Some(Text(err_token.clone()))
+                            )
+                       );
             },
             _ => {
-                self.handle_errors(PrematureEOF);
-                return Some(ErrorToken(~"#"));
+                return Some(self.handle_errors(
+                                PrematureEOF,
+                                Some(ErrorToken(err_token.clone())),
+                                Some(Text(err_token.clone()))
+                            )
+                        );
             }
         }
 
@@ -652,14 +670,22 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                          Some(CharRef(a))
                     }
                     _ => {
-                        self.handle_errors(CharParsingError);
-                        Some(ErrorToken(err_token))
+                        Some(self.handle_errors(
+                                CharParsingError,
+                                Some(ErrorToken(err_token.clone())),
+                                Some(Text(err_token.clone()))
+                            )
+                        )
                     }
                 }
             },
             None => {
-                self.handle_errors(NumParsingError);
-                Some(ErrorToken(err_token))
+                Some(self.handle_errors(
+                        NumParsingError,
+                        Some(ErrorToken(err_token.clone())),
+                        Some(Text(err_token.clone()))
+                    )
+                )
             }
         }
     }
@@ -788,13 +814,16 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             let mut err_token = quote.clone();
             err_token.push_str(text);
             err_token.push_str(quote);
-            self.handle_errors(IllegalChar);
-            return ErrorToken(err_token);
+            let err =  self.handle_errors(
+                IllegalChar,
+                Some(ErrorToken(err_token)),
+                Some(QuotedString(text.clone()))
+            );
         } else {
             self.read_str(1u);
         }
 
-        QuotedString(text)
+        QuotedString(text.clone())
     }
 
     fn get_encoding_quote(&mut self) -> Option<XmlToken> {
@@ -807,18 +836,26 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             QuotedString(ref text) => {
                 let mut first_char = true;
                 let mut err_token = quote.clone();
+                err_token.push_str(*text);
+                err_token.push_str(quote);
 
                 for c in text.chars() {
                     if first_char {
                         if !util::is_encoding_start_char(&c) {
-                            self.handle_errors(IllegalChar);
-                            return Some(ErrorToken(err_token));
+                           return Some(self.handle_errors(
+                                        IllegalChar,
+                                        Some(ErrorToken(err_token.clone())),
+                                        Some(result.clone())
+                                   ));
                         }
                         first_char = false;
                     } else {
                         if util::is_encoding_char(&c) {
-                            self.handle_errors(IllegalChar);
-                            return Some(ErrorToken(err_token));
+                            return Some(self.handle_errors(
+                                            IllegalChar,
+                                            Some(ErrorToken(err_token)),
+                                            Some(result.clone())
+                                    ));
                         }
                     }
                 }
@@ -837,10 +874,17 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         match result {
             QuotedString(ref text) => {
+
+                err_token.push_str(*text);
+                err_token.push_str(quote);
+
                 for c in text.chars() {
                     if util::is_pubid_char(&c) {
-                        self.handle_errors(IllegalChar);
-                        return Some(ErrorToken(err_token));
+                        return Some(self.handle_errors(
+                                        IllegalChar,
+                                        Some(ErrorToken(err_token)),
+                                        Some(result.clone())
+                                ));
                     }
                 }
             },
@@ -932,7 +976,11 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 found_end = true;
             } else {
                 if peek.starts_with("--") && peek != ~"-->" {
-                    self.handle_errors(MinMinInComment);
+                    self.handle_errors(
+                        MinMinInComment,
+                        Some(ErrorToken(result.clone())),
+                        Some(Comment(result.clone()))
+                    );
                 }
 
                 let extracted_char = self.read_chr().extract_char();
