@@ -109,6 +109,7 @@ pub struct XmlLexer<R> {
     col: uint,
     priv peek_buf: ~str,
     priv err_buf: ~str,
+    priv context: ~str,
     priv source: R
 }
 
@@ -177,6 +178,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             col: 0,
             peek_buf: ~"",
             err_buf: ~"",
+            context: ~"",
             source: data
         }
     }
