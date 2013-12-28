@@ -21,6 +21,7 @@ pub struct XmlError {
 pub enum ErrKind {
     NonDigitError,
     UnreadableChar,
+    UnknownToken,
     IllegalChar,
     CharParsingError,
     NumParsingError,
@@ -275,44 +276,44 @@ mod tests{
 
     #[test]
     fn test_is_restricted(){
-        assert_eq!(true, is_restricted(~'\x0B'));
-        assert_eq!(true, is_restricted(~'\x02'));
-        assert_eq!(true, is_restricted(~'\x0C'));
-        assert_eq!(true, is_restricted(~'\x0F'));
-        assert_eq!(true, is_restricted(~'\x1F'));
-        assert_eq!(true, is_restricted(~'\x7F'));
-        assert_eq!(true, is_restricted(~'\x84'));
-        assert_eq!(true, is_restricted(~'\x86'));
-        assert_eq!(true, is_restricted(~'\x9A'));
-        assert_eq!(true, is_restricted(~'\U0001FFFE'));
-        assert_eq!(true, is_restricted(~'\U0001FFFF'));
-        assert_eq!(true, is_restricted(~'\U0002FFFE'));
-        assert_eq!(true, is_restricted(~'\U0002FFFF'));
-        assert_eq!(true, is_restricted(~'\U0003FFFE'));
-        assert_eq!(true, is_restricted(~'\U0003FFFF'));
-        assert_eq!(true, is_restricted(~'\U0004FFFE'));
-        assert_eq!(true, is_restricted(~'\U0004FFFF'));
-        assert_eq!(true, is_restricted(~'\U0005FFFE'));
-        assert_eq!(true, is_restricted(~'\U0005FFFF'));
-        assert_eq!(true, is_restricted(~'\U0006FFFE'));
-        assert_eq!(true, is_restricted(~'\U0006FFFF'));
-        assert_eq!(true, is_restricted(~'\U0007FFFE'));
-        assert_eq!(true, is_restricted(~'\U0007FFFF'));
-        assert_eq!(true, is_restricted(~'\U0008FFFE'));
-        assert_eq!(true, is_restricted(~'\U0008FFFF'));
-        assert_eq!(true, is_restricted(~'\U0009FFFE'));
-        assert_eq!(true, is_restricted(~'\U0009FFFF'));
-        assert_eq!(true, is_restricted(~'\U000AFFFE'));
-        assert_eq!(true, is_restricted(~'\U000AFFFF'));
-        assert_eq!(true, is_restricted(~'\U000BFFFE'));
-        assert_eq!(true, is_restricted(~'\U000BFFFF'));
-        assert_eq!(true, is_restricted(~'\U000CFFFE'));
-        assert_eq!(true, is_restricted(~'\U000CFFFF'));
-        assert_eq!(true, is_restricted(~'\U000DFFFE'));
-        assert_eq!(true, is_restricted(~'\U000DFFFF'));
-        assert_eq!(true, is_restricted(~'\U000EFFFE'));
-        assert_eq!(true, is_restricted(~'\U000EFFFF'));
-        assert_eq!(true, is_restricted(~'\U000FFFFE'));
-        assert_eq!(true, is_restricted(~'\U000FFFFF'));
+        assert_eq!(true, is_restricted(&'\x0B'));
+        assert_eq!(true, is_restricted(&'\x02'));
+        assert_eq!(true, is_restricted(&'\x0C'));
+        assert_eq!(true, is_restricted(&'\x0F'));
+        assert_eq!(true, is_restricted(&'\x1F'));
+        assert_eq!(true, is_restricted(&'\x7F'));
+        assert_eq!(true, is_restricted(&'\x84'));
+        assert_eq!(true, is_restricted(&'\x86'));
+        assert_eq!(true, is_restricted(&'\x9A'));
+        assert_eq!(true, is_restricted(&'\U0001FFFE'));
+        assert_eq!(true, is_restricted(&'\U0001FFFF'));
+        assert_eq!(true, is_restricted(&'\U0002FFFE'));
+        assert_eq!(true, is_restricted(&'\U0002FFFF'));
+        assert_eq!(true, is_restricted(&'\U0003FFFE'));
+        assert_eq!(true, is_restricted(&'\U0003FFFF'));
+        assert_eq!(true, is_restricted(&'\U0004FFFE'));
+        assert_eq!(true, is_restricted(&'\U0004FFFF'));
+        assert_eq!(true, is_restricted(&'\U0005FFFE'));
+        assert_eq!(true, is_restricted(&'\U0005FFFF'));
+        assert_eq!(true, is_restricted(&'\U0006FFFE'));
+        assert_eq!(true, is_restricted(&'\U0006FFFF'));
+        assert_eq!(true, is_restricted(&'\U0007FFFE'));
+        assert_eq!(true, is_restricted(&'\U0007FFFF'));
+        assert_eq!(true, is_restricted(&'\U0008FFFE'));
+        assert_eq!(true, is_restricted(&'\U0008FFFF'));
+        assert_eq!(true, is_restricted(&'\U0009FFFE'));
+        assert_eq!(true, is_restricted(&'\U0009FFFF'));
+        assert_eq!(true, is_restricted(&'\U000AFFFE'));
+        assert_eq!(true, is_restricted(&'\U000AFFFF'));
+        assert_eq!(true, is_restricted(&'\U000BFFFE'));
+        assert_eq!(true, is_restricted(&'\U000BFFFF'));
+        assert_eq!(true, is_restricted(&'\U000CFFFE'));
+        assert_eq!(true, is_restricted(&'\U000CFFFF'));
+        assert_eq!(true, is_restricted(&'\U000DFFFE'));
+        assert_eq!(true, is_restricted(&'\U000DFFFF'));
+        assert_eq!(true, is_restricted(&'\U000EFFFE'));
+        assert_eq!(true, is_restricted(&'\U000EFFFF'));
+        assert_eq!(true, is_restricted(&'\U000FFFFE'));
+        assert_eq!(true, is_restricted(&'\U000FFFFF'));
     }
 }
