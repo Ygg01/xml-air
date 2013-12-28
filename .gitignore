@@ -1,14 +1,18 @@
+#Ignore non-extension files
 /src/xml-parser/xml_node
 /src/xml-parser/xml_lexer
 /src/xml-parser/lex_test
 /src/xml-parser/util
 /src/xml-parser/xml_parser
-/.travis.yml~
-.rust
+
+# Ignore output files
+*.o
 *.so
 *.dll
 *.dylib
+
+#Ignore RustPkg folders
 build/
 bin/
 lib/
-
+.rust
