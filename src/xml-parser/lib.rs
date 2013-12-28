@@ -1,5 +1,5 @@
 // Crate linkage metadata
-#[link(name = "xml", vers = "0.1", author = "DanielFath", package_id="xml")];
+#[crate_id(name = "xml", vers = "0.1", author = "DanielFath", package_id="xml")];
 
 //Metadata
 #[desc = "XML pull parser for rust"];
@@ -15,9 +15,11 @@
 // Warn on missing docs
 #[warn(unnecessary_qualification)];
 #[warn(managed_heap_memory)];
-#[warn(missing_doc)];
+//#[warn(missing_doc)];
 //#[warn(owned_heap_memory)];
 
+// Ignore dead code
+#[ignore(dead_code)];
 
 pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 
