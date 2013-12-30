@@ -19,7 +19,7 @@
 //#[warn(owned_heap_memory)];
 
 // Ignore dead code
-#[ignore(dead_code)];
+#[allow(dead_code)];
 
 pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 
