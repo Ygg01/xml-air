@@ -30,6 +30,42 @@ pub enum ErrKind {
     PrematureEOF
 }
 
+pub enum ErrBehavior {
+    Ignore,
+    Warn,
+    Fail
+}
+
+pub struct Config {
+    unreadable_char:            Option<ErrBehavior>,
+    double_minus_in_comment:    Option<ErrBehavior>,
+    premature_eof:              Option<ErrBehavior>,
+    non_digit_:                 Option<ErrBehavior>,
+    num_parse:                  Option<ErrBehavior>,
+    char_parse:                 Option<ErrBehavior>,
+    illegal_char:               Option<ErrBehavior>
+}
+
+impl Config {
+    pub fn default() -> Config {
+        Config {
+            unreadable_char:            Some(Warn),
+            double_minus_in_comment:    Some(Warn),
+            premature_eof:              Some(Warn),
+            non_digit_:                 Some(Warn),
+            num_parse:                  Some(Warn),
+            char_parse:                 Some(Warn),
+            illegal_char:               Some(Warn)
+        }
+    }
+
+    pub fn decide(error: &ErrKind) -> ErrBehavior {
+        match error {
+            _ => Warn
+        }
+    }
+}
+
 #[deriving(Eq, Clone)]
 /// This struct models the pretty error output
 pub struct Mark {
