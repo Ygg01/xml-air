@@ -111,6 +111,7 @@ pub struct XmlLexer<R> {
     config: Config,
     priv peek_buf: ~str,
     priv err_buf: ~str,
+    priv modify_buf: bool,
     priv context: ~str,
     priv source: R
 }
@@ -181,6 +182,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             config: Config::default(),
             peek_buf: ~"",
             err_buf: ~"",
+            modify_buf: true,
             context: ~"",
             source: data
         }
@@ -225,11 +227,13 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     pub fn peek_str(&mut self, len: uint) -> ~str {
         let col = self.col;
         let line = self.line;
+        self.modify_buf = false;
 
         let peek_result  = self.read_raw_str(len);
+
         self.col = col;
         self.line = line;
-
+        self.modify_buf = true;
 
         for c in peek_result.chars_rev(){
              self.peek_buf.push_char(c);
@@ -242,9 +246,11 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let col = self.col;
         let line = self.line;
 
+        self.modify_buf = false;
         let peek_char = self.read_chr();
         self.col = col;
         self.line = line;
+        self.modify_buf = true;
         match peek_char.extract_char() {
             Some(a) => self.peek_buf.push_char(a),
             None => {}
@@ -291,6 +297,10 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             }
         } else {
             chr = self.peek_buf.pop_char();
+        }
+
+        if self.modify_buf {
+            self.err_buf.push_char(chr);
         }
 
         if "\r\u2028\x85".contains_char(chr) {
@@ -1037,6 +1047,19 @@ mod tests {
 
         }
         assert_eq!(None, lexer.next());
+    }
+
+    #[test]
+    fn test_err_buf(){
+        let r = BufReader::new(bytes!("<?xml?><![CDATA[<test>]]>\t"));
+        let mut lexer =     XmlLexer::from_reader(r);
+
+        lexer.next();
+        assert_eq!(~"<?xml",                        lexer.err_buf);
+        lexer.peek_str(2u);
+        assert_eq!(~"<?xml",                        lexer.err_buf);
+        lexer.read_str(2u);
+        assert_eq!(~"<?xml?>",                        lexer.err_buf);
     }
 
     #[test]
