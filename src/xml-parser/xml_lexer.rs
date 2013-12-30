@@ -108,6 +108,7 @@ pub enum ExpectElem {
 pub struct XmlLexer<R> {
     line: uint,
     col: uint,
+    config: Config,
     priv peek_buf: ~str,
     priv err_buf: ~str,
     priv context: ~str,
@@ -177,6 +178,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         XmlLexer {
             line: 1,
             col: 0,
+            config: Config::default(),
             peek_buf: ~"",
             err_buf: ~"",
             context: ~"",
