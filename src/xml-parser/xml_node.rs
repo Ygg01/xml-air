@@ -20,8 +20,6 @@ pub struct PINode {
 pub struct Doctype {
     /// Doctype name
     name: ~str,
-    /// External unparsed entity
-    external: Option<Doctype>,
     /// Internal Doctype definition
     internal: ~[DoctypeDecl]
 }
@@ -166,6 +164,7 @@ pub struct XmlNS {
 #[deriving(Clone,Eq,ToStr)]
 /// An Enum describing a XML Node
 pub enum XNode {
+    XDoctype(~Doctype),
     /// An XML Element
     XElem(~XmlElem),
     /// Character Data
