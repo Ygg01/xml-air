@@ -30,6 +30,7 @@ pub enum XmlToken {
     Star,               // Symbol '*'
     Amp,                // Symbol '&'
     QuestionMark,       // Symbol '?'
+    ExclamationMark,    // Symbol '!'
     Semicolon,          // Symbol ';'
     Percent,            // Percent '%'
     CloseTag,           // Symbol '</'
@@ -44,8 +45,7 @@ pub enum XmlToken {
     CData(~str),        // CData token with inner structure
     DoctypeStart,       // Start of Doctype block '<!DOCTYPE'
     DoctypeOpen,        // Symbol '<!['
-    DoctypeClose,       // Symbol ']]>'
-    DoctypeEnd,         // End of Doctype block '!>'
+    DoctypeClose,       // Symbol ']]>
     EntityType,         // Symbol <!ENTITY
     AttlistType,        // Symbol <!ATTLIST
     ElementType,        // Symbol <!ELEMENT
@@ -159,7 +159,6 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
             Char('+') => self.get_plus_token(),
             Char('&') => self.get_ref_token(),
             Char('%') => self.get_peref_token(),
-            Char('!') => self.get_doctype_end_token(),
             Char('>') => self.get_right_bracket_token(),
             Char('/') => self.get_empty_tag_token(),
             Char(';') => self.get_semicolon_token(),
@@ -930,18 +929,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
     }
 
-    fn get_doctype_end_token(&mut self) -> Option<XmlToken> {
-        let peek_str = self.peek_str(2u);
-
-        if peek_str == ~"!>" {
-            self.read_str(2u);
-            return Some(DoctypeEnd)
-        } else {
-            let text = self.read_str(1u);
-            return Some(ErrorToken(text))
-        }
-    }
-
     fn get_right_bracket_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Char('>'), self.read_chr());
         return Some(GreaterBracket)
@@ -1096,14 +1083,14 @@ mod tests {
         assert_eq!(Some(NameToken(~"name2")),   lexer.next());
         assert_eq!(Some(Semicolon),             lexer.next());
 
-        let r3 = BufReader::new(bytes!("<!ENTITY<!NOTATION<!ELEMENT<!ATTLIST!><br>"));
+        let r3 = BufReader::new(bytes!("<!ENTITY<!NOTATION<!ELEMENT<!ATTLIST><br>"));
         lexer = XmlLexer::from_reader(r3);
 
         assert_eq!(Some(EntityType),        lexer.next());
         assert_eq!(Some(NotationType),      lexer.next());
         assert_eq!(Some(ElementType),       lexer.next());
         assert_eq!(Some(AttlistType),       lexer.next());
-        assert_eq!(Some(DoctypeEnd),        lexer.next());
+        assert_eq!(Some(GreaterBracket),        lexer.next());
         assert_eq!(Some(LessBracket),       lexer.next());
         assert_eq!(Some(NameToken(~"br")),  lexer.next());
         assert_eq!(Some(GreaterBracket),    lexer.next());
