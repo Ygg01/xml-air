@@ -359,23 +359,20 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn update_buf(&mut self, chr: Option<Character>, is_peek: bool) -> ~str {
-        let read_char;
+        let mut read_char = ~"";
         match chr {
             None => {
                 if !is_peek {
                     self.handle_errors(PrematureEOF, None);
                 }
-                read_char = ~"";
             },
             Some(RestrictedChar(r)) => {
-                read_char = ~"";
                 read_char.push_char(r);
                 self.handle_errors(IllegalChar, None);
             },
             Some(Char(a)) => {
-                read_char = ~"";
                 read_char.push_char(a);
-                self.buf.push_char(a)
+                self.buf.push_char(a);
             }
         }
         read_char
@@ -527,43 +524,51 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_left_bracket_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('<')),   self.peek_chr());
+        assert_eq!(~"<",   self.buf);
 
-        let peek_first = self.peek_str(2u);
         let result;
+        let col = self.col;
+        let line = self.line;
+        let chr = self.read_chr();
+        let rew = self.update_buf(chr, false);
 
-
-        if peek_first  == ~"<?" {
+        if self.buf == ~"<?" {
             result = self.get_pi_token();
-        } else if peek_first == ~"</" {
+        } else if self.buf == ~"</" {
             result = self.get_close_tag_token();
-        } else if peek_first == ~"<!" {
-            let peek_sec = self.peek_str(3u);
-
-            if peek_sec == ~"<!-" {
-                result = self.get_comment_token();
-            } else if peek_sec == ~"<![" {
-                result = self.get_cdata_token();
-            } else if peek_sec == ~"<!D" {
-                result = self.get_doctype_start_token();
-            } else if peek_sec == ~"<!E" {
-                result = self.get_entity_or_element_token();
-            } else if peek_sec == ~"<!A" {
-                result = self.get_attlist_token();
-            } else if peek_sec == ~"<!N" {
-                result = self.get_notation_token();
-            } else {
-                result = Some(self.handle_errors(
-                                IllegalChar,
-                                Some(LessBracket)
-                             )
-                        );
-            }
+        } else if self.buf == ~"<!" {
+            result = self.get_amp_excl();
         } else {
-            self.read_chr();
+            self.rewind(col, line, rew);
             result = Some(LessBracket);
         }
+
         result
+    }
+
+    fn get_amp_excl(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!",   self.buf);
+        None
+        /*
+        if peek_sec == ~"<!-" {
+            result = self.get_comment_token();
+        } else if peek_sec == ~"<![" {
+            result = self.get_cdata_token();
+        } else if peek_sec == ~"<!D" {
+            result = self.get_doctype_start_token();
+        } else if peek_sec == ~"<!E" {
+            result = self.get_entity_or_element_token();
+        } else if peek_sec == ~"<!A" {
+            result = self.get_attlist_token();
+        } else if peek_sec == ~"<!N" {
+            result = self.get_notation_token();
+        } else {
+            result = Some(self.handle_errors(
+                            IllegalChar,
+                            Some(LessBracket)
+                         )
+                    );
+        }*/
     }
 
     //FIX THIS: possible element ignore section
