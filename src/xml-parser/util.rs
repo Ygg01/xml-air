@@ -1,5 +1,4 @@
-
-
+#[allow(dead_code)]
 
 #[deriving(Eq, Clone, ToStr)]
 /// If an error occurs while parsing some XML, this is the structure which is
@@ -286,6 +285,15 @@ pub fn is_restricted(chr: &char) -> bool {
     }
 }
 
+pub fn is_valid_char(chr: &char) -> bool {
+    if is_restricted(chr) {
+        false
+    } else if is_char(chr) {
+        true
+    } else {
+        false
+    }
+}
 
 pub fn main() {
     let mark = Mark {
