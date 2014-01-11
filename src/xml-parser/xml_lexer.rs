@@ -9,9 +9,10 @@ use util::{is_restricted, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
+#[allow(dead_code)]
 mod util;
 
-#[allow(dead_code)]
+
 
 
 
@@ -94,21 +95,22 @@ impl Character {
     }
 }
 
-pub enum ExpectElem {
+pub enum State {
+    OutsideTag,
     Attlist,
     Entity,
     Pubid,
-    Encoding
+    ExpectEncoding,
+    ExpectStandalone
 }
 
 pub struct XmlLexer<R> {
     line: uint,
     col: uint,
     config: Config,
+    priv state: State,
     priv peek_buf: ~str,
-    priv err_buf: ~str,
-    priv modify_buf: bool,
-    priv context: ~str,
+    priv buf: ~str,
     priv source: R
 }
 
@@ -180,9 +182,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             col: 0,
             config: Config::default(),
             peek_buf: ~"",
-            err_buf: ~"",
-            modify_buf: true,
-            context: ~"",
+            state: OutsideTag,
+            buf: ~"",
             source: data
         }
     }
@@ -201,13 +202,11 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     pub fn peek_str(&mut self, len: uint) -> ~str {
         let col = self.col;
         let line = self.line;
-        self.modify_buf = false;
 
         let peek_result  = self.read_raw_str(len);
 
         self.col = col;
         self.line = line;
-        self.modify_buf = true;
 
         for c in peek_result.chars_rev(){
              self.peek_buf.push_char(c);
@@ -220,11 +219,10 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let col = self.col;
         let line = self.line;
 
-        self.modify_buf = false;
         let peek_char = self.read_chr();
         self.col = col;
         self.line = line;
-        self.modify_buf = true;
+
         match peek_char {
             Some(Char(a))
             | Some(RestrictedChar(a)) => self.peek_buf.push_char(a),
@@ -269,10 +267,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             }
         } else {
             chr = self.peek_buf.pop_char();
-        }
-
-        if self.modify_buf && util::is_valid_char(&chr) {
-            self.err_buf.push_char(chr);
         }
 
         if "\r\u2028\x85".contains_char(chr) {
@@ -644,14 +638,14 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             | Some(RestrictedChar(a)) => {
                 return Some(self.handle_errors(
                                 NonDigitError,
-                                Some(ErrorToken(self.err_buf.clone()))
+                                Some(ErrorToken(self.buf.clone()))
                             )
                        );
             },
             None => {
                 return Some(self.handle_errors(
                                 PrematureEOF,
-                                Some(ErrorToken(self.err_buf.clone()))
+                                Some(ErrorToken(self.buf.clone()))
                             )
                         );
             }
@@ -665,7 +659,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 self.read_chr();
             },
             _ => {
-                return Some(ErrorToken(self.err_buf.clone()));
+                return Some(ErrorToken(self.buf.clone()));
             }
         }
 
@@ -682,7 +676,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                     _ => {
                         Some(self.handle_errors(
                                 CharParsingError,
-                                Some(ErrorToken(self.err_buf.clone()))
+                                Some(ErrorToken(self.buf.clone()))
                             )
                         )
                     }
@@ -691,7 +685,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             None => {
                 Some(self.handle_errors(
                         NumParsingError,
-                        Some(ErrorToken(self.err_buf.clone()))
+                        Some(ErrorToken(self.buf.clone()))
                     )
                 )
             }
@@ -1046,12 +1040,6 @@ mod tests {
         let r = BufReader::new(bytes!("<?xml?><![CDATA[<test>]]>\t"));
         let mut lexer =     XmlLexer::from_reader(r);
 
-        lexer.next();
-        assert_eq!(~"<?xml",                        lexer.err_buf);
-        lexer.peek_str(2u);
-        assert_eq!(~"<?xml",                        lexer.err_buf);
-        lexer.read_str(2u);
-        assert_eq!(~"<?xml?>",                        lexer.err_buf);
     }
 
     #[test]
