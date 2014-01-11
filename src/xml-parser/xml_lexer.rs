@@ -114,6 +114,7 @@ pub struct XmlLexer<R> {
     priv source: R
 }
 
+#[allow(dead_code)]
 impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
     /// This method pulls tokens from Reader until it reaches
     /// end of file. From that point on, it will return None.
@@ -131,15 +132,20 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
     ///     }
     ///     assert_eq!(None, lexer.next());
     fn next(&mut self) -> Option<XmlToken> {
-        let read_chr;
+        self.buf = ~"";
 
-        match self.read_chr() {
-            Some(a) => read_chr = a,
+        let read_chr = match self.read_chr() {
+            Some(a) => a,
             None => return None
+        };
+
+        match read_chr {
+            Char(a) => self.buf.push_char(a),
+            _ => {}
         }
 
         let token = match read_chr {
-
+            RestrictedChar(a) => self.handle_errors(RestrictedCharError, None),
             Char(chr) if is_whitespace(&chr)
                       => self.get_whitespace_token(),
             Char(chr) if is_name_start(&chr)
@@ -164,7 +170,6 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
             Char('#') => self.get_entity_def_token(),
             Char('\'') | Char('"') => self.get_quote_token(),
             Char(_) => self.get_text_token(),
-            _ => None
         };
 
         token
@@ -348,54 +353,40 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     //TODO Doc
-    fn read_until_fn(&mut self, filter_fn: |Character|-> bool )
+    fn read_while_fn(&mut self, fn_while: |Option<Character>|-> bool )
                      -> ~str {
-        let mut col = 0u;
-        let mut line = 1u;
-        let mut peek_char = self.peek_chr();
+        let mut col = self.col;
+        let mut line = self.line;
         let mut ret_str = ~"";
+        let mut chr = self.read_chr();
 
-        if !peek_char.is_none() {
-
-            let mut filter_char = match peek_char {
-                Some(a)=> a,
-                None => { return ret_str; }
-            };
-
-            while filter_fn(filter_char) {
-                match filter_char {
-                    Char(a) => {
-                        ret_str.push_char(a);
-                        filter_char = match self.read_chr(){
-                            Some(a) => a,
-                            None => {
-                                self.handle_errors(IllegalChar, None);
-                                return ret_str;
-                            }
-                        };
-                        col = self.col;
-                        line = self.line;
-                        peek_char = self.peek_chr();
-                    },
-                    RestrictedChar(a) => {
-                        filter_char = match self.read_chr(){
-                            Some(a) => a,
-                            None => {
-                                self.handle_errors(IllegalChar, None);
-                                return ret_str;
-                            }
-                        };
-                        col = self.col;
-                        line = self.line;
-                        peek_char = self.peek_chr();
-                    }
+        while fn_while (chr) {
+            match chr {
+                None => break,
+                Some(Char(a)) => {
+                    ret_str.push_char(a);
+                    col = self.col;
+                    line = self.line;
+                    chr = self.read_chr();
+                },
+                Some(RestrictedChar(r)) => {
+                    col = self.col;
+                    line = self.line;
+                    chr = self.read_chr();
                 }
             }
+        }
 
-            self.col = col;
-            self.line = line;
-        } else {
-            self.handle_errors(PrematureEOF, None);
+        //After encountering wrong char
+        // we 'unread' the last character
+        self.col = col;
+        self.line = line;
+        match chr {
+            Some(Char(a))
+            | Some(RestrictedChar(a)) => {
+                 self.peek_buf.push_char(a);
+            },
+            None => {}
         }
 
         ret_str
@@ -427,10 +418,10 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn process_name_token(&mut self) -> ~str {
-        self.read_until_fn( |val| {
+        self.read_while_fn( |val| {
             match val {
-                RestrictedChar(_)   => false,
-                Char(v)             => util::is_name_char(&v)
+                Some(Char(v))             => util::is_name_char(&v),
+                _ => false
             }
         })
     }
@@ -438,17 +429,17 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     fn process_digits(&mut self, is_hex: &bool) -> ~str {
         if *is_hex {
             self.read_chr();
-            self.read_until_fn( |val| {
+            self.read_while_fn( |val| {
                 match val {
-                    RestrictedChar(_)   => false,
-                    Char(v)             => util::is_hex_digit(&v)
+                    Some(Char(v))             => util::is_hex_digit(&v),
+                    _ => false
                 }
             })
         } else {
-            self.read_until_fn( |val| {
+            self.read_while_fn( |val| {
                 match val {
-                    RestrictedChar(_)   => false,
-                    Char(v)             => util::is_digit(&v)
+                    Some(Char(v))             => util::is_digit(&v),
+                    _ => false
                 }
             })
         }
@@ -459,34 +450,33 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// reaches a non white space character be it Restricted char,
     /// EndFile or  a non-white space char.
     fn get_whitespace_token(&mut self) -> Option<XmlToken> {
-        let ws = self.read_until_fn( |val| {
+
+        let ws = self.read_while_fn( |val| {
             match val {
-                RestrictedChar(_)   => false,
-                Char(v)             => util::is_whitespace(&v)
+                Some(Char(v))             => util::is_whitespace(&v),
+                _   => false
             }
         });
-        Some(WhiteSpace(ws))
+
+        self.buf.push_str(ws);
+
+        Some(WhiteSpace(self.buf.clone()))
     }
 
     /// If we find a name start character this method
     /// consumes all name token until it reaches a non-name
     /// character.
     fn get_name_token(&mut self) -> Option<XmlToken> {
-        let mut name = ~"";
-
-        match self.read_chr() {
-            Some(Char(a)) if(util::is_name_start(&a)) => {
-                name.push_char(a);
-            },
-            _ => {
-                self.handle_errors(IllegalChar, None);
-            }
-        };
-
         let result = self.process_name_token();
-        name.push_str(result);
+        self.buf.push_str(result);
 
-        Some(NameToken(name))
+        if self.buf == ~"encoding" {
+            self.state = ExpectEncoding
+        } else if self.buf == ~"standalone" {
+            self.state = ExpectStandalone
+        }
+
+        Some(NameToken(self.buf.clone()))
     }
 
     // TODO Write test
@@ -1154,7 +1144,7 @@ mod tests {
 
     #[test]
     fn test_whitespace() {
-        let r = BufReader::new(bytes!("  \t\n  a "));
+        let r = BufReader::new(bytes!("  \t\n  a"));
         let mut lexer =         XmlLexer::from_reader(r);
 
         assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.next());
@@ -1193,9 +1183,9 @@ mod tests {
         let r = BufReader::new(bytes!("aaaab"));
         let mut lexer = XmlLexer::from_reader(r);
 
-        let result = lexer.read_until_fn(|c|{
+        let result = lexer.read_while_fn(|c|{
             match c {
-                Char('a') => true,
+                Some(Char('a')) => true,
                 _ => false
             }
         });
