@@ -11,6 +11,10 @@ use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
 mod util;
 
+#[allow(dead_code)]
+
+
+
 #[deriving(Eq, ToStr, Clone)]
 pub enum XmlToken {
     ErrorToken(~str),   // Error token
