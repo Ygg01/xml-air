@@ -236,6 +236,12 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         peek_char
     }
+    #[inline(always)]
+    fn rewind(&mut self, col: uint, line: uint, peeked: ~str) {
+        self.col = col;
+        self.line = line;
+        self.peek_buf.push_str(peeked);
+    }
 
     /// This method reads a character and returns an enum that
     /// might be either a value of character, a new-line sign or a
@@ -352,6 +358,28 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         raw_str
     }
 
+    fn update_buf(&mut self, chr: Option<Character>, is_peek: bool) -> ~str {
+        let read_char;
+        match chr {
+            None => {
+                if !is_peek {
+                    self.handle_errors(PrematureEOF, None);
+                }
+                read_char = ~"";
+            },
+            Some(RestrictedChar(r)) => {
+                read_char = ~"";
+                read_char.push_char(r);
+                self.handle_errors(IllegalChar, None);
+            },
+            Some(Char(a)) => {
+                read_char = ~"";
+                read_char.push_char(a);
+                self.buf.push_char(a)
+            }
+        }
+        read_char
+    }
     //TODO Doc
     fn read_while_fn(&mut self, fn_while: |Option<Character>|-> bool )
                      -> ~str {
