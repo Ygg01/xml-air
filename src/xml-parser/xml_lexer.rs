@@ -145,7 +145,7 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
         }
 
         let token = match read_chr {
-            RestrictedChar(a) => self.handle_errors(RestrictedCharError, None),
+            RestrictedChar(a) => Some(self.handle_errors(RestrictedCharError, None)),
             Char(chr) if is_whitespace(&chr)
                       => self.get_whitespace_token(),
             Char(chr) if is_name_start(&chr)
@@ -377,6 +377,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }
         read_char
     }
+
     //TODO Doc
     fn read_while_fn(&mut self, fn_while: |Option<Character>|-> bool )
                      -> ~str {
@@ -1059,10 +1060,18 @@ mod tests {
     }
 
     #[test]
-    fn test_err_buf(){
+    fn test_err_buf() {
         let r = BufReader::new(bytes!("<?xml?><![CDATA[<test>]]>\t"));
         let mut lexer =     XmlLexer::from_reader(r);
 
+    }
+
+
+    fn test_pi() {
+        let r = BufReader::new(bytes!("<?php var = echo()?>"));
+        let mut lexer = XmlLexer::from_reader(r);
+
+        assert_eq!(Some(PI(~"php var = echo()")),   lexer.next());
     }
 
     #[test]
