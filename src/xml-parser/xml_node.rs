@@ -1,4 +1,4 @@
-#[deriving(Clone,Eq)]
+
 /// A struct representing an XML root document
 pub struct XmlDoc {
     // The document's root
@@ -7,7 +7,6 @@ pub struct XmlDoc {
     pi: ~[PINode]
 }
 
-#[deriving(Clone,Eq,ToStr)]
 /// A struct representing an XML processing instruction
 pub struct PINode {
     /// The processing instruction's target
@@ -124,8 +123,6 @@ pub enum DTDNota {
 }
 
 
-
-#[deriving(Clone,Eq,ToStr)]
 /// A struct representing an XML element
 pub struct XmlElem {
     /// The element's name
@@ -161,7 +158,6 @@ pub struct XmlNS {
 
 
 // General types
-#[deriving(Clone,Eq,ToStr)]
 /// An Enum describing a XML Node
 pub enum XNode {
     XDoctype(~Doctype),
