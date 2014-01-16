@@ -145,7 +145,9 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
         }
 
         let token = match read_chr {
-            RestrictedChar(a) => Some(self.handle_errors(RestrictedCharError, None)),
+            RestrictedChar(a) => {
+                Some(self.handle_errors(RestrictedCharError, None))
+            },
             Char(chr) if is_whitespace(&chr)
                       => self.get_whitespace_token(),
             Char(chr) if is_name_start(&chr)
@@ -264,10 +266,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         if self.peek_buf.is_empty() {
 
-
             let read_chr = self.source.read_char();
-
-
 
             match read_chr {
                 Some(a) => chr = a,
@@ -395,7 +394,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                     line = self.line;
                     chr = self.read_chr();
                 },
-                Some(RestrictedChar(r)) => {
+                Some(RestrictedChar(_)) => {
                     col = self.col;
                     line = self.line;
                     chr = self.read_chr();
