@@ -40,7 +40,7 @@ pub enum XmlToken {
     NMToken(~str),      // NMToken
     Text(~str),         // Various characters
     WhiteSpace(~str),   // Whitespace
-    PI(~str),           // Processing instruction token
+    PI(~str, ~str),     // Processing instruction token
     PrologStart,        // Start of PI block '<?'
     PrologEnd,          // End of PI block '?>'
     CData(~str),        // CData token with inner structure
@@ -100,6 +100,7 @@ pub enum State {
     Attlist,
     Entity,
     Pubid,
+    InProlog,
     ExpectEncoding,
     ExpectStandalone
 }
@@ -442,13 +443,33 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         ErrorToken(~"")
     }
 
-    fn process_name_token(&mut self) -> ~str {
+    fn process_namechars(&mut self) -> ~str {
         self.read_while_fn( |val| {
             match val {
                 Some(Char(v))             => util::is_name_char(&v),
                 _ => false
             }
         })
+    }
+
+    fn process_name(&mut self) -> ~str {
+        let mut result = ~"";
+        match self.read_chr() {
+            Some(Char(a)) if util::is_name_start(&a) => {
+                result.push_char(a);
+            },
+            Some(Char(_)) => {
+                self.handle_errors(IllegalChar, None);
+            },
+            Some(RestrictedChar(_)) => {
+                self.handle_errors(RestrictedCharError, None);
+            },
+            None => {
+                self.handle_errors(PrematureEOF, None);
+            }
+        }
+        result.push_str(self.process_namechars());
+        result
     }
 
     fn process_digits(&mut self, is_hex: &bool) -> ~str {
@@ -492,7 +513,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// consumes all name token until it reaches a non-name
     /// character.
     fn get_name_token(&mut self) -> Option<XmlToken> {
-        let result = self.process_name_token();
+        let result = self.process_namechars();
         self.buf.push_str(result);
 
         if self.buf == ~"encoding" {
@@ -517,7 +538,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             }
         };
 
-        let result = self.process_name_token();
+        let result = self.process_namechars();
         name.push_str(result);
 
         Some(NameToken(name))
@@ -933,17 +954,21 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_pi_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<?",       self.read_str(2u));
+        assert_eq!(~"<?",       self.buf);
 
-        let name = self.peek_str(3u);
+        // Process target name
+        let target = self.process_name();
 
-        if name.eq_ignore_ascii_case("xml") {
-            self.read_str(3u);
+        // We skip a possible whitespace token
+        self.get_whitespace_token();
+
+        if target.eq_ignore_ascii_case("xml") {
+            self.state = InProlog;
             return Some(PrologStart);
         } else {
             let text = self.read_until_peek("?>");
             self.read_str(2u);
-            return Some(PI(text));
+            return Some(PI(target,text));
         }
     }
 
@@ -1065,12 +1090,15 @@ mod tests {
 
     }
 
-
+    #[test]
     fn test_pi() {
-        let r = BufReader::new(bytes!("<?php var = echo()?>"));
+        let r = BufReader::new(bytes!("<?php var = echo()?><?php?><?xml?>"));
         let mut lexer = XmlLexer::from_reader(r);
 
-        assert_eq!(Some(PI(~"php var = echo()")),   lexer.next());
+        assert_eq!(Some(PI(~"php", ~"var = echo()")),   lexer.next());
+        assert_eq!(Some(PI(~"php", ~"")),               lexer.next());
+        assert_eq!(Some(PrologStart),                   lexer.next());
+        assert_eq!(Some(PrologEnd),                     lexer.next());
     }
 
     #[test]
@@ -1082,7 +1110,7 @@ mod tests {
         assert_eq!(Some(PrologStart),               lexer.next());
         assert_eq!(Some(PrologEnd),                 lexer.next());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.next());
-        assert_eq!(Some(PI(~"php stuff")),          lexer.next());
+        assert_eq!(Some(PI(~"php",~"stuff")),          lexer.next());
         assert_eq!(Some(CData(~"<test>")),          lexer.next());
         assert_eq!(Some(WhiteSpace(~"\t")),         lexer.next());
 
