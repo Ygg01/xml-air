@@ -12,12 +12,14 @@ use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 #[allow(dead_code)]
 mod util;
 
-
-
-
-
 #[deriving(Eq, ToStr, Clone)]
 pub enum XmlToken {
+    PI(~str, ~str),     // Processing instruction token
+    PrologStart,        // Start of PI block '<?'
+    PrologEnd,          // End of PI block '?>'
+    Encoding(~str),     // XML declaration encoding token
+    Standalone(bool),   // XML declaration standalone token
+    Version(~str),      // XML declaration version
     ErrorToken(~str),   // Error token
     LessBracket,        // Symbol '<'
     GreaterBracket,     // Symbol '>'
@@ -25,7 +27,7 @@ pub enum XmlToken {
     RightSqBracket,     // Symbol ']'
     LeftParen,          // Symbol '('
     RightParen,         // Symbol ')'
-    EqTok,              // Symbol '='
+    Eq,                 // Symbol '='
     Plus,               // Symbol '+'
     Pipe,               // Symbol '|'
     Star,               // Symbol '*'
@@ -40,9 +42,7 @@ pub enum XmlToken {
     NMToken(~str),      // NMToken
     Text(~str),         // Various characters
     WhiteSpace(~str),   // Whitespace
-    PI(~str, ~str),     // Processing instruction token
-    PrologStart,        // Start of PI block '<?'
-    PrologEnd,          // End of PI block '?>'
+
     CData(~str),        // CData token with inner structure
     DoctypeStart,       // Start of Doctype block '<!DOCTYPE'
     DoctypeOpen,        // Symbol '<!['
@@ -661,8 +661,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_equal_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('=')),       self.read_chr());
-        Some(EqTok)
+        assert_eq!(~"=",       self.buf);
+        Some(Eq)
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
@@ -1159,7 +1159,7 @@ mod tests {
         assert_eq!(Some(Plus),              lexer.next());
         assert_eq!(Some(QuestionMark),      lexer.next());
         assert_eq!(Some(Star),              lexer.next());
-        assert_eq!(Some(EqTok),             lexer.next());
+        assert_eq!(Some(Eq),             lexer.next());
 
         let r5 = BufReader::new(bytes!("'quote'\"funny\"$BLA<&apos;"));
         lexer = XmlLexer::from_reader(r5);
