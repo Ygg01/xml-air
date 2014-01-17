@@ -844,10 +844,15 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_quote_token(&mut self) -> Option<XmlToken> {
-        let quote = self.read_str(1u);
+        let quote = self.buf.clone();
         assert_eq!(true, (quote == ~"'" || quote == ~"\""));
 
-        let result = self.process_quotes(quote);
+        let quote_char = if quote == ~"'" { '\''} else { '"'};
+
+        let result = match self.state {
+            ExpectEncoding => self.process_encoding_quote(&quote_char),
+            _ => self.process_quotes(quote)
+        };
 
         Some(result)
     }
@@ -869,41 +874,57 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         QuotedString(text.clone())
     }
 
-    fn get_encoding_quote(&mut self) -> Option<XmlToken> {
-        let quote = self.read_str(1u);
-        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
+    fn process_encoding_quote(&mut self, quote: &char) -> XmlToken {
+        assert_eq!(true, (*quote == '\'' || *quote == '"'));
 
-        let result = self.process_quotes(quote.clone());
+        let result;
+        let mut chr = self.read_chr();
+        let mut first_char = true;
 
-        match result {
-            QuotedString(ref text) => {
-                let mut first_char = true;
+        //Clear buffer
+        self.buf = ~"";
 
-
-                for c in text.chars() {
+        while chr != Some(Char(*quote)) {
+            match chr {
+                Some(Char(c)) => {
+                    println!("Entered char {:}", c);
                     if first_char {
                         if !util::is_encoding_start_char(&c) {
-                           return
-                            Some(self.handle_errors(
+                            println!("Start char wrong!");
+                           return self.handle_errors(
                                     IllegalChar,
-                                    Some(result.clone())
-                            ));
+                                    Some(Encoding(self.buf.clone()))
+                            );
                         }
                         first_char = false;
                     } else {
-                        if util::is_encoding_char(&c) {
-                            return
-                            Some(self.handle_errors(
+                        if !util::is_encoding_char(&c) {
+                            println!("Mid char wrong!");
+                            return self.handle_errors(
                                     IllegalChar,
-                                    Some(result.clone())
-                                ));
+                                    Some(Encoding(self.buf.clone()))
+                            );
                         }
                     }
-                }
+                    println!("Push char {:}", c);
+                    self.buf.push_char(c);
+                },
+                Some(RestrictedChar(c)) => {
+                    return self.handle_errors(
+                                IllegalChar,
+                                Some(Encoding(self.buf.clone()))
+                    )
+                },
+                None => return self.handle_errors(
+                                PrematureEOF,
+                                Some(Encoding(self.buf.clone()))
+                    )
             }
-            _ => {}
+
+            chr = self.read_chr();
         }
-        Some(result)
+        result = Encoding(self.buf.clone());
+        result
     }
 
     fn get_pubid_quote(&mut self) -> Option<XmlToken> {
@@ -973,7 +994,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_right_bracket_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('>')), self.read_chr());
+        assert_eq!(~">", self.buf);
         return Some(GreaterBracket)
     }
 
