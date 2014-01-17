@@ -1066,8 +1066,9 @@ mod tests {
     use super::{Percent,NameToken,DoctypeClose,Amp, Semicolon};
     use super::{EntityType,NotationType,Comment};
     use super::{AttlistType,GreaterBracket,LessBracket,ElementType};
-    use super::{CloseTag,EqTok,Star,QuestionMark,Plus,Pipe};
+    use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
+    use super::{Encoding, Standalone, Version};
 
     use std::io::mem::BufReader;
 
@@ -1092,12 +1093,56 @@ mod tests {
 
     #[test]
     fn test_pi() {
-        let r = BufReader::new(bytes!("<?php var = echo()?><?php?><?xml?>"));
+        let r = BufReader::new(bytes!("<?php var = echo()?><?php?>"));
+
         let mut lexer = XmlLexer::from_reader(r);
 
         assert_eq!(Some(PI(~"php", ~"var = echo()")),   lexer.next());
         assert_eq!(Some(PI(~"php", ~"")),               lexer.next());
+
+        let r2 =BufReader::new(bytes!("<?xml encoding = 'UTF-8'?>"));
+
+        lexer = XmlLexer::from_reader(r2);
+
         assert_eq!(Some(PrologStart),                   lexer.next());
+        assert_eq!(Some(NameToken(~"encoding")),        lexer.next());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
+        assert_eq!(Some(Eq),                            lexer.next());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
+        assert_eq!(Some(Encoding(~"UTF-8")),            lexer.next());
+        assert_eq!(Some(PrologEnd),                     lexer.next());
+
+        let r3 =BufReader::new(bytes!("<?xml standalone = 'yes'?>"));
+
+        lexer = XmlLexer::from_reader(r3);
+
+        assert_eq!(Some(PrologStart),                   lexer.next());
+        assert_eq!(Some(NameToken(~"standalone")),      lexer.next());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
+        assert_eq!(Some(Eq),                            lexer.next());
+        assert_eq!(Some(Standalone(true)),              lexer.next());
+        assert_eq!(Some(PrologEnd),                     lexer.next());
+
+        let r4 =BufReader::new(bytes!("<?xml standalone = 'no'?>"));
+
+        lexer = XmlLexer::from_reader(r4);
+
+        assert_eq!(Some(PrologStart),                   lexer.next());
+        assert_eq!(Some(NameToken(~"standalone")),      lexer.next());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
+        assert_eq!(Some(Eq),                            lexer.next());
+        assert_eq!(Some(Standalone(false)),             lexer.next());
+        assert_eq!(Some(PrologEnd),                     lexer.next());
+
+        let r5 =BufReader::new(bytes!("<?xml version = '1.0'?>"));
+
+        lexer = XmlLexer::from_reader(r5);
+
+        assert_eq!(Some(PrologStart),                   lexer.next());
+        assert_eq!(Some(NameToken(~"version")),         lexer.next());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
+        assert_eq!(Some(Eq),                            lexer.next());
+        assert_eq!(Some(Version(~"1.0")),               lexer.next());
         assert_eq!(Some(PrologEnd),                     lexer.next());
     }
 
