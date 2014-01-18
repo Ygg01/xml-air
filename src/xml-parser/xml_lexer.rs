@@ -42,7 +42,6 @@ pub enum XmlToken {
     NMToken(~str),      // NMToken
     Text(~str),         // Various characters
     WhiteSpace(~str),   // Whitespace
-
     CData(~str),        // CData token with inner structure
     DoctypeStart,       // Start of Doctype block '<!DOCTYPE'
     DoctypeOpen,        // Symbol '<!['
@@ -94,7 +93,7 @@ impl Character {
         }
     }
 }
-
+#[deriving(Eq,ToStr)]
 pub enum State {
     OutsideTag,
     Attlist,
@@ -102,7 +101,8 @@ pub enum State {
     Pubid,
     InProlog,
     ExpectEncoding,
-    ExpectStandalone
+    ExpectStandalone,
+    ExpectVersion
 }
 
 pub struct XmlLexer<R> {
@@ -516,10 +516,12 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let result = self.process_namechars();
         self.buf.push_str(result);
 
-        if self.buf == ~"encoding" {
+        if self.state == InProlog && self.buf == ~"encoding" {
             self.state = ExpectEncoding
-        } else if self.buf == ~"standalone" {
+        } else if self.state == InProlog && self.buf == ~"standalone" {
             self.state = ExpectStandalone
+        } else if self.state == InProlog && self.buf == ~"version" {
+            self.state = ExpectVersion
         }
 
         Some(NameToken(self.buf.clone()))
@@ -849,12 +851,41 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         let quote_char = if quote == ~"'" { '\''} else { '"'};
 
+        println!("State {}", self.state.to_str());
         let result = match self.state {
-            ExpectEncoding => self.process_encoding_quote(&quote_char),
-            _ => self.process_quotes(quote)
+            ExpectEncoding      => self.process_encoding_quote(&quote_char),
+            ExpectStandalone    => self.proces_standalone(quote),
+            ExpectVersion       => self.proces_version(quote),
+            _                   => self.process_quotes(quote)
         };
 
         Some(result)
+    }
+
+    fn proces_standalone(&mut self, quote: ~str) -> XmlToken {
+        assert_eq!(ExpectStandalone, self.state);
+        let quote = self.process_quotes(quote);
+        self.state = InProlog;
+
+        let result = match quote {
+            QuotedString(~"yes")    => Standalone(true),
+            QuotedString(~"no")     => Standalone(false),
+            _                       => quote
+        };
+        result
+    }
+
+    fn proces_version(&mut self, quote: ~str) -> XmlToken {
+        assert_eq!(ExpectVersion, self.state);
+        let quote = self.process_quotes(quote);
+        self.state = InProlog;
+
+        let result = match quote {
+            QuotedString(~"1.1")    => Version(~"1.1"),
+            QuotedString(~"1.0")    => Version(~"1.0"),
+            _                       => quote
+        };
+        result
     }
 
     fn process_quotes(&mut self, quote: ~str) -> XmlToken {
@@ -875,7 +906,9 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn process_encoding_quote(&mut self, quote: &char) -> XmlToken {
+        assert_eq!(ExpectEncoding, self.state);
         assert_eq!(true, (*quote == '\'' || *quote == '"'));
+        self.state = InProlog;
 
         let result;
         let mut chr = self.read_chr();
@@ -887,10 +920,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         while chr != Some(Char(*quote)) {
             match chr {
                 Some(Char(c)) => {
-                    println!("Entered char {:}", c);
                     if first_char {
                         if !util::is_encoding_start_char(&c) {
-                            println!("Start char wrong!");
                            return self.handle_errors(
                                     IllegalChar,
                                     Some(Encoding(self.buf.clone()))
@@ -899,14 +930,12 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                         first_char = false;
                     } else {
                         if !util::is_encoding_char(&c) {
-                            println!("Mid char wrong!");
                             return self.handle_errors(
                                     IllegalChar,
                                     Some(Encoding(self.buf.clone()))
                             );
                         }
                     }
-                    println!("Push char {:}", c);
                     self.buf.push_char(c);
                 },
                 Some(RestrictedChar(c)) => {
@@ -980,13 +1009,16 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         // Process target name
         let target = self.process_name();
 
-        // We skip a possible whitespace token
-        self.get_whitespace_token();
+
 
         if target.eq_ignore_ascii_case("xml") {
             self.state = InProlog;
             return Some(PrologStart);
         } else {
+            // We skip a possible whitespace token
+            // to get to text of PI
+            self.get_whitespace_token();
+
             let text = self.read_until_peek("?>");
             self.read_str(2u);
             return Some(PI(target,text));
@@ -1059,16 +1091,27 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_pi_end_token(&mut self) -> Option<XmlToken> {
-        let chr_assert = self.read_chr();
-        assert_eq!(Some(Char('?')),   chr_assert);
+        assert_eq!(~"?",   self.buf);
+        let line = self.line;
+        let col  = self.col;
 
-        let chr_peek = self.peek_chr();
-        let result = match chr_peek {
-            Some(Char('>'))    => {
-                self.read_chr();
+        let chr = self.read_chr();
+        let result = match chr {
+            Some(Char('>')) => {
+                self.state = OutsideTag;
                 Some(PrologEnd)
             },
-            _=> Some(QuestionMark)
+            Some(Char(a)) => {
+                self.rewind(col, line, a.to_str());
+                Some(QuestionMark)
+            },
+            Some(RestrictedChar(a)) => {
+                self.handle_errors(RestrictedCharError, Some(QuestionMark));
+                Some(QuestionMark)
+            },
+            None => {
+                Some(QuestionMark)
+            }
         };
         result
     }
