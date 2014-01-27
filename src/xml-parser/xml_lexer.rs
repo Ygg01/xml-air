@@ -243,7 +243,10 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     fn rewind(&mut self, col: uint, line: uint, peeked: ~str) {
         self.col = col;
         self.line = line;
-        self.peek_buf.push_str(peeked);
+
+        for c in peeked.chars_rev(){
+             self.peek_buf.push_char(c);
+        }
     }
 
     /// This method reads a character and returns an enum that
@@ -619,11 +622,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
             result = Some(CData(text));
         } else {
-            // TODO rewind
-            println!("Return {:?}", cdata);
             self.rewind(col, line, cdata);
-            println!("after rewind {:?}", self.peek_buf);
-            // FIXME Invalid return, should return error
+
             result = Some(DoctypeOpen);
         }
         result
