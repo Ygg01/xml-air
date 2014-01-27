@@ -571,7 +571,18 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
     fn get_amp_excl(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<!",   self.buf);
-        None
+        let read = self.read_chr();
+
+        let result = match read {
+            Some(Char('[')) => {
+                self.buf.push_char('[');
+                self.get_cdata_token()
+            },
+            None => Some(Text(~"<!")),
+            _ => Some(Text(~"NON IMPLEMENTED"))
+        };
+
+        result
         /*
         if peek_sec == ~"<!-" {
             result = self.get_comment_token();
@@ -594,20 +605,25 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         }*/
     }
 
-    //FIX THIS: possible element ignore section
     fn get_cdata_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<![",       self.read_str(3u));
+        assert_eq!(~"<![",       self.buf);
 
-        let peek = self.peek_str(6u);
+        let col = self.col;
+        let line = self.line;
+        let cdata = self.read_str(6u);
         let result;
-        if(peek == ~"CDATA["){
 
-            self.read_str(6u);
+        if cdata == ~"CDATA[" {
             let text = self.read_until_peek("]]>");
             self.read_str(3u);
 
             result = Some(CData(text));
         } else {
+            // TODO rewind
+            println!("Return {:?}", cdata);
+            self.rewind(col, line, cdata);
+            println!("after rewind {:?}", self.peek_buf);
+            // FIXME Invalid return, should return error
             result = Some(DoctypeOpen);
         }
         result
@@ -851,7 +867,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         let quote_char = if quote == ~"'" { '\''} else { '"'};
 
-        println!("State {}", self.state.to_str());
         let result = match self.state {
             ExpectEncoding      => self.process_encoding_quote(&quote_char),
             ExpectStandalone    => self.proces_standalone(quote),
