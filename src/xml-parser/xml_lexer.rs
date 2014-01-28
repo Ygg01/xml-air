@@ -581,6 +581,10 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 self.buf.push_char('[');
                 self.get_cdata_token()
             },
+            Some(Char('-')) => {
+                self.buf.push_char('-');
+                self.get_comment_token()
+            },
             None => Some(Text(~"<!")),
             _ => Some(Text(~"NON IMPLEMENTED"))
         };
@@ -1025,7 +1029,6 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let target = self.process_name();
 
 
-
         if target.eq_ignore_ascii_case("xml") {
             self.state = InProlog;
             return Some(PrologStart);
@@ -1046,16 +1049,18 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     fn get_comment_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!-", self.read_str(3u));
+        assert_eq!(~"<!-", self.buf);
+        let col = self.col;
+        let line = self.line;
+        let rewind_str = self.read_str(1u);
 
-        let peek_str = self.peek_str(1u);
-
-        if peek_str == ~"-" {
-            self.read_str(1u);
+        if rewind_str == ~"-" {
 
             let text = self.process_comment();
             return Some(Comment(text))
         } else {
+
+            self.rewind(col,line, rewind_str);
             return Some(ErrorToken(~"<!-"))
         }
     }
