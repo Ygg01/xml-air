@@ -1238,7 +1238,7 @@ mod tests {
     #[test]
     fn test_cdata() {
 
-        let str1 = bytes!("<![CDATA[various text data like <a>]]>!");
+        let str1  = bytes!("<![CDATA[various text data like <a>]]>!");
         let read1 = BufReader::new(str1);
 
         let mut lexer = XmlLexer::from_reader(read1);
