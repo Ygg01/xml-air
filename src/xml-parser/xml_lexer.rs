@@ -1250,6 +1250,17 @@ mod tests {
         assert_eq!(Some(Char('C')),                     lexer.read_chr());
     }
 
+    #[test]
+    fn test_comment(){
+        let str1  = bytes!("<!-- Nice comments --><>");
+        let read1 = BufReader::new(str1);
+
+        let mut lexer = XmlLexer::from_reader(read1);
+
+        assert_eq!(Some(Comment(~" Nice comments ")), lexer.next());
+        assert_eq!(Some(LessBracket), lexer.next());
+        assert_eq!(Some(GreaterBracket), lexer.next());
+    }
 
     #[test]
     fn test_multi_peek() {
