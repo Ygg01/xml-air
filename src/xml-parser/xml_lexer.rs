@@ -146,7 +146,7 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
         }
 
         let token = match read_chr {
-            RestrictedChar(a) => {
+            RestrictedChar(_) => {
                 Some(self.handle_errors(RestrictedCharError, None))
             },
             Char(chr) if is_whitespace(&chr)
@@ -305,7 +305,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         self.line += 1u;
         self.col = 0u;
 
-        if(c == '\r'){
+        if c == '\r' {
             let chrPeek = self.source.read_char();
             match chrPeek {
                 // If the read character isn't a double
@@ -338,7 +338,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         let mut eof = false;
         let mut l = 0u;
 
-        while (l < len && !eof) {
+        while l < len && !eof {
             let chr = self.read_chr();
             l += 1;
             match chr {
@@ -700,8 +700,8 @@ impl<R: Reader+Buffer> XmlLexer<R> {
             Some(Char(a)) if (util::is_digit(&a)) => {
                 radix = 10
             },
-            Some(Char(a))
-            | Some(RestrictedChar(a)) => {
+            Some(Char(_))
+            | Some(RestrictedChar(_)) => {
                 return Some(self.handle_errors(
                                 NonDigitError,
                                 Some(ErrorToken(self.buf.clone()))
@@ -913,7 +913,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         if peek != quote {
 
-            let err =  self.handle_errors(
+            self.handle_errors(
                 IllegalChar,
                 Some(QuotedString(text.clone()))
             );
@@ -957,7 +957,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                     }
                     self.buf.push_char(c);
                 },
-                Some(RestrictedChar(c)) => {
+                Some(RestrictedChar(_)) => {
                     return self.handle_errors(
                                 IllegalChar,
                                 Some(Encoding(self.buf.clone()))
@@ -1125,7 +1125,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
                 self.rewind(col, line, a.to_str());
                 Some(QuestionMark)
             },
-            Some(RestrictedChar(a)) => {
+            Some(RestrictedChar(_)) => {
                 self.handle_errors(RestrictedCharError, Some(QuestionMark));
                 Some(QuestionMark)
             },

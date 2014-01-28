@@ -113,7 +113,7 @@ pub fn clean_restricted(input: ~str) -> ~str {
     let mut result = ~"";
 
     for c in input.chars() {
-        if (!is_restricted(&c)){
+        if !is_restricted(&c) {
             result.push_char(c);
         }
     }
@@ -217,7 +217,7 @@ pub fn is_name_start(chr: &char) -> bool {
 ///
 /// See:http://www.w3.org/TR/xml11/#NT-NameChar
 pub fn is_name_char(chr: &char) -> bool {
-    if(is_name_start(chr)){
+    if is_name_start(chr) {
         return true;
     }
     match *chr {
