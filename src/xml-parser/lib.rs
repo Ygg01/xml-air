@@ -1,8 +1,10 @@
 // Crate linkage metadata
-#[crate_id(name = "xml", vers = "0.1", author = "DanielFath", package_id="xml")];
+#[crate_id = "xml-parser#0.1-pre"];
+
 
 //Metadata
-#[desc = "XML pull parser for rust"];
+#[comment = "XML pull parser for rust"];
+#[license = "MIT/LGPL"];
 #[crate_type = "lib"];
 
 
