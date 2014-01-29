@@ -125,14 +125,14 @@ impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
     ///     let mut lexer = XmlLexer::from_reader(reader);
     ///
     ///     // Calling lexer for each individual element
-    ///     let token = lexer.next();
+    ///     let token = lexer.pull();
     ///
     ///     // Calling lexer in a loop
-    ///     for tok in lexer {
+    ///     for tok in lexer.tokens() {
     ///         println!(tok);
     ///     }
-    ///     assert_eq!(None, lexer.next());
-    fn next(&mut self) -> Option<XmlToken> {
+    ///     assert_eq!(None, lexer.pull());
+    fn pull(&mut self) -> Option<XmlToken> {
         self.buf = ~"";
 
         let read_chr = match self.read_chr() {
@@ -591,11 +591,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
 
         result
         /*
-        if peek_sec == ~"<!-" {
-            result = self.get_comment_token();
-        } else if peek_sec == ~"<![" {
-            result = self.get_cdata_token();
-        } else if peek_sec == ~"<!D" {
+        if peek_sec == ~"<!D" {
             result = self.get_doctype_start_token();
         } else if peek_sec == ~"<!E" {
             result = self.get_entity_or_element_token();
@@ -1163,9 +1159,9 @@ mod tests {
         let bytes = bytes!("<a>");
         let r = BufReader::new(bytes);
         let mut lexer = XmlLexer::from_reader(r);
-        for token in lexer {}
+        for token in lexer.tokens() {}
 
-        assert_eq!(None, lexer.next());
+        assert_eq!(None, lexer.pull());
     }
 
     #[test]
@@ -1175,64 +1171,64 @@ mod tests {
 
         let mut lexer = XmlLexer::from_reader(buf0);
 
-        assert_eq!(Some(PI(~"php", ~"var = echo()")),   lexer.next());
-        assert_eq!(Some(PI(~"php", ~"")),               lexer.next());
+        assert_eq!(Some(PI(~"php", ~"var = echo()")),   lexer.pull());
+        assert_eq!(Some(PI(~"php", ~"")),               lexer.pull());
 
         let str1 = bytes!("<?xml encoding = 'UTF-8'?>");
         let buf1 =BufReader::new(str1);
 
         lexer = XmlLexer::from_reader(buf1);
 
-        assert_eq!(Some(PrologStart),                   lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(NameToken(~"encoding")),        lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Eq),                            lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Encoding(~"UTF-8")),            lexer.next());
-        assert_eq!(Some(PrologEnd),                     lexer.next());
+        assert_eq!(Some(PrologStart),                   lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(NameToken(~"encoding")),        lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Eq),                            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Encoding(~"UTF-8")),            lexer.pull());
+        assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str3 = bytes!("<?xml standalone = 'yes'?>");
         let buf3 = BufReader::new(str3);
 
         lexer = XmlLexer::from_reader(buf3);
 
-        assert_eq!(Some(PrologStart),                   lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(NameToken(~"standalone")),      lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Eq),                            lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Standalone(true)),              lexer.next());
-        assert_eq!(Some(PrologEnd),                     lexer.next());
+        assert_eq!(Some(PrologStart),                   lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(NameToken(~"standalone")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Eq),                            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Standalone(true)),              lexer.pull());
+        assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str4 = bytes!("<?xml standalone = 'no'?>");
         let buf4 =BufReader::new(str4);
 
         lexer = XmlLexer::from_reader(buf4);
 
-        assert_eq!(Some(PrologStart),                   lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(NameToken(~"standalone")),      lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Eq),                            lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Standalone(false)),             lexer.next());
-        assert_eq!(Some(PrologEnd),                     lexer.next());
+        assert_eq!(Some(PrologStart),                   lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(NameToken(~"standalone")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Eq),                            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Standalone(false)),             lexer.pull());
+        assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str5 = bytes!("<?xml version = '1.0'?>");
         let buf5 =BufReader::new(str5);
 
         lexer = XmlLexer::from_reader(buf5);
 
-        assert_eq!(Some(PrologStart),                   lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(NameToken(~"version")),         lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Eq),                            lexer.next());
-        assert_eq!(Some(WhiteSpace(~" ")),              lexer.next());
-        assert_eq!(Some(Version(~"1.0")),               lexer.next());
-        assert_eq!(Some(PrologEnd),                     lexer.next());
+        assert_eq!(Some(PrologStart),                   lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(NameToken(~"version")),         lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Eq),                            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Version(~"1.0")),               lexer.pull());
+        assert_eq!(Some(PrologEnd),                     lexer.pull());
     }
 
     #[test]
@@ -1243,7 +1239,7 @@ mod tests {
 
         let mut lexer = XmlLexer::from_reader(read1);
 
-        assert_eq!(Some(CData(~"various text data like <a>")),  lexer.next());
+        assert_eq!(Some(CData(~"various text data like <a>")),  lexer.pull());
         assert_eq!(Some(Char('!')),                     lexer.read_chr());
 
         let str2 = bytes!("<![C!");
@@ -1251,7 +1247,7 @@ mod tests {
 
         lexer = XmlLexer::from_reader(read2);
 
-        lexer.next();
+        lexer.pull();
         assert_eq!(Some(Char('C')),                     lexer.read_chr());
     }
 
@@ -1262,9 +1258,9 @@ mod tests {
 
         let mut lexer = XmlLexer::from_reader(read1);
 
-        assert_eq!(Some(Comment(~" Nice comments ")), lexer.next());
-        assert_eq!(Some(LessBracket), lexer.next());
-        assert_eq!(Some(GreaterBracket), lexer.next());
+        assert_eq!(Some(Comment(~" Nice comments ")), lexer.pull());
+        assert_eq!(Some(LessBracket), lexer.pull());
+        assert_eq!(Some(GreaterBracket), lexer.pull());
     }
 
     #[test]
@@ -1313,10 +1309,10 @@ mod tests {
         let read = BufReader::new(str1);
         let mut lexer =         XmlLexer::from_reader(read);
 
-        assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.next());
+        assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.pull());
         assert_eq!(6u,                                 lexer.col);
         assert_eq!(1u,                                 lexer.line);
-        assert_eq!(Some(NameToken(~"a")),              lexer.next());
+        assert_eq!(Some(NameToken(~"a")),              lexer.pull());
     }
 
     #[test]
