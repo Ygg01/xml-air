@@ -115,8 +115,26 @@ pub struct XmlLexer<R> {
     priv source: R
 }
 
-#[allow(dead_code)]
-impl<R: Reader+Buffer> Iterator<XmlToken> for XmlLexer<R>{
+// Struct to help with the Iterator pattern emulating Rust native libraries
+pub struct TokenIterator <'b,R> {
+    priv iter: &'b mut XmlLexer<R>
+}
+
+// The problem seems to be here
+impl<'b,R: Reader+Buffer> Iterator<XmlToken> for TokenIterator<'b,R> {
+    // Apparently I can't have &'b mut
+    fn next(&mut self) -> Option<XmlToken> {
+        self.iter.pull()
+    }
+}
+
+impl<'iter,R: Reader+Buffer> XmlLexer<R> {
+    pub fn tokens(&'iter mut self) -> TokenIterator<'iter,R>{
+        TokenIterator{ iter: self}
+    }
+}
+
+impl<R: Reader+Buffer> XmlLexer<R> {
     /// This method pulls tokens from Reader until it reaches
     /// end of file. From that point on, it will return None.
     ///
