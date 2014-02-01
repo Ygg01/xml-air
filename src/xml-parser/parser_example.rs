@@ -25,7 +25,7 @@ impl<'b> Iterator<uint> for ObjIterator<'b> {
     fn next(&mut self) -> Option<uint> {
         self.iter.decr();
         // Pointless effects to prevent infinite loop on execution
-        if(self.iter.stuff == 0){
+        if self.iter.stuff == 0 {
             None
         }else {
             Some(self.iter.stuff)
