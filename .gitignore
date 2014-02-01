@@ -13,8 +13,9 @@
 *.dylib
 *.rlib
 
-#Ignore help folders
+#Ignore non-source folders
 build/
 bin/
 lib/
+doc/
 .rust
