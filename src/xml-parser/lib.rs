@@ -23,6 +23,8 @@
 // Ignore dead code
 #[allow(dead_code)];
 
+// Import lexer
+pub use xml_lexer::{XmlLexer,XmlToken};
 pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 
 mod xml_lexer;

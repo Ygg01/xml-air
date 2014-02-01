@@ -75,6 +75,8 @@
 <span id='37'>37</span>
 <span id='38'>38</span>
 <span id='39'>39</span>
+<span id='40'>40</span>
+<span id='41'>41</span>
 </pre><pre class='rust'>// Crate linkage metadata
 #[crate_id = &quot;xml-parser#0.1-pre&quot;];
 
@@ -100,6 +102,8 @@
 // Ignore dead code
 #[allow(dead_code)];
 
+// Import lexer
+pub use xml_lexer::{XmlLexer,XmlToken};
 pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 
 mod xml_lexer;

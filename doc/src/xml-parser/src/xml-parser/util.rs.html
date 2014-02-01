@@ -490,12 +490,12 @@ impl ToStr for Mark {
         mark_str.push_str(self.context);
         mark_str.push_char(&#39;\n&#39;);
         let margin = self.pos + self.offset_msg.char_len();
-        margin.times(|| {
+        for _ in range(0, margin) {
             mark_str.push_char(&#39; &#39;);
-        });
+        };
 
         let mut first_char = true;
-        self.length.times (|| {
+        for _ in range(0, self.length) {
             if first_char {
                 mark_str.push_char(&#39;^&#39;);
                 first_char = false;
@@ -503,7 +503,7 @@ impl ToStr for Mark {
                 mark_str.push_char(&#39;~&#39;);
             }
 
-        });
+        };
         mark_str
     }
 }

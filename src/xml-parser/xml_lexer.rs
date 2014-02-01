@@ -139,6 +139,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     /// end of file. From that point on, it will return None.
     ///
     /// Example:
+    ///
     ///     let reader = Reader::new(bytes!("<a></a>"));
     ///     let mut lexer = XmlLexer::from_reader(reader);
     ///
@@ -150,7 +151,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     ///         println!(tok);
     ///     }
     ///     assert_eq!(None, lexer.pull());
-    fn pull(&mut self) -> Option<XmlToken> {
+    pub fn pull(&mut self) -> Option<XmlToken> {
         self.buf = ~"";
 
         let read_chr = match self.read_chr() {
@@ -196,12 +197,10 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         token
 
     }
-}
-
-impl<R: Reader+Buffer> XmlLexer<R> {
     /// Constructs a new `XmlLexer` from data given.
-    /// Data structure that is shared, must implement Reader
-    /// and Writer traits.
+    /// Parameter `data` represents source for parsing,
+    /// and it must implement Reader
+    /// and Buffer traits.
     pub fn from_reader(data : R) -> XmlLexer<R> {
         XmlLexer {
             line: 1,
@@ -225,7 +224,7 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     /// Method that peeks incoming strings
-    pub fn peek_str(&mut self, len: uint) -> ~str {
+    fn peek_str(&mut self, len: uint) -> ~str {
         let col = self.col;
         let line = self.line;
 
@@ -268,21 +267,21 @@ impl<R: Reader+Buffer> XmlLexer<R> {
     }
 
     /// This method reads a character and returns an enum that
-    /// might be either a value of character, a new-line sign or a
+    /// might be either a value of character, or a
     /// restricted character. Encountering Restricted characters
     /// by default will not result in an error, only a warning.
     /// Position will still be updated upon finding Restricted
     /// characters. Characters that are neither restricted nor
     /// allowed will be ignored.
     ///
-    /// Method short-circuits if the End of file has been reached.
+    /// If method reaches end of file it will return `None`.
     ///
     /// Note: This method will normalize all accepted newline
     /// characters into '\n' character. Encountered will not be
     /// preserved.
     /// See http://www.w3.org/TR/xml11/#sec-line-ends for more
     /// information
-    fn read_chr(&mut self) -> Option<Character> {
+    pub fn read_chr(&mut self) -> Option<Character> {
 
         let chr;
 

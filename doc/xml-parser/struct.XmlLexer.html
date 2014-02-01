@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>xml-parser::XmlLexer - Rust</title>
+
+    <link href='http://fonts.googleapis.com/css?family=Oswald:700|Inconsolata:400'
+          rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="../xml-parser/main.css">
+
+    
+</head>
+<body>
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    <section class="sidebar">
+        
+
+        <p class='location'><a href='index.html'>xml-parser</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.XmlError.html'>XmlError</a><br/><a class='struct current' href='struct.XmlLexer.html'>XmlLexer</a><br/></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.XmlToken.html'>XmlToken</a><br/></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.is_name_char.html'>is_name_char</a><br/><a class='fn ' href='fn.is_name_start.html'>is_name_start</a><br/><a class='fn ' href='fn.is_whitespace.html'>is_whitespace</a><br/></div>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <button class="do-search">Search</button>
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Search documentation..."
+                       type="search" />
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct"><a class='source'
+                       href='../src/xml-parser/src/xml-parser/xml_lexer.rs.html#109-117'>[src]</a><h1 class='fqn'>Struct <a href='index.html'>xml-parser</a>::<a class='struct' href=''>XmlLexer</a></h1><pre class='struct'>pub struct XmlLexer&lt;R&gt; {
+    line: uint,
+    col: uint,
+    config: Config,
+    // some fields omitted
+}</pre><h2 class='fields'>Fields</h2>
+<table><tr><td id='structfield.line'><code>line</code></td><td></td></tr><tr><td id='structfield.col'><code>col</code></td><td></td></tr><tr><td id='structfield.config'><code>config</code></td><td></td></tr></table><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl&lt;'iter, R: <a class='trait' href='http://static.rust-lang.org/doc/master/std/io/trait.Reader.html' title='std::io::Reader'>Reader</a> + <a class='trait' href='http://static.rust-lang.org/doc/master/std/io/trait.Buffer.html' title='std::io::Buffer'>Buffer</a>&gt; <a class='struct' href='../xml-parser/xml_lexer/struct.XmlLexer.html' title='xml-parser::xml_lexer::XmlLexer'>XmlLexer</a>&lt;R&gt;</code></h3><div class='methods'><h4 id='method.tokens' class='method'><code>fn <span class='fnname'>tokens</span>(&amp;'iter mut self) -&gt; TokenIterator&lt;'iter, R&gt;</code></h4>
+</div><h3 class='impl'><code>impl&lt;R: <a class='trait' href='http://static.rust-lang.org/doc/master/std/io/trait.Reader.html' title='std::io::Reader'>Reader</a> + <a class='trait' href='http://static.rust-lang.org/doc/master/std/io/trait.Buffer.html' title='std::io::Buffer'>Buffer</a>&gt; <a class='struct' href='../xml-parser/xml_lexer/struct.XmlLexer.html' title='xml-parser::xml_lexer::XmlLexer'>XmlLexer</a>&lt;R&gt;</code></h3><div class='methods'><h4 id='method.pull' class='method'><code>fn <span class='fnname'>pull</span>(&amp;mut self) -&gt; <a class='enum' href='http://static.rust-lang.org/doc/master/std/option/enum.Option.html' title='std::option::Option'>Option</a>&lt;<a class='enum' href='../xml-parser/xml_lexer/enum.XmlToken.html' title='xml-parser::xml_lexer::XmlToken'>XmlToken</a>&gt;</code></h4>
+<div class='docblock'><p>This method pulls tokens from Reader until it reaches
+end of file. From that point on, it will return None.</p>
+
+<p>Example:</p>
+
+<pre><code>let reader = Reader::new(bytes!(&quot;&lt;a&gt;&lt;/a&gt;&quot;));
+let mut lexer = XmlLexer::from_reader(reader);
+
+// Calling lexer for each individual element
+let token = lexer.pull();
+
+// Calling lexer in a loop
+for tok in lexer.tokens() {
+    println!(tok);
+}
+assert_eq!(None, lexer.pull());</code></pre>
+</div><h4 id='method.from_reader' class='method'><code>fn <span class='fnname'>from_reader</span>(data: R) -&gt; <a class='struct' href='../xml-parser/xml_lexer/struct.XmlLexer.html' title='xml-parser::xml_lexer::XmlLexer'>XmlLexer</a>&lt;R&gt;</code></h4>
+<div class='docblock'><p>Constructs a new <code>XmlLexer</code> from data given.
+Parameter <code>data</code> represents source for parsing,
+and it must implement Reader
+and Buffer traits.</p>
+</div><h4 id='method.read_str' class='method'><code>fn <span class='fnname'>read_str</span>(&amp;mut self, len: uint) -&gt; ~str</code></h4>
+<div class='docblock'><p>This method reads a string of given length skipping over any
+restricted character and adding an error for each such
+character.</p>
+
+<p>Restricted characters are <em>not included</em> into the output
+string.</p>
+</div><h4 id='method.read_chr' class='method'><code>fn <span class='fnname'>read_chr</span>(&amp;mut self) -&gt; <a class='enum' href='http://static.rust-lang.org/doc/master/std/option/enum.Option.html' title='std::option::Option'>Option</a>&lt;Character&gt;</code></h4>
+<div class='docblock'><p>This method reads a character and returns an enum that
+might be either a value of character, or a
+restricted character. Encountering Restricted characters
+by default will not result in an error, only a warning.
+Position will still be updated upon finding Restricted
+characters. Characters that are neither restricted nor
+allowed will be ignored.</p>
+
+<p>If method reaches end of file it will return <code>None</code>.</p>
+
+<p>Note: This method will normalize all accepted newline
+characters into &#39;\n&#39; character. Encountered will not be
+preserved.
+See <a href="http://www.w3.org/TR/xml11/#sec-line-ends">http://www.w3.org/TR/xml11/#sec-line-ends</a> for more
+information</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <script>
+        var rootPath = "../";
+    </script>
+    <script src="../xml-parser/jquery.js"></script>
+    <script src="../xml-parser/search-index.js"></script>
+    <script src="../xml-parser/main.js"></script>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&uarr;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&darr;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code> (or <code>str</code>), <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+        </div>
+    </div>
+</body>
+</html>
