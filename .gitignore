@@ -5,6 +5,9 @@
 /src/xml/util
 /src/xml/parser
 
+# Ignore test output
+lex_test
+
 # Ignore output files
 *.o
 *.so
