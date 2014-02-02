@@ -10,20 +10,20 @@ VERSION=0.1-pre
 
 xml_parser_so=build/libhttp-9296ff29-0.1-pre.so
 xml_parser_files=\
-		$(wildcard src/xml-parser/*.rs)
+		$(wildcard src/xml/*.rs)
 
 parser: $(xml_parser_so)
 
 $(xml_parser_so): $(xml_parser_files)
 		mkdir -p build/
-		$(RUSTC) $(RUSTFLAGS) src/xml-parser/lib.rs --out-dir=build
+		$(RUSTC) $(RUSTFLAGS) src/xml/lib.rs --out-dir=build
 
 build/%:: src/%/main.rs $(libhttp_so)
 		mkdir -p "$(dir $@)"
 		$(RUSTC) $(RUSTFLAGS) $< -o $@ -L build/
 
 build/tests: $(http_files)
-		$(RUSTC) $(RUSTFLAGS) --test -o build/test src/xml-parser/xml_lexer.rs
+		$(RUSTC) $(RUSTFLAGS) --test -o build/test src/xml/xml_lexer.rs
 
 all: parser docs
 
@@ -37,10 +37,10 @@ all: parser docs
 docs: doc/http/index.html
 
 doc/http/index.html: $(xml_parser_files)
-		$(RUSTDOC) src/xml-parser/lib.rs
+		$(RUSTDOC) src/xml/lib.rs
 
 build/tests: $(http_files)
-		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/xml-parser/xml_lexer.rs
+		$(RUSTC) $(RUSTFLAGS) --test -o build/lex_tests src/xml/lexer.rs
 
 check: all build/tests
 		build/tests --test

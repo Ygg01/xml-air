@@ -1,12 +1,12 @@
 use std::io::{Reader, Buffer};
 
-use xml_node::{XmlDoc, XmlElem, XNode};
+use node::{XmlDoc, XmlElem, XNode};
 use util::{XmlError};
-use xml_lexer::{XmlLexer};
+use lexer::{XmlLexer};
 
-mod xml_node;
+mod node;
 mod util;
-mod xml_lexer;
+mod lexer;
 
 enum State {
     OutsideTag,

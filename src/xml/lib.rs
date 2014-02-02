@@ -1,5 +1,5 @@
 // Crate linkage metadata
-#[crate_id = "xml-parser#0.1-pre"];
+#[crate_id = "xml-rust#0.1-pre"];
 
 
 //Metadata
@@ -24,12 +24,12 @@
 #[allow(dead_code)];
 
 // Import lexer
-pub use xml_lexer::{XmlLexer,XmlToken};
+pub use lexer::{XmlLexer,XmlToken};
 pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 
-mod xml_lexer;
-mod xml_parser;
-mod xml_node;
+pub mod lexer;
+pub mod parser;
+pub mod node;
 mod util;
 
 

@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 
 #[deriving(Eq, Clone, ToStr)]
 /// If an error occurs while parsing some XML, this is the structure which is
