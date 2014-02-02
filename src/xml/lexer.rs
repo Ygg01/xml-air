@@ -9,7 +9,6 @@ use util::{is_restricted, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
-#[allow(dead_code)]
 mod util;
 
 #[deriving(Eq, ToStr, Clone)]
@@ -105,7 +104,7 @@ pub enum State {
     ExpectVersion
 }
 
-pub struct XmlLexer<R> {
+pub struct Lexer<R> {
     line: uint,
     col: uint,
     config: Config,
@@ -117,7 +116,7 @@ pub struct XmlLexer<R> {
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
 pub struct TokenIterator <'b,R> {
-    priv iter: &'b mut XmlLexer<R>
+    priv iter: &'b mut Lexer<R>
 }
 
 // The problem seems to be here
@@ -128,20 +127,20 @@ impl<'b,R: Reader+Buffer> Iterator<XmlToken> for TokenIterator<'b,R> {
     }
 }
 
-impl<'iter,R: Reader+Buffer> XmlLexer<R> {
+impl<'iter,R: Reader+Buffer> Lexer<R> {
     pub fn tokens(&'iter mut self) -> TokenIterator<'iter,R>{
         TokenIterator{ iter: self}
     }
 }
 
-impl<R: Reader+Buffer> XmlLexer<R> {
+impl<R: Reader+Buffer> Lexer<R> {
     /// This method pulls tokens from Reader until it reaches
     /// end of file. From that point on, it will return None.
     ///
     /// Example:
     ///
     ///     let reader = Reader::new(bytes!("<a></a>"));
-    ///     let mut lexer = XmlLexer::from_reader(reader);
+    ///     let mut lexer = Lexer::from_reader(reader);
     ///
     ///     // Calling lexer for each individual element
     ///     let token = lexer.pull();
@@ -197,12 +196,12 @@ impl<R: Reader+Buffer> XmlLexer<R> {
         token
 
     }
-    /// Constructs a new `XmlLexer` from data given.
+    /// Constructs a new `Lexer` from data given.
     /// Parameter `data` represents source for parsing,
     /// and it must implement Reader
     /// and Buffer traits.
-    pub fn from_reader(data : R) -> XmlLexer<R> {
-        XmlLexer {
+    pub fn from_reader(data : R) -> Lexer<R> {
+        Lexer {
             line: 1,
             col: 0,
             config: Config::default(),
@@ -1157,7 +1156,7 @@ pub fn main() {
 #[cfg(test)]
 mod tests {
 
-    use super::{XmlLexer, Char, RestrictedChar};
+    use super::{Lexer, Char, RestrictedChar};
     use super::{PrologEnd,PrologStart,PI,CData,WhiteSpace};
     use super::{DoctypeOpen,DoctypeStart,CharRef};
     use super::{Percent,NameToken,DoctypeClose,Amp, Semicolon};
@@ -1175,7 +1174,7 @@ mod tests {
     fn test_iteration() {
         let bytes = bytes!("<a>");
         let r = BufReader::new(bytes);
-        let mut lexer = XmlLexer::from_reader(r);
+        let mut lexer = Lexer::from_reader(r);
         for token in lexer.tokens() {}
 
         assert_eq!(None, lexer.pull());
@@ -1186,7 +1185,7 @@ mod tests {
         let str0 = bytes!("<?php var = echo()?><?php?>");
         let buf0 = BufReader::new(str0);
 
-        let mut lexer = XmlLexer::from_reader(buf0);
+        let mut lexer = Lexer::from_reader(buf0);
 
         assert_eq!(Some(PI(~"php", ~"var = echo()")),   lexer.pull());
         assert_eq!(Some(PI(~"php", ~"")),               lexer.pull());
@@ -1194,7 +1193,7 @@ mod tests {
         let str1 = bytes!("<?xml encoding = 'UTF-8'?>");
         let buf1 =BufReader::new(str1);
 
-        lexer = XmlLexer::from_reader(buf1);
+        lexer = Lexer::from_reader(buf1);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1208,7 +1207,7 @@ mod tests {
         let str3 = bytes!("<?xml standalone = 'yes'?>");
         let buf3 = BufReader::new(str3);
 
-        lexer = XmlLexer::from_reader(buf3);
+        lexer = Lexer::from_reader(buf3);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1222,7 +1221,7 @@ mod tests {
         let str4 = bytes!("<?xml standalone = 'no'?>");
         let buf4 =BufReader::new(str4);
 
-        lexer = XmlLexer::from_reader(buf4);
+        lexer = Lexer::from_reader(buf4);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1236,7 +1235,7 @@ mod tests {
         let str5 = bytes!("<?xml version = '1.0'?>");
         let buf5 =BufReader::new(str5);
 
-        lexer = XmlLexer::from_reader(buf5);
+        lexer = Lexer::from_reader(buf5);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1254,7 +1253,7 @@ mod tests {
         let str1  = bytes!("<![CDATA[various text data like <a>]]>!");
         let read1 = BufReader::new(str1);
 
-        let mut lexer = XmlLexer::from_reader(read1);
+        let mut lexer = Lexer::from_reader(read1);
 
         assert_eq!(Some(CData(~"various text data like <a>")),  lexer.pull());
         assert_eq!(Some(Char('!')),                     lexer.read_chr());
@@ -1262,7 +1261,7 @@ mod tests {
         let str2 = bytes!("<![C!");
         let read2 = BufReader::new(str2);
 
-        lexer = XmlLexer::from_reader(read2);
+        lexer = Lexer::from_reader(read2);
 
         lexer.pull();
         assert_eq!(Some(Char('C')),                     lexer.read_chr());
@@ -1273,7 +1272,7 @@ mod tests {
         let str1  = bytes!("<!-- Nice comments --><>");
         let read1 = BufReader::new(str1);
 
-        let mut lexer = XmlLexer::from_reader(read1);
+        let mut lexer = Lexer::from_reader(read1);
 
         assert_eq!(Some(Comment(~" Nice comments ")), lexer.pull());
         assert_eq!(Some(LessBracket), lexer.pull());
@@ -1284,7 +1283,7 @@ mod tests {
     fn test_multi_peek() {
         let str1 = bytes!("123");
         let read = BufReader::new(str1);
-        let mut lexer =             XmlLexer::from_reader(read);
+        let mut lexer =             Lexer::from_reader(read);
 
         assert_eq!(~"12",           lexer.peek_str(2u));
         assert_eq!(~"12",           lexer.peek_str(2u));
@@ -1297,7 +1296,7 @@ mod tests {
     fn test_peek_restricted() {
         let str1 = bytes!("1\x0123");
         let r1 = BufReader::new(str1);
-        let mut lexer =             XmlLexer::from_reader(r1);
+        let mut lexer =             Lexer::from_reader(r1);
 
         assert_eq!(~"1",            lexer.peek_str(2u));
         assert_eq!(~"12",           lexer.peek_str(3u));
@@ -1314,7 +1313,7 @@ mod tests {
     fn test_premature_eof() {
         let str1 = bytes!("012345");
         let read = BufReader::new(str1);
-        let mut lexer =         XmlLexer::from_reader(read);
+        let mut lexer =         Lexer::from_reader(read);
 
         lexer.peek_str(6u);
         assert_eq!(~"012345",       lexer.read_str(6u));
@@ -1324,7 +1323,7 @@ mod tests {
     fn test_whitespace() {
         let str1 = bytes!("  \t\n  a");
         let read = BufReader::new(str1);
-        let mut lexer =         XmlLexer::from_reader(read);
+        let mut lexer =         Lexer::from_reader(read);
 
         assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.pull());
         assert_eq!(6u,                                 lexer.col);
@@ -1336,7 +1335,7 @@ mod tests {
     fn test_peek_str() {
         let str1 = bytes!("as");
         let read = BufReader::new(str1);
-        let mut lexer = XmlLexer::from_reader(read);
+        let mut lexer = Lexer::from_reader(read);
 
         assert_eq!(~"as",               lexer.peek_str(2u));
         assert_eq!(0u,                  lexer.col);
@@ -1353,7 +1352,7 @@ mod tests {
     fn test_eof() {
         let str1 = bytes!("a");
         let read = BufReader::new(str1);
-        let mut lexer = XmlLexer::from_reader(read);
+        let mut lexer = Lexer::from_reader(read);
 
         assert_eq!(Some(Char('a')),     lexer.read_chr());
         assert_eq!(None,                lexer.read_chr())
@@ -1363,7 +1362,7 @@ mod tests {
     fn test_read_until() {
         let str1 = bytes!("aaaab");
         let read = BufReader::new(str1);
-        let mut lexer = XmlLexer::from_reader(read);
+        let mut lexer = Lexer::from_reader(read);
 
         let result = lexer.read_while_fn(|c|{
             match c {
@@ -1386,7 +1385,7 @@ mod tests {
     fn test_restricted_char() {
         let str1 = bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F");
         let read = BufReader::new(str1);
-        let mut lexer = XmlLexer::from_reader(read);
+        let mut lexer = Lexer::from_reader(read);
 
         assert_eq!(Some(RestrictedChar('\x01')),      lexer.read_chr());
         assert_eq!(Some(RestrictedChar('\x04')),      lexer.read_chr());
@@ -1412,7 +1411,7 @@ mod tests {
     fn test_read_newline() {
         let str1  = bytes!("a\r\nt");
         let read1 = BufReader::new(str1);
-        let mut lexer = XmlLexer::from_reader(read1);
+        let mut lexer = Lexer::from_reader(read1);
 
         assert_eq!(Some(Char('a')), lexer.read_chr());
         assert_eq!(1,               lexer.line);
@@ -1426,7 +1425,7 @@ mod tests {
 
         let str2  = bytes!("a\rt");
         let read2 = BufReader::new(str2);
-        lexer = XmlLexer::from_reader(read2);
+        lexer = Lexer::from_reader(read2);
 
         assert_eq!(Some(Char('a')), lexer.read_chr());
         assert_eq!(1,               lexer.line);
@@ -1440,7 +1439,7 @@ mod tests {
 
         let str3  = bytes!("a\r\x85t");
         let read3 = BufReader::new(str3);
-        lexer = XmlLexer::from_reader(read3);
+        lexer = Lexer::from_reader(read3);
 
         assert_eq!(Some(Char('a')),     lexer.read_chr());
         assert_eq!(1,                   lexer.line);
@@ -1454,7 +1453,7 @@ mod tests {
 
         let str4  = bytes!("a\x85t");
         let read4 = BufReader::new(str4);
-        let mut lexer = XmlLexer::from_reader(read4);
+        let mut lexer = Lexer::from_reader(read4);
 
         assert_eq!(Some(Char('a')),     lexer.read_chr());
         assert_eq!(1,                   lexer.line);
@@ -1468,7 +1467,7 @@ mod tests {
 
         let str5  = bytes!("a\u2028t");
         let read5 = BufReader::new(str5);
-        let mut lexer = XmlLexer::from_reader(read5);
+        let mut lexer = Lexer::from_reader(read5);
 
         assert_eq!(Some(Char('a')), lexer.read_chr());
         assert_eq!(1,               lexer.line);
@@ -1486,7 +1485,7 @@ mod tests {
         let str1 = bytes!("abcd");
         let read = BufReader::new(str1);
 
-        let mut lexer = XmlLexer::from_reader(read);
+        let mut lexer = Lexer::from_reader(read);
         let read = lexer.read_str(3);
         assert_eq!(~"abc", read);
 

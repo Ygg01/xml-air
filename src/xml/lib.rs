@@ -24,7 +24,7 @@
 #[allow(dead_code)];
 
 // Import lexer
-pub use lexer::{XmlLexer,XmlToken};
+pub use lexer::{Lexer,XmlToken};
 pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
 
 pub mod lexer;

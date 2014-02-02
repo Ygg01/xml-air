@@ -2,7 +2,7 @@ use std::io::{Reader, Buffer};
 
 use node::{XmlDoc, XmlElem, XNode};
 use util::{XmlError};
-use lexer::{XmlLexer};
+use lexer::{Lexer};
 
 mod node;
 mod util;
@@ -35,7 +35,7 @@ pub struct XmlParser<R> {
     col: uint,
     depth: uint,
     elem: Option<XmlElem>,
-    priv lexer: XmlLexer<R>,
+    priv lexer: Lexer<R>,
     priv name: ~str,
     priv state: State
 
@@ -68,7 +68,7 @@ impl<R: Reader+Buffer> XmlParser<R> {
             col: 0,
             depth: 0,
             elem: None,
-            lexer: XmlLexer::from_reader(data),
+            lexer: Lexer::from_reader(data),
             name: ~"",
             state: OutsideTag
         }
