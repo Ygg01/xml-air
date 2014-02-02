@@ -1335,6 +1335,8 @@ mod tests {
 
         let mut lexer = Lexer::from_reader(read1);
         assert_eq!(Some(LessBracket),           lexer.pull());
+        assert_eq!(Some(NameToken(~"elem")),    lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),      lexer.pull());
         assert_eq!(Some(NameToken(~"attr")),    lexer.pull());
         assert_eq!(Some(Eq),                    lexer.pull());
         assert_eq!(Some(Quote),                 lexer.pull());
