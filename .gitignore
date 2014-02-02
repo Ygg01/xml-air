@@ -1,10 +1,9 @@
 /src/xml-parser/parser_example
 #Ignore non-extension files
-/src/xml-parser/xml_node
-/src/xml-parser/xml_lexer
-/src/xml-parser/lex_test
-/src/xml-parser/util
-/src/xml-parser/xml_parser
+/src/xml/node
+/src/xml/lexer
+/src/xml/util
+/src/xml/parser
 
 # Ignore output files
 *.o
