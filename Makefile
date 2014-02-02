@@ -25,8 +25,7 @@ build/%:: src/%/main.rs $(libhttp_so)
 build/tests: $(http_files)
 		$(RUSTC) $(RUSTFLAGS) --test -o build/test src/xml/xml_lexer.rs
 
-all: parser docs
-
+all: parser
 #build/%:: src/%/main.rs $(libhttp_so)
 #        mkdir -p "$(dir $@)"
 #        $(RUSTC) $(RUSTFLAGS) $< -o $@ -L build/
@@ -40,7 +39,7 @@ doc/http/index.html: $(xml_parser_files)
 		$(RUSTDOC) src/xml/lib.rs
 
 build/tests: $(http_files)
-		$(RUSTC) $(RUSTFLAGS) --test -o build/lex_tests src/xml/lexer.rs
+		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/xml/lexer.rs
 
 check: all build/tests
 		build/tests --test
