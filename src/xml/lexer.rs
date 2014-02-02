@@ -13,50 +13,99 @@ mod util;
 
 #[deriving(Eq, ToStr, Clone)]
 pub enum XmlToken {
-    PI(~str, ~str),     // Processing instruction token
-    PrologStart,        // Start of PI block '<?'
-    PrologEnd,          // End of PI block '?>'
-    Encoding(~str),     // XML declaration encoding token
-    Standalone(bool),   // XML declaration standalone token
-    Version(~str),      // XML declaration version
-    ErrorToken(~str),   // Error token
-    LessBracket,        // Symbol '<'
-    GreaterBracket,     // Symbol '>'
-    LeftSqBracket,      // Symbol '['
-    RightSqBracket,     // Symbol ']'
-    LeftParen,          // Symbol '('
-    RightParen,         // Symbol ')'
-    Eq,                 // Symbol '='
-    Plus,               // Symbol '+'
-    Pipe,               // Symbol '|'
-    Star,               // Symbol '*'
-    Amp,                // Symbol '&'
-    QuestionMark,       // Symbol '?'
-    ExclamationMark,    // Symbol '!'
-    Semicolon,          // Symbol ';'
-    Percent,            // Percent '%'
-    CloseTag,           // Symbol '</'
-    EmptyTag,           // Symbol '/>'
-    NameToken(~str),    // Tag name
-    NMToken(~str),      // NMToken
-    Text(~str),         // Various characters
-    WhiteSpace(~str),   // Whitespace
-    CData(~str),        // CData token with inner structure
-    DoctypeStart,       // Start of Doctype block '<!DOCTYPE'
-    DoctypeOpen,        // Symbol '<!['
-    DoctypeClose,       // Symbol ']]>
-    EntityType,         // Symbol <!ENTITY
-    AttlistType,        // Symbol <!ATTLIST
-    ElementType,        // Symbol <!ELEMENT
-    NotationType,       // Symbol <!NOTATION
-    Comment(~str),      // Comment token
-    CharRef(char),      // Encoded char or '&#'
-    QuotedString(~str), // Single or double quoted string
-                        // e.g. 'example' or "example"
-    RequiredDecl,       // Symbol #REQUIRED
-    ImpliedDecl,        // Symbol #IMPLIED
-    FixedDecl,          // Symbol #FIXED
-    PCDataDecl          // Symbol #PCDATA
+    /// Processing instruction token
+    PI(~str, ~str),
+    /// Start of PI block '<?'
+    PrologStart,
+    /// End of PI block '?>'
+    PrologEnd,
+    /// XML declaration encoding token
+    Encoding(~str),
+    /// XML declaration standalone token
+    Standalone(bool),
+    /// XML declaration version
+    Version(~str),
+    /// Error token
+    ErrorToken(~str),
+    /// Symbol '<'
+    LessBracket,
+    /// Symbol '>'
+    GreaterBracket,
+    /// Symbol '['
+    LeftSqBracket,
+    /// Symbol ']'
+    RightSqBracket,
+    /// Symbol '('
+    LeftParen,
+    /// Symbol ')'
+    RightParen,
+    /// Symbol '='
+    Eq,
+    /// Symbol '+'
+    Plus,
+    /// Symbol '|'
+    Pipe,
+    /// Symbol '*'
+    Star,
+    /// Symbol '&'
+    Amp,
+    /// Symbol '?'
+    QuestionMark,
+    /// Symbol '!'
+    ExclamationMark,
+    /// Symbol ';'
+    Semicolon,
+    /// Percent '%'
+    Percent,
+    /// Symbol '</'
+    CloseTag,
+    /// Symbol '/>'
+    EmptyTag,
+    /// Tag name
+    NameToken(~str),
+    /// NMToken
+    NMToken(~str),
+    /// Various characters
+    Text(~str),
+    /// Whitespace
+    WhiteSpace(~str),
+    /// CData token with inner structure
+    CData(~str),
+    /// Start of Doctype block '<!DOCTYPE'
+    DoctypeStart,
+    /// Symbol '<!['
+    DoctypeOpen,
+    /// Symbol ']]>
+    DoctypeClose,
+    /// Symbol <!ENTITY
+    EntityType,
+    /// Symbol <!ATTLIST
+    AttlistType,
+    /// Symbol <!ELEMENT
+    ElementType,
+    /// Symbol <!NOTATION
+    NotationType,
+    /// Comment token
+    Comment(~str),
+    /// Encoded char or '&#'
+    CharRef(char),
+    /// Attribute reference
+    Ref(~str),
+    /// Parsed entity reference
+    ParRef(~str),
+    /// Single or double quoted string
+    /// e.g. 'example' or "example"
+    QuotedString(~str),
+    /// Quote token
+    Quote,
+    /// Symbol #REQUIRED
+    RequiredDecl,
+    /// Symbol #IMPLIED
+    ImpliedDecl,
+    /// Symbol #FIXED
+    FixedDecl,
+    /// Symbol #PCDATA
+    PCDataDecl
 
 }
 
@@ -1164,7 +1213,7 @@ mod tests {
     use super::{AttlistType,GreaterBracket,LessBracket,ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
-    use super::{Encoding, Standalone, Version};
+    use super::{Encoding, Standalone, Version, Ref, Quote};
 
     use std::io::BufReader;
 
@@ -1277,6 +1326,22 @@ mod tests {
         assert_eq!(Some(Comment(~" Nice comments ")), lexer.pull());
         assert_eq!(Some(LessBracket), lexer.pull());
         assert_eq!(Some(GreaterBracket), lexer.pull());
+    }
+
+    #[test]
+    fn test_element(){
+        let str1  = bytes!("<elem attr='something &ref'></elem>");
+        let read1 = BufReader::new(str1);
+
+        let mut lexer = Lexer::from_reader(read1);
+        assert_eq!(Some(LessBracket),           lexer.pull());
+        assert_eq!(Some(NameToken(~"attr")),    lexer.pull());
+        assert_eq!(Some(Eq),                    lexer.pull());
+        assert_eq!(Some(Quote),                 lexer.pull());
+        assert_eq!(Some(Text(~"something ")),   lexer.pull());
+        assert_eq!(Some(Ref(~"ref ")),          lexer.pull());
+        assert_eq!(Some(Quote),                 lexer.pull());
+        assert_eq!(Some(GreaterBracket),        lexer.pull());
     }
 
     #[test]
