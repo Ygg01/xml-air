@@ -4,7 +4,7 @@ use std::char::from_u32;
 use std::num::from_str_radix;
 
 use util::{is_whitespace, is_name_start, is_name_char};
-use util::{ErrKind, Config, UnreadableChar};
+use util::{ErrKind, Config};
 use util::{is_restricted, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
@@ -14,6 +14,8 @@ mod util;
 #[deriving(Eq, ToStr, Clone)]
 pub enum XmlToken {
     /// Processing instruction token
+    /// First string represents target and the second string
+    /// represents text
     PI(~str, ~str),
     /// Start of PI block '<?'
     PrologStart,
@@ -615,6 +617,10 @@ impl<R: Reader+Buffer> Lexer<R> {
         let result = self.process_namechars();
         self.buf.push_str(result);
 
+        // Prolog has three special type of quotes
+        // these types are encoding, standalone and version.
+        // Quotes that have specific behavior usually are handled
+        // by lexer because they can have subtle errors.
         if self.state == InProlog && self.buf == ~"encoding" {
             self.state = ExpectEncoding
         } else if self.state == InProlog && self.buf == ~"standalone" {
@@ -661,6 +667,13 @@ impl<R: Reader+Buffer> Lexer<R> {
         } else if self.buf == ~"<!" {
             result = self.get_amp_excl();
         } else {
+            // Only elements inside start tag can have
+            // attributes, so we look if we are outside
+            // tag, to make sure we don't activate it for
+            // Doctype Declaration for example
+            if self.state == OutsideTag {
+                self.state = InStartTag;
+            }
             self.rewind(col, line, rew);
             result = Some(LessBracket);
         }
@@ -963,6 +976,8 @@ impl<R: Reader+Buffer> Lexer<R> {
 
         let quote_char = if quote == ~"'" { '\''} else { '"'};
 
+        // TODO only keep encoding quote, it has special rules, others are
+        // Better reported by a parser.
         let result = match self.state {
             ExpectEncoding      => self.process_encoding_quote(&quote_char),
             ExpectStandalone    => self.proces_standalone(quote),
