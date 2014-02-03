@@ -220,32 +220,61 @@ impl<R: Reader+Buffer> Lexer<R> {
             },
             Char(chr) if is_whitespace(&chr)
                       => self.get_whitespace_token(),
-            Char(chr) if is_name_start(&chr)
-                      => self.get_name_token(),
-            Char(chr) if is_name_char(&chr)
-                      => self.get_nmtoken(),
-            Char('<') => self.get_left_bracket_token(),
-            Char('?') => self.get_pi_end_token(),
-            Char(']') => self.get_sqbracket_right_token(),
-            Char('[') => self.get_sqbracket_left_token(),
-            Char('(') => self.get_paren_left_token(),
-            Char(')') => self.get_paren_right_token(),
-            Char('|') => self.get_pipe_token(),
-            Char('*') => self.get_star_token(),
-            Char('+') => self.get_plus_token(),
-            Char('&') => self.get_ref_token(),
-            Char('%') => self.get_peref_token(),
-            Char('>') => self.get_right_bracket_token(),
-            Char('/') => self.get_empty_tag_token(),
-            Char(';') => self.get_semicolon_token(),
-            Char('=') => self.get_equal_token(),
-            Char('#') => self.get_entity_def_token(),
-            Char('\'') | Char('"') => self.get_quote_token(),
-            Char(_) => self.get_text_token(),
+            Char(a) => self.parse_char(&a)
         };
 
         token
 
+    }
+
+    fn parse_char(&mut self, c: &char ) -> Option<XmlToken> {
+        match self.state {
+            InStartTag => {
+                match c {
+                    chr if is_name_start(chr)
+                            => self.get_name_token(),
+                    &'='    => self.get_equal_token(),
+                    &'>'    => self.get_right_bracket_token(),
+                    &'\'' | &'"'
+                            => self.get_attl_quote(),
+                    _       => Some(self.handle_errors(IllegalChar, None))
+                }
+            },
+            Attlist => {
+                match c {
+                    &'&'    => self.get_ref_token(),
+                    &'\'' | &'"'
+                            => self.get_attl_quote(),
+                    _       => self.get_attl_text()
+                }
+            }
+            _ => {
+                match c {
+                    chr if is_name_start(chr)
+                              => self.get_name_token(),
+                    chr if is_name_char(chr)
+                              => self.get_nmtoken(),
+                    &'<'  => self.get_left_bracket_token(),
+                    &'?'  => self.get_pi_end_token(),
+                    &']'  => self.get_sqbracket_right_token(),
+                    &'['  => self.get_sqbracket_left_token(),
+                    &'('  => self.get_paren_left_token(),
+                    &')'  => self.get_paren_right_token(),
+                    &'|'  => self.get_pipe_token(),
+                    &'*'  => self.get_star_token(),
+                    &'+'  => self.get_plus_token(),
+                    &'&'  => self.get_ref_token(),
+                    &'%'  => self.get_peref_token(),
+                    &'>'  => self.get_right_bracket_token(),
+                    &'/'  => self.get_empty_tag_token(),
+                    &';'  => self.get_semicolon_token(),
+                    &'='  => self.get_equal_token(),
+                    &'#'  => self.get_entity_def_token(),
+                    &'\''  | &'"'  => self.get_quote_token(),
+                    _  => self.get_text_token(),
+                }
+            }
+        }
     }
     /// Constructs a new `Lexer` from data given.
     /// Parameter `data` represents source for parsing,
