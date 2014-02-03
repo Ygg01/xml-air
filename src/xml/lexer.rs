@@ -1361,7 +1361,7 @@ mod tests {
 
     #[test]
     fn test_element(){
-        let str1  = bytes!("<elem attr='something &ref'></elem>");
+        let str1  = bytes!("<elem attr='something &ref;'></elem>");
         let read1 = BufReader::new(str1);
 
         let mut lexer = Lexer::from_reader(read1);
