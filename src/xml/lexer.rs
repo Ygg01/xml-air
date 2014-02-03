@@ -1,6 +1,7 @@
 use std::ascii::StrAsciiExt;
 use std::io::{Reader, Buffer};
 use std::char::from_u32;
+use std::str::from_char;
 use std::num::from_str_radix;
 
 use util::{is_whitespace, is_name_start, is_name_char};
@@ -146,7 +147,8 @@ impl Character {
 #[deriving(Eq,ToStr)]
 enum State {
     OutsideTag,
-    Attlist,
+    // Attlist takes
+    Attlist(Quotes),
     Entity,
     Pubid,
     InProlog,
@@ -155,6 +157,31 @@ enum State {
     ExpectEncoding,
     ExpectStandalone,
     ExpectVersion
+}
+#[deriving(Eq,ToStr)]
+enum Quotes {
+    Single,
+    Double
+}
+
+impl Quotes {
+    pub fn to_char(&self) -> char {
+        match *self {
+            Single => '\'',
+            Double => '"'
+        }
+    }
+
+    pub fn from_str(quote: ~str) -> Quotes {
+        if quote == ~"'" {
+            Single
+        } else if quote == ~"\"" {
+            Double
+        } else {
+            println!(" Expected single (`'`) or double quotes (`\"`) got `{:?}` instead ", quote);
+            fail!("fail");
+        }
+    }
 }
 
 pub struct Lexer<R> {
@@ -242,12 +269,13 @@ impl<R: Reader+Buffer> Lexer<R> {
                     _       => Some(self.handle_errors(IllegalChar, None))
                 }
             },
-            Attlist => {
+            Attlist(quotes) => {
                 match c {
                     &'&'    => self.get_ref_token(),
-                    &'\'' | &'"'
+                    &'<'    => self.get_attl_error_token(),
+                    &'\'' | &'"' if *c == quotes.to_char()
                             => self.get_attl_quote(),
-                    _       => self.get_attl_text()
+                    _       => self.get_attl_text(&quotes.to_char())
                 }
             }
             _ => {
@@ -541,6 +569,9 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn handle_errors(&self, kind: ErrKind,
                      pass: Option<XmlToken>)
                      -> XmlToken {
+        if kind == IllegalChar  {
+            //println!("ERROR!");
+        }
         ErrorToken(~"")
     }
 
@@ -699,22 +730,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         };
 
         result
-        /*
-        if peek_sec == ~"<!D" {
-            result = self.get_doctype_start_token();
-        } else if peek_sec == ~"<!E" {
-            result = self.get_entity_or_element_token();
-        } else if peek_sec == ~"<!A" {
-            result = self.get_attlist_token();
-        } else if peek_sec == ~"<!N" {
-            result = self.get_notation_token();
-        } else {
-            result = Some(self.handle_errors(
-                            IllegalChar,
-                            Some(LessBracket)
-                         )
-                    );
-        }*/
     }
 
     fn get_cdata_token(&mut self) -> Option<XmlToken> {
@@ -739,7 +754,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_doctype_start_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!D",       self.read_str(3u));
+        //assert_eq!(~"<!D",       self.read_str(3u));
         let peeked_str = self.peek_str(6u);
         let result;
         if peeked_str == ~"OCTYPE" {
@@ -755,41 +770,48 @@ impl<R: Reader+Buffer> Lexer<R> {
         result
     }
 
-    fn get_ref_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('&')),       self.read_chr());
-        let peek_char = self.peek_chr();
-
-        let token = match peek_char {
-            Some(Char('#')) => {
-                self.get_char_ref_token()
-            },
-            Some(Char(_)) => {
-                Some(Amp)
-            },
-            Some(RestrictedChar(_)) => {
-                Some(self.handle_errors(
-                    RestrictedCharError,
-                    None
-                ))
-            },
-            None => {
-                Some(self.handle_errors(
-                    RestrictedCharError,
-                    None
-                ))
-            }
-        };
-        token
-    }
-
     fn get_peref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Some(Char('%')),       self.read_chr());
         Some(Percent)
     }
 
+    #[inline(always)]
     fn get_equal_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"=",       self.buf);
         Some(Eq)
+    }
+
+    fn get_ref_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"&",  self.buf);
+        let col = self.col;
+        let line = self.line;
+        let chr = self.read_chr();
+
+        let token = match chr {
+            Some(Char('#')) => {
+                self.buf.push_char('#');
+                self.get_char_ref_token()
+            },
+            Some(Char(a)) => {
+                self.rewind(col,line, from_char(a));
+                self.get_entity_ref_token()
+            },
+            Some(RestrictedChar(a)) => {
+                self.rewind(col,line, from_char(a));
+                self.handle_errors(
+                    RestrictedCharError,
+                    None
+                );
+                Some(Text(~"&"))
+            },
+            None => {
+                Some(self.handle_errors(
+                    PrematureEOF,
+                    None
+                ))
+            }
+        };
+        token
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
@@ -863,6 +885,38 @@ impl<R: Reader+Buffer> Lexer<R> {
         }
     }
 
+    fn get_entity_ref_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"&",  self.buf);
+
+        let ref_name = self.process_name();
+
+        let col = self.col;
+        let line = self.line;
+        let expect_semi = self.read_chr();
+
+        let result = match expect_semi {
+            Some(Char(';')) => {
+                Some(Ref(ref_name))
+            },
+            Some(Char(_)) => {
+                self.handle_errors(IllegalChar, None);
+                Some(Ref(ref_name))
+            },
+            Some(RestrictedChar(_)) => {
+                self.handle_errors(IllegalChar, None);
+                Some(Ref(ref_name))
+            },
+            None => {
+                Some(self.handle_errors(
+                        PrematureEOF,
+                        Some(ErrorToken(self.buf.clone()))
+                    )
+                )
+            }
+        };
+        result
+    }
+
     fn get_sqbracket_left_token(&mut self) -> Option<XmlToken> {
         assert_eq!(Some(Char('[')),       self.read_chr());
         Some(LeftSqBracket)
@@ -898,7 +952,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_entity_def_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('#')),       self.read_chr());
+        //assert_eq!(Some(Char('#')),       self.read_chr());
         let result;
         if self.peek_str(8u) == ~"REQUIRED" {
             result = Some(RequiredDecl);
@@ -915,7 +969,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_entity_or_element_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!", self.read_str(2u));
+        //assert_eq!(~"<!", self.read_str(2u));
 
         let result;
         if self.peek_str(7u) == ~"ELEMENT" {
@@ -931,7 +985,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_attlist_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!", self.read_str(2u));
+        //assert_eq!(~"<!", self.read_str(2u));
         let result;
 
         if self.peek_str(7u) == ~"ATTLIST" {
@@ -944,7 +998,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_notation_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!", self.read_str(2u));
+        //assert_eq!(~"<!", self.read_str(2u));
         let result;
         if self.peek_str(8u) == ~"NOTATION" {
             self.read_str(8u);
@@ -972,7 +1026,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_quote_token(&mut self) -> Option<XmlToken> {
         let quote = self.buf.clone();
-        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
+        assert_eq!(true, quote == ~"'" || quote == ~"\"");
 
         let quote_char = if quote == ~"'" { '\''} else { '"'};
 
@@ -1084,7 +1138,8 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_pubid_quote(&mut self) -> Option<XmlToken> {
         let quote = self.read_str(1u);
-        assert_eq!(true, (quote == ~"'" || quote == ~"\""));
+        let b = quote == ~"'" || quote == ~"\"";
+        //assert_eq!(true, b);
 
         let result = self.process_quotes(quote.clone());
 
@@ -1109,8 +1164,35 @@ impl<R: Reader+Buffer> Lexer<R> {
         None
     }
 
+    #[inline]
     fn get_attl_quote(&mut self) -> Option<XmlToken> {
-        None
+        assert_eq!(true,  self.buf == ~"'" || self.buf == ~"\"");
+        let quote = Quotes::from_str(self.buf.clone());
+
+
+        if self.state == InStartTag {
+            self.state = Attlist(quote);
+        }else if self.state == Attlist(quote) {
+            self.state = InStartTag;
+        }
+        Some(Quote)
+    }
+
+    fn get_attl_text(&mut self, quote: &char) -> Option<XmlToken> {
+        let text = self.read_while_fn( |val| {
+            match val {
+                Some(Char(a))  => (a != '<' && a != '&' && a != *quote),
+                _ => false
+            }
+        });
+        let result = self.buf.clone().append(text);
+        Some(Text(result))
+    }
+
+    #[inline(always)]
+    fn get_attl_error_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<", self.buf);
+        Some(self.handle_errors(IllegalChar, None))
     }
 
     fn get_text_token(&mut self) -> Option<XmlToken> {
@@ -1376,7 +1458,7 @@ mod tests {
 
     #[test]
     fn test_element(){
-        let str1  = bytes!("<elem attr='something &ref;'></elem>");
+        let str1  = bytes!("<elem attr='something &ref;bla'></elem>");
         let read1 = BufReader::new(str1);
 
         let mut lexer = Lexer::from_reader(read1);
@@ -1387,7 +1469,8 @@ mod tests {
         assert_eq!(Some(Eq),                    lexer.pull());
         assert_eq!(Some(Quote),                 lexer.pull());
         assert_eq!(Some(Text(~"something ")),   lexer.pull());
-        assert_eq!(Some(Ref(~"ref ")),          lexer.pull());
+        assert_eq!(Some(Ref(~"ref")),           lexer.pull());
+        assert_eq!(Some(Text(~"bla")),          lexer.pull());
         assert_eq!(Some(Quote),                 lexer.pull());
         assert_eq!(Some(GreaterBracket),        lexer.pull());
     }
