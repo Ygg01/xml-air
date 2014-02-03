@@ -142,12 +142,14 @@ impl Character {
     }
 }
 #[deriving(Eq,ToStr)]
-pub enum State {
+enum State {
     OutsideTag,
     Attlist,
     Entity,
     Pubid,
     InProlog,
+    InStartTag,
+    Doctype,
     ExpectEncoding,
     ExpectStandalone,
     ExpectVersion
