@@ -604,22 +604,23 @@ impl<R: Reader+Buffer> Lexer<R> {
         result
     }
 
+    /// It will attempt to consume all digits until it reaches a non-digit
+    /// numeral. If value `is_hex` is true it will consume all hexadecimal digits
+    /// including values 0-9 a-f or A-F. If value `is_hex` is false it will only
+    /// consume decimal digits
     fn process_digits(&mut self, is_hex: &bool) -> ~str {
-        if *is_hex {
-            self.read_while_fn( |val| {
+         self.read_while_fn( |val| {
                 match val {
-                    Some(Char(v))             => util::is_hex_digit(&v),
+                    Some(Char(v)) => {
+                        if *is_hex  {
+                            util::is_hex_digit(&v)
+                        } else {
+                            util::is_digit(&v)
+                        }
+                    },
                     _ => false
                 }
             })
-        } else {
-            self.read_while_fn( |val| {
-                match val {
-                    Some(Char(v))             => util::is_digit(&v),
-                    _ => false
-                }
-            })
-        }
     }
 
     /// If we find a whitespace character this method
