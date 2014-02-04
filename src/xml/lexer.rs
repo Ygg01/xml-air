@@ -606,7 +606,6 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn process_digits(&mut self, is_hex: &bool) -> ~str {
         if *is_hex {
-            self.read_chr();
             self.read_while_fn( |val| {
                 match val {
                     Some(Char(v))             => util::is_hex_digit(&v),
@@ -815,17 +814,20 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('#')),       self.read_chr());
-        let peek_char = self.peek_chr();
+        assert_eq!(~"&#",       self.buf);
+        let col = self.col;
+        let line = self.line;
+        let next_char = self.read_chr();
 
 
         let radix;
-        match peek_char {
+        match next_char {
             Some(Char('x')) => {
                 radix = 16;
             },
             Some(Char(a)) if (util::is_digit(&a)) => {
-                radix = 10
+                self.rewind(col,line, from_char(a));
+                radix = 10;
             },
             Some(Char(_))
             | Some(RestrictedChar(_)) => {
