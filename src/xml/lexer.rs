@@ -266,6 +266,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'>'    => self.get_right_bracket_token(),
                     &'\'' | &'"'
                             => self.get_attl_quote(),
+                    &'<'    => self.get_left_bracket_token(),
+                    &'/'    => self.get_empty_tag_token(),
                     _       => Some(self.handle_errors(IllegalChar, None))
                 }
             },
@@ -684,10 +686,10 @@ impl<R: Reader+Buffer> Lexer<R> {
             }
         }
 
-        if self.buf == ~"<?" {
-            result = self.get_pi_token();
-        } else if self.buf == ~"</" {
+        if self.buf == ~"</"{
             result = self.get_close_tag_token();
+        } else if self.buf == ~"<?" {
+            result = self.get_pi_token();
         } else if self.buf == ~"<!" {
             result = self.get_amp_excl();
         } else {
@@ -1279,12 +1281,12 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_close_tag_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"</",  self.read_str(2u));
+        assert_eq!(~"</",  self.buf);
         return Some(CloseTag)
     }
 
     fn get_empty_tag_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('/')), self.read_chr());
+        assert_eq!(~"/", self.buf);
 
         let result;
         if self.read_str(1u) == ~">" {
