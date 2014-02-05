@@ -487,26 +487,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         raw_str
     }
 
-    fn update_buf(&mut self, chr: Option<Character>, is_peek: bool) -> ~str {
-        let mut read_char = ~"";
-        match chr {
-            None => {
-                if !is_peek {
-                    self.handle_errors(PrematureEOF, None);
-                }
-            },
-            Some(RestrictedChar(r)) => {
-                read_char.push_char(r);
-                self.handle_errors(IllegalChar, None);
-            },
-            Some(Char(a)) => {
-                read_char.push_char(a);
-                self.buf.push_char(a);
-            }
-        }
-        read_char
-    }
-
     //TODO Doc
     fn read_while_fn(&mut self, fn_while: |Option<Character>|-> bool )
                      -> ~str {
@@ -689,7 +669,20 @@ impl<R: Reader+Buffer> Lexer<R> {
         let col = self.col;
         let line = self.line;
         let chr = self.read_chr();
-        let rew = self.update_buf(chr, false);
+        let rew;
+
+        match chr {
+            Some(Char(a)) => {
+                self.buf.push_char(a);
+                rew = from_char(a);
+            }
+            Some(RestrictedChar(_)) => {
+                return Some(self.handle_errors(IllegalChar, None));
+            },
+            None => {
+                return Some(self.handle_errors(PrematureEOF, None));
+            }
+        }
 
         if self.buf == ~"<?" {
             result = self.get_pi_token();
