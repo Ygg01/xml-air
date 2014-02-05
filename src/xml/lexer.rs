@@ -1454,7 +1454,7 @@ mod tests {
 
     #[test]
     fn test_element(){
-        let str1  = bytes!("<elem attr='something &ref;bla&#35;&#x2A;'></elem>");
+        let str1  = bytes!("<elem attr='something &ref;bla&#35;&#x2A;'></elem><br/>");
         let read1 = BufReader::new(str1);
 
         let mut lexer = Lexer::from_reader(read1);
@@ -1471,6 +1471,12 @@ mod tests {
         assert_eq!(Some(CharRef('*')),          lexer.pull());
         assert_eq!(Some(Quote),                 lexer.pull());
         assert_eq!(Some(GreaterBracket),        lexer.pull());
+        assert_eq!(Some(CloseTag),              lexer.pull());
+        assert_eq!(Some(NameToken(~"elem")),    lexer.pull());
+        assert_eq!(Some(GreaterBracket),        lexer.pull());
+        assert_eq!(Some(LessBracket),           lexer.pull());
+        assert_eq!(Some(NameToken(~"br")),      lexer.pull());
+        assert_eq!(Some(EmptyTag),              lexer.pull());
     }
 
     #[test]
