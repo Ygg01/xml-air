@@ -401,9 +401,9 @@ impl<R: Reader+Buffer> Lexer<R> {
             let read_chr = self.source.read_char();
 
             match read_chr {
-                Some(a) => chr = a,
-                // If None is returned, that means that we reached End of file
-                None => {
+                Ok(a) => chr = a,
+                // If an error occurs we abort further iterations
+                Err(_) => {
                     return None
                 }
             }
@@ -439,7 +439,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                 // If the read character isn't a double
                 // new-line character (\r\85 or \n),
                 // it's added to peek buffer
-                Some(a) if a != '\x85' && a != '\n'
+                Ok(a) if a != '\x85' && a != '\n'
                         => self.peek_buf.push_char(a),
                 _ => {}
 
