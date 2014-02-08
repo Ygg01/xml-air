@@ -1027,7 +1027,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_quote_token(&mut self) -> Option<XmlToken> {
         let quote = self.buf.clone();
-        assert_eq!(true, quote == ~"'" || quote == ~"\"");
+        assert!(quote == ~"'" || quote == ~"\"");
 
         let quote_char = if quote == ~"'" { '\''} else { '"'};
 
@@ -1088,7 +1088,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn process_encoding_quote(&mut self, quote: &char) -> XmlToken {
         assert_eq!(ExpectEncoding, self.state);
-        assert_eq!(true, (*quote == '\'' || *quote == '"'));
+        assert!(*quote == '\'' || *quote == '"');
         self.state = InProlog;
 
         let result;
@@ -1140,7 +1140,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn get_pubid_quote(&mut self) -> Option<XmlToken> {
         let quote = self.read_str(1u);
         let b = quote == ~"'" || quote == ~"\"";
-        //assert_eq!(true, b);
+        //assert!(b);
 
         let result = self.process_quotes(quote.clone());
 
@@ -1167,7 +1167,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     #[inline]
     fn get_attl_quote(&mut self) -> Option<XmlToken> {
-        assert_eq!(true,  self.buf == ~"'" || self.buf == ~"\"");
+        assert!(self.buf == ~"'" || self.buf == ~"\"");
         let quote = Quotes::from_str(self.buf.clone());
 
 
