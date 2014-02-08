@@ -64,8 +64,11 @@ pub enum XmlToken {
     CloseTag,
     /// Symbol '/>'
     EmptyTag,
-    /// Tag name
+    /// Tag or attribute name
     NameToken(~str),
+    /// Qualified name token
+    /// first string is prefix, second is localpart
+    QNameToken(~str,~str),
     /// NMToken
     NMToken(~str),
     /// Various characters
@@ -1339,7 +1342,7 @@ mod tests {
     use super::{AttlistType,GreaterBracket,LessBracket,ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
-    use super::{Encoding, Standalone, Version, Ref, Quote};
+    use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
 
     use std::io::BufReader;
 
@@ -1479,6 +1482,24 @@ mod tests {
         assert_eq!(Some(LessBracket),           lexer.pull());
         assert_eq!(Some(NameToken(~"br")),      lexer.pull());
         assert_eq!(Some(EmptyTag),              lexer.pull());
+    }
+
+    #[test]
+    fn test_qname(){
+        let str1 = bytes!("<book:elem book:iso= '11231A'");
+        let read1 = BufReader::new(str1);
+
+        let mut lexer = Lexer::from_reader(read1);
+        assert_eq!(Some(LessBracket),                   lexer.pull());
+        assert_eq!(Some(QNameToken(~"book",~"elem")),   lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(QNameToken(~"book",~"iso")),    lexer.pull());
+        assert_eq!(Some(Eq),                            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
+        assert_eq!(Some(Quote),                         lexer.pull());
+        assert_eq!(Some(Text(~"11231A")),               lexer.pull());
+        assert_eq!(Some(Quote),                         lexer.pull());
+
     }
 
     #[test]
