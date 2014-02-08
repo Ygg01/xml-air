@@ -264,7 +264,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             InStartTag => {
                 match c {
                     chr if is_name_start(chr)
-                            => self.get_name_token(),
+                            => self.get_qname_token(),
                     &'='    => self.get_equal_token(),
                     &'>'    => self.get_right_bracket_token(),
                     &'\'' | &'"'
@@ -590,9 +590,9 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     /// It will attempt to consume all digits until it reaches a non-digit
-    /// numeral. If value `is_hex` is true it will consume all hexadecimal digits
-    /// including values 0-9 a-f or A-F. If value `is_hex` is false it will only
-    /// consume decimal digits
+    /// numeral. If value `is_hex` is true it will consume all hexadecimal
+    /// digits including values 0-9 a-f or A-F. If value `is_hex` is false it
+    /// will only consume decimal digits
     fn process_digits(&mut self, is_hex: &bool) -> ~str {
          self.read_while_fn( |val| {
                 match val {
@@ -646,6 +646,39 @@ impl<R: Reader+Buffer> Lexer<R> {
         }
 
         Some(NameToken(self.buf.clone()))
+    }
+
+    /// If we find a name start character this method consumes
+    /// all name characters until it reaches a non-name character.
+    /// This method also handles qualfied names, as defined in
+    /// [Namespace specification](http://www.w3.org/TR/xml-names11/)
+    fn get_qname_token(&mut self) -> Option<XmlToken> {
+        let result;
+        let namechars = self.process_namechars();
+
+        self.buf.push_str(namechars);
+        if self.buf.contains_char(':'){
+            if self.buf.char_at(0) == ':'
+            || self.buf.char_at(self.buf.len()-1) == ':'{
+                result = Some(NameToken(self.buf.clone()));
+            } else {
+                let split_name = self.buf.split(':').to_owned_vec();
+
+                if split_name.len() == 2 {
+                    result = Some(
+                        QNameToken(split_name[0].to_owned(),
+                                   split_name[1].to_owned())
+                    );
+                } else {
+                    result = Some(NameToken(self.buf.clone()));
+                }
+            }
+        } else {
+            result = Some(NameToken(self.buf.clone()));
+        }
+
+        result
+
     }
 
     // TODO Write test
