@@ -1239,17 +1239,35 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_text_token(&mut self) -> Option<XmlToken> {
-        let mut peek;
+        let mut peek = ~"";
         let mut text = ~"";
         let mut run_loop = true;
         while run_loop {
-            peek = self.peek_str(3u);
-            run_loop = !peek.starts_with("&")
-                    && !peek.starts_with("<")
-                    && peek != ~"]]>";
-            if run_loop {
-                text.push_str(self.read_str(1u));
+            let read = self.read_chr();
+
+            match read {
+                None                    => run_loop = false,
+                Some(RestrictedChar(_)) => {},
+                Some(Char('&'))         => run_loop = false,
+                Some(Char('<'))         => run_loop = false,
+                Some(Char(a))           => {
+                    if peek.len() == 3 {
+                        peek.shift_char();
+                        peek.push_char(a);
+                    }
+                    if peek == ~"]]>" {
+                        run_loop = false;
+                        // if we found this, it means we already took `]]`
+                        text.pop_char();
+                        text.pop_char();
+                    }
+
+                    if run_loop {
+                        text.push_char(a);
+                    }
+                }
             }
+
         }
         Some(Text(text))
     }
