@@ -284,6 +284,12 @@ impl<R: Reader+Buffer> Lexer<R> {
                     _       => self.get_attl_text(&quotes.to_char())
                 }
             }
+            InDoctype => {
+                match c {
+                    &'>'    => self.get_right_bracket_token(),
+                    _       => self.get_text_token()
+                }
+            }
             _ => {
                 match c {
                     chr if is_name_start(chr)
@@ -1295,6 +1301,9 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_right_bracket_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~">", self.buf);
+        if self.state == InDoctype {
+            self.state = OutsideTag
+        }
         return Some(GreaterBracket)
     }
 
