@@ -152,6 +152,7 @@ enum State {
     OutsideTag,
     // Attlist takes
     Attlist(Quotes),
+    InDoctype,
     Entity,
     Pubid,
     InProlog,
@@ -1533,6 +1534,17 @@ mod tests {
         assert_eq!(Some(Text(~"11231A")),               lexer.pull());
         assert_eq!(Some(Quote),                         lexer.pull());
 
+    }
+
+    #[test]
+    fn test_doctype() {
+        let str1 = bytes!("<!DOCTYPE >");
+        let read = BufReader::new(str1);
+        let mut lexer =             Lexer::from_reader(read);
+
+        assert_eq!(Some(DoctypeStart),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),  lexer.pull());
+        assert_eq!(Some(GreaterBracket),    lexer.pull());
     }
 
     #[test]
