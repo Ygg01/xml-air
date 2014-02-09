@@ -757,6 +757,10 @@ impl<R: Reader+Buffer> Lexer<R> {
                 self.buf.push_char('-');
                 self.get_comment_token()
             },
+            Some(Char('D')) => {
+                self.buf.push_char('D');
+                self.get_doctype_start_token()
+            },
             None => Some(Text(~"<!")),
             _ => Some(Text(~"NON IMPLEMENTED"))
         };
@@ -786,13 +790,17 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_doctype_start_token(&mut self) -> Option<XmlToken> {
-        //assert_eq!(~"<!D",       self.read_str(3u));
-        let peeked_str = self.peek_str(6u);
+        assert_eq!(~"<!D",       self.buf);
+        let col         = self.col;
+        let line        = self.line;
+        let peeked_str  = self.read_str(6u);
         let result;
+
         if peeked_str == ~"OCTYPE" {
-            self.read_str(6u);
+            self.state = InDoctype;
             result = Some(DoctypeStart);
         } else {
+            self.rewind(col, line, peeked_str);
             result = Some(self.handle_errors(
                             UnknownToken,
                             Some(Text(~"<!D"))
