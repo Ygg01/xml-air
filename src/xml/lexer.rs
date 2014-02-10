@@ -150,13 +150,16 @@ impl Character {
 #[deriving(Eq,ToStr)]
 enum State {
     OutsideTag,
-    // Attlist takes
+    // Attlist takes quote, because attributes are mixed content and to
+    // correctly display it, it treates each Quote as a special symbol
+    // so for example "text&ref;" becomes `Quote Text(text) Ref(ref) Quote`
     Attlist(Quotes),
     InDoctype,
     Entity,
     Pubid,
     InProlog,
     InStartTag,
+    InternalSubset,
     Doctype,
     ExpectEncoding,
     ExpectStandalone,
@@ -286,8 +289,33 @@ impl<R: Reader+Buffer> Lexer<R> {
             }
             InDoctype => {
                 match c {
-                    &'>'    => self.get_right_bracket_token(),
+                    &'>'    => {
+                        let res = self.get_right_bracket_token();
+                        self.state = OutsideTag;
+                        res
+                    },
+                    c if is_name_char(c)
+                            => self.get_name_token(),
+                    &'\'' | &'"'
+                            => self.get_quote_token(),
+                    &'['    => {
+                        let res = self.get_sqbracket_left_token();
+                        self.state = InternalSubset;
+                        res
+                    },
+                    // TODO change to error
                     _       => self.get_text_token()
+                }
+            }
+            InternalSubset => {
+                match c {
+                    &']' => {
+                        let res = self.get_sqbracket_right_token();
+                        self.state = InDoctype;
+                        res
+                    }
+                    // TODO change to error
+                    _   => self.get_text_token()
                 }
             }
             _ => {
@@ -298,8 +326,6 @@ impl<R: Reader+Buffer> Lexer<R> {
                               => self.get_nmtoken(),
                     &'<'  => self.get_left_bracket_token(),
                     &'?'  => self.get_pi_end_token(),
-                    &']'  => self.get_sqbracket_right_token(),
-                    &'['  => self.get_sqbracket_left_token(),
                     &'('  => self.get_paren_left_token(),
                     &')'  => self.get_paren_right_token(),
                     &'|'  => self.get_pipe_token(),
@@ -967,19 +993,21 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_sqbracket_left_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('[')),       self.read_chr());
+        assert_eq!(~"[",       self.buf);
         Some(LeftSqBracket)
     }
 
 
     fn get_sqbracket_right_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char(']')),       self.peek_chr());
+        assert_eq!(~"]",       self.buf);
+        let col = self.col;
+        let line = self.col;
+        let rew = self.read_str(2u);
         let result;
-        if ~"]]>" == self.peek_str(3u) {
-            self.read_str(3u);
+        if ~"]>" == rew {
             result = Some(DoctypeClose);
         } else {
-            self.read_chr();
+            self.rewind(col,line, rew);
             result = Some(RightSqBracket);
         }
         result
@@ -1246,7 +1274,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_text_token(&mut self) -> Option<XmlToken> {
         let mut peek = ~"";
-        let mut text = ~"";
+        let mut text = self.buf.clone();
         let mut run_loop = true;
         while run_loop {
             let read = self.read_chr();
@@ -1301,9 +1329,6 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_right_bracket_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~">", self.buf);
-        if self.state == InDoctype {
-            self.state = OutsideTag
-        }
         return Some(GreaterBracket)
     }
 
