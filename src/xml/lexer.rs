@@ -371,6 +371,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     /// Method that peeks incoming strings
+    /// Removes this function
     fn peek_str(&mut self, len: uint) -> ~str {
         let col = self.col;
         let line = self.line;
@@ -387,6 +388,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         clean_restricted(peek_result)
     }
 
+    /// FIXME: Remove this function
     fn peek_chr(&mut self) -> Option<Character> {
         let col = self.col;
         let line = self.line;
@@ -404,6 +406,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         peek_char
     }
     #[inline(always)]
+    /// FIXME: Replace this with in built rewind before read operations
     fn rewind(&mut self, col: uint, line: uint, peeked: ~str) {
         self.col = col;
         self.line = line;
@@ -526,6 +529,8 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     //TODO Doc
+    // TODO rewrite this function to take a Filter trait, which will
+    // deal with various queries behind screen
     fn read_while_fn(&mut self, fn_while: |Option<Character>|-> bool )
                      -> ~str {
         let mut col = self.col;
