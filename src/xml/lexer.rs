@@ -1604,21 +1604,27 @@ mod tests {
 
     #[test]
     fn test_doctype() {
-        let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' []>");
+        let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
+        <!ELEMENT>
+        ]>");
         let read = BufReader::new(str1);
         let mut lexer =             Lexer::from_reader(read);
 
-        assert_eq!(Some(DoctypeStart),          lexer.pull());
-        assert_eq!(Some(WhiteSpace(~" ")),      lexer.pull());
-        assert_eq!(Some(NameToken(~"stuff")),   lexer.pull());
-        assert_eq!(Some(WhiteSpace(~" ")),      lexer.pull());
-        assert_eq!(Some(NameToken(~"SYSTEM")),  lexer.pull());
-        assert_eq!(Some(WhiteSpace(~" ")),      lexer.pull());
-        assert_eq!(Some(QuotedString(~"pubid")),lexer.pull());
-        assert_eq!(Some(WhiteSpace(~" ")),      lexer.pull());
-        assert_eq!(Some(LeftSqBracket),         lexer.pull());
-        assert_eq!(Some(RightSqBracket),        lexer.pull());
-        assert_eq!(Some(GreaterBracket),        lexer.pull());
+        assert_eq!(Some(DoctypeStart),              lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"stuff")),       lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"SYSTEM")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(QuotedString(~"pubid")),    lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftSqBracket),             lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(ElementType),               lexer.pull());
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(RightSqBracket),            lexer.pull());
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
     }
 
     #[test]
