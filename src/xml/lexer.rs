@@ -155,6 +155,7 @@ enum State {
     // so for example "text&ref;" becomes `Quote Text(text) Ref(ref) Quote`
     Attlist(Quotes),
     InDoctype,
+    InElementType,
     Entity,
     Pubid,
     InProlog,
@@ -307,8 +308,13 @@ impl<R: Reader+Buffer> Lexer<R> {
                     _       => self.get_text_token()
                 }
             }
+
             InternalSubset => {
                 match c {
+                    &'<' => {
+                        self.state = InElementType;
+                        self.get_left_bracket_token()
+                    },
                     &']' => {
                         let res = self.get_sqbracket_right_token();
                         self.state = InDoctype;
@@ -318,6 +324,18 @@ impl<R: Reader+Buffer> Lexer<R> {
                     _   => self.get_text_token()
                 }
             }
+            InElementType => {
+                match c {
+                    &'>' => {
+                        self.state = InternalSubset;
+                        self.get_right_bracket_token()
+                    }
+                    // TODO Change to proper error
+                    _     => {
+                        Some(self.handle_errors(IllegalChar, None))
+                    }
+                }
+            },
             _ => {
                 match c {
                     chr if is_name_start(chr)
@@ -798,6 +816,10 @@ impl<R: Reader+Buffer> Lexer<R> {
                 self.buf.push_char('D');
                 self.get_doctype_start_token()
             },
+            Some(Char('E')) => {
+                self.buf.push_char('E');
+                self.get_entity_or_element_token()
+            }
             None => Some(Text(~"<!")),
             _ => Some(Text(~"NON IMPLEMENTED"))
         };
@@ -1005,17 +1027,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_sqbracket_right_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"]",       self.buf);
-        let col = self.col;
-        let line = self.col;
-        let rew = self.read_str(2u);
-        let result;
-        if ~"]>" == rew {
-            result = Some(DoctypeClose);
-        } else {
-            self.rewind(col,line, rew);
-            result = Some(RightSqBracket);
-        }
-        result
+        Some(RightSqBracket)
     }
 
     fn get_paren_left_token(&mut self) -> Option<XmlToken> {
@@ -1051,18 +1063,27 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_entity_or_element_token(&mut self) -> Option<XmlToken> {
-        //assert_eq!(~"<!", self.read_str(2u));
+        assert_eq!(~"<!E", self.buf);
 
-        let result;
-        if self.peek_str(7u) == ~"ELEMENT" {
-            self.read_str(7u);
+        let mut result = Some(Text(~"<!E"));
+        let col = self.col;
+        let line = self.line;
+        let mut read = self.read_str(6);
+
+        if read == ~"LEMENT" {
             result = Some(ElementType);
-        } else if self.peek_str(6u) == ~"ENTITY" {
-            self.read_str(6u);
+        } else {
+            self.rewind(col, line, read);
+        }
+
+        read = self.read_str(5);
+
+        if read == ~"NTITY" {
             result = Some(EntityType);
         } else {
-            result = Some(ErrorToken(~"<!"));
+            self.rewind(col, line, read);
         }
+
         result
     }
 
