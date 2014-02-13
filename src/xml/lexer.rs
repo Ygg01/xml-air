@@ -1052,11 +1052,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         Some(RightParen)
     }
 
-    fn get_semicolon_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char(';')),       self.read_chr());
-        Some(Semicolon)
-    }
-
     fn get_entity_def_token(&mut self) -> Option<XmlToken> {
         //assert_eq!(Some(Char('#')),       self.read_chr());
         let result;
