@@ -1626,7 +1626,7 @@ mod tests {
     #[test]
     fn test_doctype() {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
-        <!ELEMENT>
+        <!ELEMENT (name|stuff)?+*>
         ]>");
         let read = BufReader::new(str1);
         let mut lexer =             Lexer::from_reader(read);
@@ -1642,6 +1642,14 @@ mod tests {
         assert_eq!(Some(LeftSqBracket),             lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(ElementType),               lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftParen),                 lexer.pull());
+        assert_eq!(Some(NameToken(~"name")),        lexer.pull());
+        assert_eq!(Some(Pipe),                      lexer.pull());
+        assert_eq!(Some(RightParen),                lexer.pull());
+        assert_eq!(Some(QuestionMark),              lexer.pull());
+        assert_eq!(Some(Plus),                      lexer.pull());
+        assert_eq!(Some(Star),                      lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(RightSqBracket),            lexer.pull());
