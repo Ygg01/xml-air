@@ -326,10 +326,29 @@ impl<R: Reader+Buffer> Lexer<R> {
             }
             InElementType => {
                 match c {
+                    chr if is_name_start(chr) => {
+                        self.get_name_token()
+                    },
                     &'>' => {
                         self.state = InternalSubset;
                         self.get_right_bracket_token()
-                    }
+                    },
+                    &'(' => {
+                        self.get_paren_left_token()
+                    },
+                    &')' => {
+                        self.get_paren_right_token()
+                    },
+                    &'*' => {
+                        self.get_star_token()
+                    },
+                    &'+' => {
+                        self.get_plus_token()
+                    },
+                    &'|' => {
+                        self.get_pipe_token()
+                    },
+                    &'?'  => self.get_question_mark_token(),
                     // TODO Change to proper error
                     _     => {
                         Some(self.handle_errors(IllegalChar, None))
@@ -343,19 +362,12 @@ impl<R: Reader+Buffer> Lexer<R> {
                     chr if is_name_char(chr)
                               => self.get_nmtoken(),
                     &'<'  => self.get_left_bracket_token(),
-                    &'?'  => self.get_pi_end_token(),
-                    &'('  => self.get_paren_left_token(),
-                    &')'  => self.get_paren_right_token(),
-                    &'|'  => self.get_pipe_token(),
-                    &'*'  => self.get_star_token(),
-                    &'+'  => self.get_plus_token(),
                     &'&'  => self.get_ref_token(),
                     &'%'  => self.get_peref_token(),
                     &'>'  => self.get_right_bracket_token(),
+                    &'?'  => self.get_pi_end_token(),
                     &'/'  => self.get_empty_tag_token(),
-                    &';'  => self.get_semicolon_token(),
                     &'='  => self.get_equal_token(),
-                    &'#'  => self.get_entity_def_token(),
                     &'\''  | &'"'  => self.get_quote_token(),
                     _  => self.get_text_token(),
                 }
@@ -1031,12 +1043,12 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_paren_left_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('(')),       self.read_chr());
+        assert_eq!(~"(",       self.buf);
         Some(LeftParen)
     }
 
     fn get_paren_right_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char(')')),       self.read_chr());
+        assert_eq!(~")",       self.buf);
         Some(RightParen)
     }
 
@@ -1113,17 +1125,17 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn get_star_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('*')),       self.read_chr());
+        assert_eq!(~"*",       self.buf);
         Some(Star)
     }
 
     fn get_plus_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('+')),       self.read_chr());
+        assert_eq!(~"+",       self.buf);
         Some(Plus)
     }
 
     fn get_pipe_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('|')),       self.read_chr());
+        assert_eq!(~"|",       self.buf);
         Some(Pipe)
     }
 
@@ -1445,6 +1457,11 @@ impl<R: Reader+Buffer> Lexer<R> {
         };
         result
     }
+
+    fn get_question_mark_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"?", self.buf);
+        Some(QuestionMark)
+    }
 }
 
 pub fn main() {
@@ -1646,6 +1663,7 @@ mod tests {
         assert_eq!(Some(LeftParen),                 lexer.pull());
         assert_eq!(Some(NameToken(~"name")),        lexer.pull());
         assert_eq!(Some(Pipe),                      lexer.pull());
+        assert_eq!(Some(NameToken(~"stuff")),        lexer.pull());
         assert_eq!(Some(RightParen),                lexer.pull());
         assert_eq!(Some(QuestionMark),              lexer.pull());
         assert_eq!(Some(Plus),                      lexer.pull());
