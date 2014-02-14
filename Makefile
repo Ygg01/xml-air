@@ -1,7 +1,7 @@
 RUSTC ?= rustc
 RUSTDOC ?= rustdoc
 RUSTPKG ?= rustpkg
-RUSTFLAGS ?= -O 
+RUSTFLAGS ?= -O
 
 #RUST_REPOSITORY ?= ../rust
 #RUST_CTAGS ?= $(RUST_REPOSITORY)/src/etc/ctags.rust
