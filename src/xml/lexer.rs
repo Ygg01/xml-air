@@ -1475,7 +1475,7 @@ mod tests {
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
     use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
-    use super::{LeftSqBracket, RightSqBracket};
+    use super::{LeftSqBracket, RightSqBracket, InEntityType};
 
     use std::io::BufReader;
 
@@ -1632,7 +1632,6 @@ mod tests {
         assert_eq!(Some(Quote),                         lexer.pull());
         assert_eq!(Some(Text(~"11231A")),               lexer.pull());
         assert_eq!(Some(Quote),                         lexer.pull());
-
     }
 
     #[test]
@@ -1667,6 +1666,7 @@ mod tests {
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(EntityType),                lexer.pull());
+        assert_eq!(InEntityType,                    lexer.state);
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
