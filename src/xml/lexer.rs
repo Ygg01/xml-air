@@ -156,7 +156,7 @@ enum State {
     Attlist(Quotes),
     InDoctype,
     InElementType,
-    Entity,
+    InEntityType,
     Pubid,
     InProlog,
     InStartTag,
@@ -287,7 +287,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                             => self.get_attl_quote(),
                     _       => self.get_attl_text(&quotes.to_char())
                 }
-            }
+            },
             InDoctype => {
                 match c {
                     &'>'    => {
@@ -307,13 +307,18 @@ impl<R: Reader+Buffer> Lexer<R> {
                     // TODO change to error
                     _       => self.get_text_token()
                 }
-            }
+            },
 
             InternalSubset => {
                 match c {
                     &'<' => {
-                        self.state = InElementType;
-                        self.get_left_bracket_token()
+                        let res = self.get_left_bracket_token();
+                        if res == Some(EntityType) {
+                            self.state = InEntityType;
+                        } else if res == Some(ElementType) {
+                            self.state = InElementType;
+                        }
+                        res
                     },
                     &']' => {
                         let res = self.get_sqbracket_right_token();
@@ -349,6 +354,18 @@ impl<R: Reader+Buffer> Lexer<R> {
                         self.get_pipe_token()
                     },
                     &'?'  => self.get_question_mark_token(),
+                    // TODO Change to proper error
+                    _     => {
+                        Some(self.handle_errors(IllegalChar, None))
+                    }
+                }
+            },
+            InEntityType => {
+                match c {
+                    &'>' => {
+                        self.state = InternalSubset;
+                        self.get_right_bracket_token()
+                    },
                     // TODO Change to proper error
                     _     => {
                         Some(self.handle_errors(IllegalChar, None))
