@@ -1492,7 +1492,7 @@ mod tests {
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
     use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
-    use super::{LeftSqBracket, RightSqBracket, InEntityType};
+    use super::{LeftSqBracket, RightSqBracket, InEntityType,PCDataDecl};
 
     use std::io::BufReader;
 
@@ -1654,7 +1654,7 @@ mod tests {
     #[test]
     fn test_doctype() {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
-        <!ELEMENT (name|stuff)?+*>
+        <!ELEMENT (name|#PCDATA)?+*>
         <!ENTITY >
         ]>");
         let read = BufReader::new(str1);
@@ -1675,7 +1675,7 @@ mod tests {
         assert_eq!(Some(LeftParen),                 lexer.pull());
         assert_eq!(Some(NameToken(~"name")),        lexer.pull());
         assert_eq!(Some(Pipe),                      lexer.pull());
-        assert_eq!(Some(NameToken(~"stuff")),       lexer.pull());
+        assert_eq!(Some(PCDataDecl),                lexer.pull());
         assert_eq!(Some(RightParen),                lexer.pull());
         assert_eq!(Some(QuestionMark),              lexer.pull());
         assert_eq!(Some(Plus),                      lexer.pull());
