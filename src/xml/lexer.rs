@@ -353,7 +353,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'|' => {
                         self.get_pipe_token()
                     },
-                    &'?'  => self.get_question_mark_token(),
+                    &'?' => self.get_question_mark_token(),
+                    &'#' => self.get_pcdata_token(),
                     // TODO Change to proper error
                     _     => {
                         Some(self.handle_errors(IllegalChar, None))
@@ -1083,6 +1084,23 @@ impl<R: Reader+Buffer> Lexer<R> {
         } else {
             result = Some(Text(~"#"));
         }
+        result
+    }
+
+    fn get_pcdata_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"#",    self.buf);
+        let col = self.col;
+        let line = self.line;
+        let rew = self.read_str(6u);
+        let result;
+
+        if rew == ~"PCDATA" {
+            result = Some(PCDataDecl);
+        } else {
+            self.rewind(col, line, rew);
+            result = Some(ErrorToken(~"#"));
+        }
+
         result
     }
 
