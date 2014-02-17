@@ -191,6 +191,10 @@ impl Quotes {
             fail!("fail");
         }
     }
+
+    pub fn from_chr(quote: &char) -> Quotes {
+        Quotes::from_str(from_char(*quote))
+    }
 }
 
 pub struct Lexer<R> {
@@ -273,8 +277,11 @@ impl<R: Reader+Buffer> Lexer<R> {
                             => self.get_qname_token(),
                     &'='    => self.get_equal_token(),
                     &'>'    => self.get_right_bracket_token(),
-                    &'\'' | &'"'
-                            => self.get_attl_quote(),
+                    quote if quote == &'\'' || quote == &'"'
+                            => {
+                                self.state = Attlist(Quotes::from_chr(quote));
+                                self.get_spec_quote()
+                            },
                     &'<'    => self.get_left_bracket_token(),
                     &'/'    => self.get_empty_tag_token(),
                     _       => Some(self.handle_errors(IllegalChar, None))
@@ -285,7 +292,10 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'&'    => self.get_ref_token(),
                     &'<'    => self.get_attl_error_token(),
                     &'\'' | &'"' if *c == quotes.to_char()
-                            => self.get_attl_quote(),
+                            => {
+                                self.state = InStartTag;
+                                self.get_spec_quote()
+                            },
                     _       => self.get_attl_text(&quotes.to_char())
                 }
             },
@@ -1339,16 +1349,8 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     #[inline]
-    fn get_attl_quote(&mut self) -> Option<XmlToken> {
+    fn get_spec_quote(&mut self) -> Option<XmlToken> {
         assert!(self.buf == ~"'" || self.buf == ~"\"");
-        let quote = Quotes::from_str(self.buf.clone());
-
-
-        if self.state == InStartTag {
-            self.state = Attlist(quote);
-        }else if self.state == Attlist(quote) {
-            self.state = InStartTag;
-        }
         Some(Quote)
     }
 
