@@ -377,9 +377,17 @@ impl<R: Reader+Buffer> Lexer<R> {
             },
             InEntityType => {
                 match c {
+                    chr if is_name_start(chr)
+                         => self.get_name_token(),
                     &'>' => {
                         self.state = InternalSubset;
                         self.get_right_bracket_token()
+                    },
+                    &'%' => self.get_percent_token(),
+                    quote if quote == &'\'' || quote == &'"'
+                         => {
+                        self.state = EntityList(Quotes::from_chr(quote));
+                        self.get_spec_quote()
                     },
                     // TODO Change to proper error
                     _     => {
@@ -1101,6 +1109,12 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn get_paren_right_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~")",       self.buf);
         Some(RightParen)
+    }
+
+    #[inline(always)]
+    fn get_percent_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"%",       self.buf);
+        Some(Percent)
     }
 
     fn get_entity_def_token(&mut self) -> Option<XmlToken> {
