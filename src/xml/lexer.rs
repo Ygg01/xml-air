@@ -1716,6 +1716,21 @@ mod tests {
     }
 
     #[test]
+    fn test_quote_terminating(){
+        let str1 = bytes!("<el name=\"test");
+        let read = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(read);
+
+        assert_eq!(Some(LessBracket),               lexer.pull());
+        assert_eq!(Some(NameToken(~"el")),          lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"name")),        lexer.pull());
+        assert_eq!(Some(Eq),                        lexer.pull());
+        assert_eq!(Some(Quote),                     lexer.pull());
+        assert_eq!(Some(Text(~"test")),             lexer.pull());
+    }
+
+    #[test]
     fn test_doctype() {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
         <!ELEMENT (name|(#PCDATA,%div;))?+*>
@@ -1752,9 +1767,8 @@ mod tests {
         assert_eq!(Some(RightSqBracket),            lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
 
-
         let str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!ENTITY % >
+        <!ENTITY % ''>
         ]>");
         let read2 = BufReader::new(str2);
         lexer = Lexer::from_reader(read2);
@@ -1770,6 +1784,8 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
         assert_eq!(Some(Percent),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(Quote),                     lexer.pull());
+        assert_eq!(Some(Quote),                     lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
     }
