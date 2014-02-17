@@ -67,7 +67,7 @@ pub enum XmlToken {
     /// Tag or attribute name
     NameToken(~str),
     /// Qualified name token
-    /// first string is prefix, second is localpart
+    /// first string is prefix, second is local-part
     QNameToken(~str,~str),
     /// NMToken
     NMToken(~str),
@@ -151,9 +151,10 @@ impl Character {
 enum State {
     OutsideTag,
     // Attlist takes quote, because attributes are mixed content and to
-    // correctly display it, it treates each Quote as a special symbol
+    // correctly display it, it treats each Quote as a special symbol
     // so for example "text&ref;" becomes `Quote Text(text) Ref(ref) Quote`
     Attlist(Quotes),
+    EntityList(Quotes),
     InDoctype,
     InElementType,
     InEntityType,
@@ -397,8 +398,12 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
     /// Constructs a new `Lexer` from data given.
     /// Parameter `data` represents source for parsing,
-    /// and it must implement Reader
-    /// and Buffer traits.
+    /// that must implement Reader and Buffer traits.
+    /// Example
+    /// ```rust
+    ///    let bytes = bytes!("<an:elem />");
+    ///    let lexer = xml::Lexer::from_reader(BufReader::new(bytes));
+    /// ````
     pub fn from_reader(data : R) -> Lexer<R> {
         Lexer {
             line: 1,
@@ -413,7 +418,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     /// This method reads a string of given length skipping over any
     /// restricted character and adding an error for each such
-    /// character.
+    /// character encountered.
     ///
     /// Restricted characters are *not included* into the output
     /// string.
