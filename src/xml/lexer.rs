@@ -1740,7 +1740,7 @@ mod tests {
 
 
         let str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!ENTITY >
+        <!ENTITY % >
         ]>");
         let read2 = BufReader::new(str2);
         lexer = Lexer::from_reader(read2);
@@ -1754,7 +1754,8 @@ mod tests {
         assert_eq!(Some(EntityType),                lexer.pull());
         assert_eq!(InEntityType,                    lexer.state);
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-        
+        assert_eq!(Some(Percent),                   lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
     }
