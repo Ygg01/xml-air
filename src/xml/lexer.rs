@@ -324,7 +324,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                         let res = self.get_sqbracket_right_token();
                         self.state = InDoctype;
                         res
-                    }
+                    },
+                    &'%'  => self.get_peref_token(),
                     // TODO change to error
                     _   => self.get_text_token()
                 }
@@ -353,6 +354,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'|' => {
                         self.get_pipe_token()
                     },
+                    &'%' => self.get_peref_token(),
+                    &',' => self.get_comma_token(),
                     &'?' => self.get_question_mark_token(),
                     &'#' => self.get_pcdata_token(),
                     // TODO Change to proper error
@@ -899,10 +902,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         result
     }
 
-    fn get_peref_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(Some(Char('%')),       self.read_chr());
-        Some(Percent)
-    }
 
     #[inline(always)]
     fn get_equal_token(&mut self) -> Option<XmlToken> {
@@ -923,7 +922,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             },
             Some(Char(a)) => {
                 self.rewind(col,line, from_char(a));
-                self.get_entity_ref_token()
+                self.get_entity_ref_token(true)
             },
             Some(RestrictedChar(a)) => {
                 self.rewind(col,line, from_char(a));
@@ -941,6 +940,11 @@ impl<R: Reader+Buffer> Lexer<R> {
             }
         };
         token
+    }
+
+    fn get_peref_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"%",       self.buf);
+        self.get_entity_ref_token(false)
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
@@ -1017,8 +1021,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         }
     }
 
-    fn get_entity_ref_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"&",  self.buf);
+    fn get_entity_ref_token(&mut self, is_ent: bool) -> Option<XmlToken> {
 
         let ref_name = self.process_name();
 
@@ -1028,15 +1031,27 @@ impl<R: Reader+Buffer> Lexer<R> {
 
         let result = match expect_semi {
             Some(Char(';')) => {
-                Some(Ref(ref_name))
+                if is_ent {
+                    Some(Ref(ref_name))
+                } else {
+                    Some(ParRef(ref_name))
+                }
             },
             Some(Char(_)) => {
                 self.handle_errors(IllegalChar, None);
-                Some(Ref(ref_name))
+                if is_ent {
+                    Some(Ref(ref_name))
+                } else {
+                    Some(ParRef(ref_name))
+                }
             },
             Some(RestrictedChar(_)) => {
                 self.handle_errors(IllegalChar, None);
-                Some(Ref(ref_name))
+                if is_ent {
+                    Some(Ref(ref_name))
+                } else {
+                    Some(ParRef(ref_name))
+                }
             },
             None => {
                 Some(self.handle_errors(
@@ -1168,6 +1183,12 @@ impl<R: Reader+Buffer> Lexer<R> {
         assert_eq!(~"|",       self.buf);
         Some(Pipe)
     }
+
+    fn get_comma_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~",",       self.buf);
+        Some(Comma)
+    }
+
 
     fn get_quote_token(&mut self) -> Option<XmlToken> {
         let quote = self.buf.clone();
