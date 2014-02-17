@@ -1524,9 +1524,9 @@ mod tests {
 
     use super::{Lexer, Char, RestrictedChar};
     use super::{PrologEnd,PrologStart,PI,CData,WhiteSpace};
-    use super::{DoctypeOpen,DoctypeStart,CharRef};
-    use super::{Percent,NameToken,DoctypeClose,Amp};
-    use super::{EntityType,NotationType,Comment};
+    use super::{DoctypeStart,CharRef};
+    use super::{Percent,NameToken};
+    use super::{EntityType,Comment};
     use super::{AttlistType,GreaterBracket,LessBracket,ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
@@ -1536,16 +1536,16 @@ mod tests {
 
     use std::io::BufReader;
 
-    use util::{XmlError};
 
     #[test]
     fn test_iteration() {
         let bytes = bytes!("<a>");
         let r = BufReader::new(bytes);
         let mut lexer = Lexer::from_reader(r);
-        for token in lexer.tokens() {}
+        for token in lexer.tokens() {
+        }
 
-        assert_eq!(None, lexer.pull());
+        assert_eq!(None,                lexer.pull());
     }
 
     #[test]
@@ -1695,7 +1695,6 @@ mod tests {
     fn test_doctype() {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
         <!ELEMENT (name|(#PCDATA,%div;))?+*>
-        <!ENTITY >
         ]>");
         let read = BufReader::new(str1);
         let mut lexer =             Lexer::from_reader(read);
@@ -1726,13 +1725,28 @@ mod tests {
         assert_eq!(Some(Star),                      lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(RightSqBracket),            lexer.pull());
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
+
+
+        let str2 = bytes!("<!DOCTYPE PUBLIC [
+        <!ENTITY >
+        ]>");
+        let read2 = BufReader::new(str2);
+        lexer = Lexer::from_reader(read2);
+
+        assert_eq!(Some(DoctypeStart),              lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftSqBracket),             lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(EntityType),                lexer.pull());
         assert_eq!(InEntityType,                    lexer.state);
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
-        assert_eq!(Some(RightSqBracket),            lexer.pull());
-        assert_eq!(Some(GreaterBracket),            lexer.pull());
     }
 
     #[test]
