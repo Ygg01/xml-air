@@ -56,8 +56,8 @@ pub enum XmlToken {
     QuestionMark,
     /// Symbol '!'
     ExclamationMark,
-    /// Symbol ';'
-    Semicolon,
+    /// Symbol ','
+    Comma,
     /// Percent '%'
     Percent,
     /// Symbol '</'
@@ -1504,13 +1504,14 @@ mod tests {
     use super::{Lexer, Char, RestrictedChar};
     use super::{PrologEnd,PrologStart,PI,CData,WhiteSpace};
     use super::{DoctypeOpen,DoctypeStart,CharRef};
-    use super::{Percent,NameToken,DoctypeClose,Amp, Semicolon};
+    use super::{Percent,NameToken,DoctypeClose,Amp};
     use super::{EntityType,NotationType,Comment};
     use super::{AttlistType,GreaterBracket,LessBracket,ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
     use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
     use super::{LeftSqBracket, RightSqBracket, InEntityType,PCDataDecl};
+    use super::{Comma,ParRef};
 
     use std::io::BufReader;
 
@@ -1672,7 +1673,7 @@ mod tests {
     #[test]
     fn test_doctype() {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
-        <!ELEMENT (name|#PCDATA)?+*>
+        <!ELEMENT (name|(#PCDATA,%div;))?+*>
         <!ENTITY >
         ]>");
         let read = BufReader::new(str1);
@@ -1693,7 +1694,11 @@ mod tests {
         assert_eq!(Some(LeftParen),                 lexer.pull());
         assert_eq!(Some(NameToken(~"name")),        lexer.pull());
         assert_eq!(Some(Pipe),                      lexer.pull());
+        assert_eq!(Some(LeftParen),                 lexer.pull());
         assert_eq!(Some(PCDataDecl),                lexer.pull());
+        assert_eq!(Some(Comma),                     lexer.pull());
+        assert_eq!(Some(ParRef(~"div")),            lexer.pull());
+        assert_eq!(Some(RightParen),                lexer.pull());
         assert_eq!(Some(RightParen),                lexer.pull());
         assert_eq!(Some(QuestionMark),              lexer.pull());
         assert_eq!(Some(Plus),                      lexer.pull());
