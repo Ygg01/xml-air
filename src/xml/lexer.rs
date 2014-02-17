@@ -395,6 +395,17 @@ impl<R: Reader+Buffer> Lexer<R> {
                     }
                 }
             },
+            EntityList(quotes) => {
+                match c {
+                    &'&'    => self.get_ref_token(),
+                    &'\'' | &'"' if *c == quotes.to_char()
+                            => {
+                                self.state = InEntityType;
+                                self.get_spec_quote()
+                            },
+                    _       => self.get_attl_text(&quotes.to_char())
+                }
+            },
             _ => {
                 match c {
                     chr if is_name_start(chr)
