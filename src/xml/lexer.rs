@@ -1069,22 +1069,25 @@ impl<R: Reader+Buffer> Lexer<R> {
         result
     }
 
+    #[inline(always)]
     fn get_sqbracket_left_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"[",       self.buf);
         Some(LeftSqBracket)
     }
 
-
+    #[inline(always)]
     fn get_sqbracket_right_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"]",       self.buf);
         Some(RightSqBracket)
     }
 
+    #[inline(always)]
     fn get_paren_left_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"(",       self.buf);
         Some(LeftParen)
     }
 
+    #[inline(always)]
     fn get_paren_right_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~")",       self.buf);
         Some(RightParen)
