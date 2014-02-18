@@ -1779,7 +1779,7 @@ mod tests {
         assert_eq!(Some(GreaterBracket),            lexer.pull());
 
         let str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!ENTITY % ''>
+        <!ENTITY % 'text%ent;&x;&#94;&#x7E;'>
         ]>");
         let read2 = BufReader::new(str2);
         lexer = Lexer::from_reader(read2);
@@ -1796,6 +1796,11 @@ mod tests {
         assert_eq!(Some(Percent),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
         assert_eq!(Some(Quote),                     lexer.pull());
+        assert_eq!(Some(Text(~"text")),             lexer.pull());
+        assert_eq!(Some(ParRef(~"ent")),            lexer.pull());
+        assert_eq!(Some(Ref(~"x")),                 lexer.pull());
+        assert_eq!(Some(CharRef('^')),             lexer.pull());
+        assert_eq!(Some(CharRef('~')),             lexer.pull());
         assert_eq!(Some(Quote),                     lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
