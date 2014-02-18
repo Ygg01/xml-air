@@ -398,12 +398,13 @@ impl<R: Reader+Buffer> Lexer<R> {
             EntityList(quotes) => {
                 match c {
                     &'&'    => self.get_ref_token(),
+                    &'%'    => self.get_peref_token(),
                     &'\'' | &'"' if *c == quotes.to_char()
                             => {
                                 self.state = InEntityType;
                                 self.get_spec_quote()
                             },
-                    _       => self.get_attl_text(&quotes.to_char())
+                    _       => self.get_ent_text(&quotes.to_char())
                 }
             },
             _ => {
@@ -1383,6 +1384,17 @@ impl<R: Reader+Buffer> Lexer<R> {
         let text = self.read_while_fn( |val| {
             match val {
                 Some(Char(a))  => (a != '<' && a != '&' && a != *quote),
+                _ => false
+            }
+        });
+        let result = self.buf.clone().append(text);
+        Some(Text(result))
+    }
+
+    fn get_ent_text(&mut self, quote: &char) -> Option<XmlToken> {
+        let text = self.read_while_fn( |val| {
+            match val {
+                Some(Char(a))  => (a != '<' && a != '%' && a != *quote),
                 _ => false
             }
         });
