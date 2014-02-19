@@ -158,6 +158,7 @@ enum State {
     InDoctype,
     InElementType,
     InEntityType,
+    InExternalId,
     Pubid,
     InProlog,
     InStartTag,
@@ -1570,11 +1571,10 @@ pub fn main() {
 mod tests {
 
     use super::{Lexer, Char, RestrictedChar};
-    use super::{PrologEnd,PrologStart,PI,CData,WhiteSpace};
-    use super::{DoctypeStart,CharRef};
-    use super::{Percent,NameToken};
-    use super::{EntityType,Comment};
-    use super::{AttlistType,GreaterBracket,LessBracket,ElementType};
+    use super::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
+    use super::{DoctypeStart, CharRef, InDoctype};
+    use super::{Percent, NameToken, EntityType, Comment};
+    use super::{AttlistType, GreaterBracket, LessBracket, ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
     use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
@@ -1791,7 +1791,7 @@ mod tests {
         assert_eq!(Some(GreaterBracket),            lexer.pull());
 
         let str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!ENTITY % 'text%ent;&x;&#94;&#x7E;'>
+        <!ENTITY % 'text%ent;&x;&#94;&#x7E;' PUBLIC 'quote'>
         ]>");
         let read2 = BufReader::new(str2);
         lexer = Lexer::from_reader(read2);
@@ -1811,10 +1811,15 @@ mod tests {
         assert_eq!(Some(Text(~"text")),             lexer.pull());
         assert_eq!(Some(ParRef(~"ent")),            lexer.pull());
         assert_eq!(Some(Ref(~"x")),                 lexer.pull());
-        assert_eq!(Some(CharRef('^')),             lexer.pull());
-        assert_eq!(Some(CharRef('~')),             lexer.pull());
+        assert_eq!(Some(CharRef('^')),              lexer.pull());
+        assert_eq!(Some(CharRef('~')),              lexer.pull());
         assert_eq!(Some(Quote),                     lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(QuotedString(~"quote")),    lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
+        assert_eq!(InDoctype,                       lexer.state);
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
     }
 
