@@ -379,7 +379,14 @@ impl<R: Reader+Buffer> Lexer<R> {
             InEntityType => {
                 match c {
                     chr if is_name_start(chr)
-                         => self.get_name_token(),
+                         => {
+                            let res = self.get_name_token();
+                            if res == Some(NameToken(~"PUBLIC")) ||
+                               res == Some(NameToken(~"SYSTEM")) {
+                                self.state = InExternalId;
+                            }
+                            res
+                    },
                     &'>' => {
                         self.state = InternalSubset;
                         self.get_right_bracket_token()
@@ -396,11 +403,27 @@ impl<R: Reader+Buffer> Lexer<R> {
                     }
                 }
             },
+            InExternalId => {
+                match c {
+                    chr if is_name_start(chr)
+                              => self.get_name_token(),
+                    &'\''
+                    | &'"' => self.get_quote_token(),
+                    &'>' => {
+                        self.state = InDoctype;
+                        self.get_right_bracket_token()
+                    },
+                    _     => {
+                        Some(self.handle_errors(IllegalChar, None))
+                    }
+                }
+            }
             EntityList(quotes) => {
                 match c {
                     &'&'    => self.get_ref_token(),
                     &'%'    => self.get_peref_token(),
-                    &'\'' | &'"' if *c == quotes.to_char()
+                    &'\''
+                    | &'"' if *c == quotes.to_char()
                             => {
                                 self.state = InEntityType;
                                 self.get_spec_quote()
@@ -421,7 +444,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'?'  => self.get_pi_end_token(),
                     &'/'  => self.get_empty_tag_token(),
                     &'='  => self.get_equal_token(),
-                    &'\''  | &'"'  => self.get_quote_token(),
+                    &'\''
+                    | &'"'  => self.get_quote_token(),
                     _  => self.get_text_token(),
                 }
             }
