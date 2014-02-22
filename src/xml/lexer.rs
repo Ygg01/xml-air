@@ -1603,7 +1603,7 @@ mod tests {
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
     use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
     use super::{LeftSqBracket, RightSqBracket, InEntityType,PCDataDecl};
-    use super::{Comma,ParRef, DoctypeOpen};
+    use super::{Comma,ParRef, DoctypeOpen, DoctypeClose};
 
     use std::io::BufReader;
 
@@ -1815,7 +1815,7 @@ mod tests {
         assert_eq!(Some(GreaterBracket),            lexer.pull());
 
         let str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!ENTITY % 'text%ent;&x;&#94;&#x7E;' PUBLIC 'quote'><![]>>
+        <!ENTITY % 'text%ent;&x;&#94;&#x7E;' PUBLIC 'quote'><![]]>
         ]>");
         let read2 = BufReader::new(str2);
         lexer = Lexer::from_reader(read2);
@@ -1843,9 +1843,9 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
         assert_eq!(Some(QuotedString(~"quote")),    lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
-        assert_eq!(Some(DoctypeStart),              lexer.pull());
-        assert_eq!(Some(DoctypeOpen),               lexer.pull());
         assert_eq!(InDoctype,                       lexer.state);
+        assert_eq!(Some(DoctypeOpen),               lexer.pull());
+        assert_eq!(Some(DoctypeClose),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
     }
 
