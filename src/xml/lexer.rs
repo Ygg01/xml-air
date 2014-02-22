@@ -302,6 +302,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             },
             InDoctype => {
                 match c {
+                    &'<'    => self.get_left_bracket_token(),
                     &'>'    => {
                         let res = self.get_right_bracket_token();
                         self.state = OutsideTag;
@@ -316,6 +317,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                         self.state = InternalSubset;
                         res
                     },
+                    &']'    =>  self.get_doctype_end_token(),
                     // TODO change to error
                     _       => self.get_text_token()
                 }
@@ -1128,6 +1130,20 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn get_sqbracket_left_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"[",       self.buf);
         Some(LeftSqBracket)
+    }
+
+    fn get_doctype_end_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"]",        self.buf);
+        let col  = self.col;
+        let line = self.line;
+        let rew  = self.read_str(2u);
+
+        if rew == ~"]>" {
+            Some(DoctypeClose)
+        } else {
+            self.rewind(col,line, rew);
+            Some(RightSqBracket)
+        }
     }
 
     #[inline(always)]
