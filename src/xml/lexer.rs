@@ -1170,23 +1170,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         Some(Percent)
     }
 
-    fn get_entity_def_token(&mut self) -> Option<XmlToken> {
-        //assert_eq!(Some(Char('#')),       self.read_chr());
-        let result;
-        if self.peek_str(8u) == ~"REQUIRED" {
-            result = Some(RequiredDecl);
-        } else if self.peek_str(7u) == ~"IMPLIED" {
-            result = Some(ImpliedDecl);
-        } else if self.peek_str(6u) == ~"PCDATA" {
-            result = Some(PCDataDecl);
-        } else if self.peek_str(5u) == ~"FIXED" {
-            result = Some(FixedDecl);
-        } else {
-            result = Some(Text(~"#"));
-        }
-        result
-    }
-
     fn get_pcdata_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"#",    self.buf);
         let col = self.col;
@@ -1226,31 +1209,6 @@ impl<R: Reader+Buffer> Lexer<R> {
             self.rewind(col, line, read);
         }
 
-        result
-    }
-
-    fn get_attlist_token(&mut self) -> Option<XmlToken> {
-        //assert_eq!(~"<!", self.read_str(2u));
-        let result;
-
-        if self.peek_str(7u) == ~"ATTLIST" {
-            self.read_str(7u);
-            result = Some(AttlistType);
-        } else {
-            result = Some(ErrorToken(~"<!"));
-        }
-        result
-    }
-
-    fn get_notation_token(&mut self) -> Option<XmlToken> {
-        //assert_eq!(~"<!", self.read_str(2u));
-        let result;
-        if self.peek_str(8u) == ~"NOTATION" {
-            self.read_str(8u);
-            result = Some(NotationType);
-        } else {
-            result = Some(ErrorToken(~"<!"));
-        }
         result
     }
 
@@ -1385,34 +1343,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         }
         result = Encoding(self.buf.clone());
         result
-    }
-
-    fn get_pubid_quote(&mut self) -> Option<XmlToken> {
-        let quote = self.read_str(1u);
-        let b = quote == ~"'" || quote == ~"\"";
-        //assert!(b);
-
-        let result = self.process_quotes(quote.clone());
-
-        match result {
-            QuotedString(ref text) => {
-                for c in text.chars() {
-                    if util::is_pubid_char(&c) {
-                        return Some(self.handle_errors(
-                                        IllegalChar,
-                                        Some(result.clone())
-                                ));
-                    }
-                }
-            },
-            _ => {}
-        }
-
-        Some(result)
-    }
-
-    fn get_ent_quote(&mut self) -> Option<XmlToken> {
-        None
     }
 
     #[inline]
@@ -1614,7 +1544,7 @@ mod tests {
     use super::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
     use super::{DoctypeStart, CharRef, InDoctype};
     use super::{Percent, NameToken, EntityType, Comment};
-    use super::{AttlistType, GreaterBracket, LessBracket, ElementType};
+    use super::{ GreaterBracket, LessBracket, ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
     use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
