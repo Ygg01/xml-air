@@ -79,7 +79,8 @@ pub enum XmlToken {
     CData(~str),
     /// Start of Doctype block '<!DOCTYPE'
     DoctypeStart,
-    /// Symbol '<!['
+    /// Start of inner IGNORE/INCLUDE block
+    /// uses symbol '<!['
     DoctypeOpen,
     /// Symbol ']]>
     DoctypeClose,
