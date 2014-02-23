@@ -484,41 +484,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         clean_restricted(self.read_raw_str(len))
     }
 
-    /// Method that peeks incoming strings
-    /// Removes this function
-    fn peek_str(&mut self, len: uint) -> ~str {
-        let col = self.col;
-        let line = self.line;
-
-        let peek_result  = self.read_raw_str(len);
-
-        self.col = col;
-        self.line = line;
-
-        for c in peek_result.chars_rev(){
-             self.peek_buf.push_char(c);
-        }
-
-        clean_restricted(peek_result)
-    }
-
-    /// FIXME: Remove this function
-    fn peek_chr(&mut self) -> Option<Character> {
-        let col = self.col;
-        let line = self.line;
-
-        let peek_char = self.read_chr();
-        self.col = col;
-        self.line = line;
-
-        match peek_char {
-            Some(Char(a))
-            | Some(RestrictedChar(a)) => self.peek_buf.push_char(a),
-            None => {}
-        }
-
-        peek_char
-    }
     #[inline(always)]
     /// FIXME: Replace this with in built rewind before read operations
     fn rewind(&mut self, col: uint, line: uint, peeked: ~str) {
@@ -685,19 +650,46 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn read_until_peek(&mut self, peek_look: &str) -> ~str {
-        let mut peek = self.peek_str(peek_look.char_len());
+        let mut peek_found = false;
         let mut result = ~"";
-        while peek != peek_look.to_owned() {
+        let peek_len = peek_look.char_len() - 1;
 
+        while !peek_found {
+            let pre_col = self.col;
+            let pre_line = self.line;
             let extracted_char = self.read_chr();
 
             match extracted_char {
-                None => {/* FIXME: Error processing*/},
-                Some(Char(a))
-                | Some(RestrictedChar(a)) => {result.push_char(a)}
-            }
+                None          => {},
+                Some(Char(a)) => {
+                    let col = self.col;
+                    let line = self.line;
+                    let mut rew = ~"";
+                    let mut peek = from_char(a);
 
-            peek = self.peek_str(peek_look.char_len());
+                    if peek_len > 0 {
+                        rew = self.read_str(peek_len);
+                        peek.push_str(rew);
+                    }
+
+                    if peek.as_slice() == peek_look {
+                        peek_found = true;
+                    } else {
+                        result.push_char(a);
+                    }
+
+                    if rew != ~"" {
+                        if peek_found {
+                            self.rewind(pre_col, pre_line, peek);
+                        } else {
+                            self.rewind(col, line, rew);
+                        }
+                    }
+                },
+                Some(RestrictedChar(_)) => {
+                    self.handle_errors(RestrictedCharError, None);
+                }
+            }
         }
         result
     }
@@ -1032,10 +1024,17 @@ impl<R: Reader+Buffer> Lexer<R> {
         let is_radix = (radix == 16);
         let char_ref = self.process_digits(&is_radix);
 
-        match self.peek_chr() {
+        let col = self.col;
+        let line = self.line;
+        let read_chr = self.read_chr();
+
+        match read_chr {
             Some(Char(';')) => {
-                self.read_chr();
             },
+            Some(Char(a))
+            | Some(RestrictedChar(a)) => {
+                self.rewind(col, line, from_char(a));
+            }
             _ => {
                 return Some(ErrorToken(self.buf.clone()));
             }
@@ -1268,16 +1267,16 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn process_quotes(&mut self, quote: ~str) -> XmlToken {
         let text = self.read_until_peek(quote);
-        let peek = self.peek_str(1u);
+        let col = self.col;
+        let line = self.line;
+        let peek = self.read_str(1u);
 
         if peek != quote {
-
+            self.rewind(col,line, peek);
             self.handle_errors(
                 IllegalChar,
                 Some(QuotedString(text.clone()))
             );
-        } else {
-            self.read_str(1u);
         }
 
         QuotedString(text.clone())
@@ -1446,13 +1445,14 @@ impl<R: Reader+Buffer> Lexer<R> {
     }
 
     fn process_comment(&mut self) -> ~str {
-        let mut peek = self.peek_str(3u);
+        let mut col = self.col;
+        let mut line = self.line;
+        let mut peek = self.read_str(3u);
         let mut result = ~"";
         let mut found_end = false;
 
         while !found_end {
             if peek.starts_with("--") && peek == ~"-->" {
-                self.read_str(3u);
                 found_end = true;
             } else {
                 if peek.starts_with("--") && peek != ~"-->" {
@@ -1462,12 +1462,17 @@ impl<R: Reader+Buffer> Lexer<R> {
                     );
                 }
 
+                self.rewind(col, line, peek);
                 match self.read_chr() {
-                    None => {},
-                    Some(Char(a))
-                    | Some(RestrictedChar(a)) => {result.push_char(a)}
+                    None
+                    | Some(RestrictedChar(_)) => {},
+                    Some(Char(a)) => {
+                        result.push_char(a)
+                    }
                 }
-                peek = self.peek_str(3u);
+                col = self.col;
+                line = self.line;
+                peek = self.read_str(3u);
             }
         }
         result
@@ -1785,29 +1790,6 @@ mod tests {
     }
 
     #[test]
-    fn test_multi_peek() {
-        let str1 = bytes!("123");
-        let read = BufReader::new(str1);
-        let mut lexer =             Lexer::from_reader(read);
-
-        assert_eq!(~"12",           lexer.peek_str(2u));
-        assert_eq!(~"12",           lexer.peek_str(2u));
-        assert_eq!(~"1",            lexer.read_str(1u));
-        assert_eq!(~"23",           lexer.peek_str(2u));
-        assert_eq!(~"23",           lexer.peek_str(2u));
-    }
-
-    #[test]
-    fn test_peek_restricted() {
-        let str1 = bytes!("1\x0123");
-        let r1 = BufReader::new(str1);
-        let mut lexer =             Lexer::from_reader(r1);
-
-        assert_eq!(~"1",            lexer.peek_str(2u));
-        assert_eq!(~"12",           lexer.peek_str(3u));
-    }
-
-    #[test]
     /// This method tests buffer to ensure that adding characters
     /// into it will not cause premature end of line.
     /// If lexer takes six characters and then peeks six
@@ -1816,12 +1798,7 @@ mod tests {
     /// If reader doesn't check peek buffer before the reader field
     /// it will cause premature end of file
     fn test_premature_eof() {
-        let str1 = bytes!("012345");
-        let read = BufReader::new(str1);
-        let mut lexer =         Lexer::from_reader(read);
 
-        lexer.peek_str(6u);
-        assert_eq!(~"012345",       lexer.read_str(6u));
     }
 
     #[test]
@@ -1834,23 +1811,6 @@ mod tests {
         assert_eq!(6u,                                 lexer.col);
         assert_eq!(1u,                                 lexer.line);
         assert_eq!(Some(NameToken(~"a")),              lexer.pull());
-    }
-
-    #[test]
-    fn test_peek_str() {
-        let str1 = bytes!("as");
-        let read = BufReader::new(str1);
-        let mut lexer = Lexer::from_reader(read);
-
-        assert_eq!(~"as",               lexer.peek_str(2u));
-        assert_eq!(0u,                  lexer.col);
-        assert_eq!(1u,                  lexer.line);
-        assert_eq!(Some(Char('a')),     lexer.read_chr());
-        assert_eq!(1u,                  lexer.col);
-        assert_eq!(1u,                  lexer.line);
-        assert_eq!(~"s",                lexer.read_str(1u));
-        assert_eq!(2u,                  lexer.col);
-        assert_eq!(1u,                  lexer.line);
     }
 
     #[test]
