@@ -835,21 +835,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     // TODO Write test
     fn get_nmtoken(&mut self) -> Option<XmlToken> {
-        let mut name = ~"";
-
-        match self.peek_chr() {
-            Some(Char(a)) if(util::is_name_start(&a)) => {
-                name.push_char(a);
-            }
-            _ => {
-                self.handle_errors(IllegalChar, None);
-            }
-        };
-
-        let result = self.process_namechars();
-        name.push_str(result);
-
-        Some(NameToken(name))
+        None
     }
 
     fn get_left_bracket_token(&mut self) -> Option<XmlToken> {
