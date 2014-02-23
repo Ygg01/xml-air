@@ -1099,7 +1099,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                     Some(ParRef(ref_name))
                 }
             },
-            Some(Char(_)) => {
+            Some(Char(a)) => {
+                self.rewind(col,line, from_char(a));
                 self.handle_errors(IllegalChar, None);
                 if is_ent {
                     Some(Ref(ref_name))
@@ -1107,7 +1108,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                     Some(ParRef(ref_name))
                 }
             },
-            Some(RestrictedChar(_)) => {
+            Some(RestrictedChar(a)) => {
+                self.rewind(col,line, from_char(a));
                 self.handle_errors(IllegalChar, None);
                 if is_ent {
                     Some(Ref(ref_name))
