@@ -136,7 +136,7 @@ pub struct XmlElem {
 }
 
 
-#[deriving(Clone,Eq,ToStr)]
+#[deriving(Clone,Eq,Show)]
 /// A struct representing an XML attribute
 pub struct XmlAttr {
     /// The attribute's name
@@ -147,7 +147,7 @@ pub struct XmlAttr {
     namespace: ~XmlNS
 }
 
-#[deriving(Clone,Eq)]
+#[deriving(Clone,Eq,Show)]
 /// A struct that models an XML namespace
 pub struct XmlNS {
     /// The namespace's shorthand name

@@ -12,7 +12,7 @@ use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
 mod util;
 
-#[deriving(Eq, ToStr, Clone)]
+#[deriving(Eq, Show, Clone)]
 pub enum XmlToken {
     /// Processing instruction token
     /// First string represents target and the second string
@@ -116,7 +116,7 @@ pub enum XmlToken {
 
 }
 
-#[deriving(Eq,ToStr)]
+#[deriving(Eq,Show)]
 pub enum Character {
     Char(char),
     RestrictedChar(char),
@@ -148,7 +148,7 @@ impl Character {
         }
     }
 }
-#[deriving(Eq,ToStr)]
+#[deriving(Eq,Show)]
 enum State {
     OutsideTag,
     // Attlist takes quote, because attributes are mixed content and to
@@ -169,7 +169,7 @@ enum State {
     ExpectStandalone,
     ExpectVersion
 }
-#[deriving(Eq,ToStr)]
+#[deriving(Eq,Show)]
 enum Quotes {
     Single,
     Double

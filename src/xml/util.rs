@@ -1,5 +1,5 @@
-
-#[deriving(Eq, Clone, ToStr)]
+use std::fmt;
+#[deriving(Eq, Clone, Show)]
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
 pub struct XmlError {
@@ -15,7 +15,7 @@ pub struct XmlError {
     mark: Option<Mark>
 }
 
-#[deriving(Eq, Clone, ToStr)]
+#[deriving(Eq, Clone, Show)]
 pub enum ErrKind {
     NonDigitError,
     UnreadableChar,
@@ -77,12 +77,12 @@ pub struct Mark {
     context: ~str
 }
 
-impl ToStr for Mark {
+impl fmt::Show for Mark {
     /// Displays the string represenation to error mark
     /// E.g.
     ///       Thes text isn't spelt properly
     ///       ^~~~
-    fn to_str(&self) -> ~str {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut mark_str = self.offset_msg.clone();
 
         mark_str.push_str(self.context);
@@ -102,7 +102,7 @@ impl ToStr for Mark {
             }
 
         };
-        mark_str
+        mark_str.fmt(f)
     }
 }
 
