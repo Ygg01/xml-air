@@ -159,6 +159,7 @@ enum State {
     InDoctype,
     InElementType,
     InEntityType,
+    InNotationType,
     InExternalId,
     Pubid,
     InProlog,
@@ -328,10 +329,13 @@ impl<R: Reader+Buffer> Lexer<R> {
                 match c {
                     &'<' => {
                         let res = self.get_left_bracket_token();
+
                         if res == Some(EntityType) {
                             self.state = InEntityType;
                         } else if res == Some(ElementType) {
                             self.state = InElementType;
+                        } else if res == Some(NotationType) {
+                            self.state = InNotationType;
                         }
                         res
                     },
@@ -344,7 +348,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                     // TODO change to error
                     _   => self.get_text_token()
                 }
-            }
+            },
             InElementType => {
                 match c {
                     chr if is_name_start(chr) => {
@@ -375,6 +379,17 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'#' => self.get_pcdata_token(),
                     // TODO Change to proper error
                     _     => {
+                        Some(self.handle_errors(IllegalChar, None))
+                    }
+                }
+            },
+            InNotationType => {
+                match c {
+                    &'>' => {
+                        self.state = InternalSubset;
+                        self.get_right_bracket_token()
+                    },
+                    _    => {
                         Some(self.handle_errors(IllegalChar, None))
                     }
                 }
@@ -893,6 +908,10 @@ impl<R: Reader+Buffer> Lexer<R> {
             Some(Char('E')) => {
                 self.buf.push_char('E');
                 self.get_entity_or_element_token()
+            },
+            Some(Char('N')) => {
+                self.buf.push_char('N');
+                self.get_notation_token()
             }
             None => Some(Text(~"<!")),
             _ => Some(Text(~"NON IMPLEMENTED"))
@@ -1021,7 +1040,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             }
         }
 
-        let is_radix = (radix == 16);
+        let is_radix = radix == 16;
         let char_ref = self.process_digits(&is_radix);
 
         let col = self.col;
@@ -1197,6 +1216,24 @@ impl<R: Reader+Buffer> Lexer<R> {
             self.rewind(col, line, read);
         }
 
+        result
+    }
+
+    fn get_notation_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!N", self.buf);
+
+        let col = self.col;
+        let line = self.line;
+        let result;
+
+        let read = self.read_str(7u);
+
+        if read == ~"OTATION" {
+            result = Some(NotationType);
+        } else {
+            self.rewind(col, line, read);
+            result = Some(Text(~"<!N"));
+        }
         result
     }
 
