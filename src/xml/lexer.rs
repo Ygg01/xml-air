@@ -1718,7 +1718,7 @@ mod tests {
     }
 
     #[test]
-    fn test_doctype() {
+    fn test_doctype1() {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
         <!ELEMENT (name|(#PCDATA,%div;))?+*>
         ]>");
@@ -1753,12 +1753,15 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(RightSqBracket),            lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
+    }
 
+    #[test]
+    fn test_doctype2() {
         let str2 = bytes!("<!DOCTYPE PUBLIC [
         <!ENTITY % 'text%ent;&x;&#94;&#x7E;' PUBLIC 'quote'><![]]>
         ]>");
         let read2 = BufReader::new(str2);
-        lexer = Lexer::from_reader(read2);
+        let mut lexer = Lexer::from_reader(read2);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
