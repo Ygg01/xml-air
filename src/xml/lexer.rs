@@ -1833,7 +1833,7 @@ mod tests {
     #[test]
     fn test_doctype3() {
         let str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!NOTATION>
+        <!NOTATION PUBLIC \"blabla\">
         ]>");
         let read2 = BufReader::new(str2);
         let mut lexer = Lexer::from_reader(read2);
@@ -1846,6 +1846,10 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(NotationType),              lexer.pull());
         assert_eq!(InNotationType,                  lexer.state);
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(QuotedString(~"blabla")),   lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(InternalSubset,                  lexer.state);
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
