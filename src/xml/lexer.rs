@@ -389,6 +389,11 @@ impl<R: Reader+Buffer> Lexer<R> {
                         self.state = InternalSubset;
                         self.get_right_bracket_token()
                     },
+                    chr if is_name_start(chr) => {
+                        self.get_name_token()
+                    },
+                    &'\''
+                    | &'"'  => self.get_quote_token(),
                     _    => {
                         Some(self.handle_errors(IllegalChar, None))
                     }
