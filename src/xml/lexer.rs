@@ -176,6 +176,11 @@ enum Quotes {
     Double
 }
 
+pub struct Checkpoint {
+    col: uint,
+    line: uint
+}
+
 impl Quotes {
     pub fn to_char(&self) -> char {
         match *self {
@@ -204,6 +209,7 @@ pub struct Lexer<R> {
     line: uint,
     col: uint,
     config: Config,
+    priv checkpoint: Option<Checkpoint>,
     priv state: State,
     priv peek_buf: ~str,
     priv buf: ~str,
@@ -488,6 +494,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             col: 0,
             config: Config::default(),
             peek_buf: ~"",
+            checkpoint: None,
             state: OutsideTag,
             buf: ~"",
             source: data
@@ -504,15 +511,33 @@ impl<R: Reader+Buffer> Lexer<R> {
         clean_restricted(self.read_raw_str(len))
     }
 
-    #[inline(always)]
-    /// FIXME: Replace this with in built rewind before read operations
-    fn rewind(&mut self, col: uint, line: uint, peeked: ~str) {
-        self.col = col;
-        self.line = line;
+    #[inline]
+    fn rewind(&mut self, peeked: ~str) {
+        match self.checkpoint {
+            Some(cp) => {
+                self.rewind_to(peeked, cp);
+            },
+            _ => {}
+        }
+    }
+
+    #[inline]
+    fn rewind_to(&mut self, peeked: ~str, cp: Checkpoint) {
+        self.col  = cp.col;
+        self.line = cp.line;
 
         for c in peeked.chars_rev(){
-             self.peek_buf.push_char(c);
+            self.peek_buf.push_char(c);
         }
+    }
+
+    fn save_checkpoint (&mut self) -> Checkpoint {
+        let checkpoint  = Checkpoint {
+            col: self.col,
+            line: self.line
+        };
+        self.checkpoint = Some(checkpoint);
+        checkpoint
     }
 
     /// This method reads a character and returns an enum that
@@ -675,15 +700,13 @@ impl<R: Reader+Buffer> Lexer<R> {
         let peek_len = peek_look.char_len() - 1;
 
         while !peek_found {
-            let pre_col = self.col;
-            let pre_line = self.line;
+            let pre_cp = self.save_checkpoint();
             let extracted_char = self.read_chr();
 
             match extracted_char {
                 None          => {},
                 Some(Char(a)) => {
-                    let col = self.col;
-                    let line = self.line;
+                    self.save_checkpoint();
                     let mut rew = ~"";
                     let mut peek = from_char(a);
 
@@ -700,9 +723,9 @@ impl<R: Reader+Buffer> Lexer<R> {
 
                     if rew != ~"" {
                         if peek_found {
-                            self.rewind(pre_col, pre_line, peek);
+                            self.rewind_to(peek, pre_cp);
                         } else {
-                            self.rewind(col, line, rew);
+                            self.rewind(rew);
                         }
                     }
                 },
@@ -854,8 +877,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         assert_eq!(~"<",   self.buf);
 
         let result;
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let chr = self.read_chr();
         let rew;
 
@@ -886,7 +908,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             if self.state == OutsideTag {
                 self.state = InStartTag;
             }
-            self.rewind(col, line, rew);
+            self.rewind(rew);
             result = Some(LessBracket);
         }
 
@@ -928,8 +950,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn get_cdata_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<![",       self.buf);
 
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let cdata = self.read_str(6u);
         let result;
 
@@ -939,7 +960,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
             result = Some(CData(text));
         } else {
-            self.rewind(col, line, cdata);
+            self.rewind(cdata);
 
             result = Some(DoctypeOpen);
         }
@@ -948,8 +969,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_doctype_start_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<!D",       self.buf);
-        let col         = self.col;
-        let line        = self.line;
+        self.save_checkpoint();
         let peeked_str  = self.read_str(6u);
         let result;
 
@@ -957,7 +977,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             self.state = InDoctype;
             result = Some(DoctypeStart);
         } else {
-            self.rewind(col, line, peeked_str);
+            self.rewind(peeked_str);
             result = Some(self.handle_errors(
                             UnknownToken,
                             Some(Text(~"<!D"))
@@ -976,8 +996,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_ref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"&",  self.buf);
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let chr = self.read_chr();
 
         let token = match chr {
@@ -986,11 +1005,11 @@ impl<R: Reader+Buffer> Lexer<R> {
                 self.get_char_ref_token()
             },
             Some(Char(a)) => {
-                self.rewind(col,line, from_char(a));
+                self.rewind(from_char(a));
                 self.get_entity_ref_token(true)
             },
             Some(RestrictedChar(a)) => {
-                self.rewind(col,line, from_char(a));
+                self.rewind(from_char(a));
                 self.handle_errors(
                     RestrictedCharError,
                     None
@@ -1014,8 +1033,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"&#",       self.buf);
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let next_char = self.read_chr();
 
 
@@ -1025,7 +1043,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                 radix = 16;
             },
             Some(Char(a)) if (util::is_digit(&a)) => {
-                self.rewind(col,line, from_char(a));
+                self.rewind(from_char(a));
                 radix = 10;
             },
             Some(Char(_))
@@ -1048,8 +1066,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         let is_radix = radix == 16;
         let char_ref = self.process_digits(&is_radix);
 
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let read_chr = self.read_chr();
 
         match read_chr {
@@ -1057,7 +1074,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             },
             Some(Char(a))
             | Some(RestrictedChar(a)) => {
-                self.rewind(col, line, from_char(a));
+                self.rewind(from_char(a));
             }
             _ => {
                 return Some(ErrorToken(self.buf.clone()));
@@ -1097,8 +1114,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
         let ref_name = self.process_name();
 
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let expect_semi = self.read_chr();
 
         let result = match expect_semi {
@@ -1110,7 +1126,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                 }
             },
             Some(Char(a)) => {
-                self.rewind(col,line, from_char(a));
+                self.rewind(from_char(a));
                 self.handle_errors(IllegalChar, None);
                 if is_ent {
                     Some(Ref(ref_name))
@@ -1119,7 +1135,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                 }
             },
             Some(RestrictedChar(a)) => {
-                self.rewind(col,line, from_char(a));
+                self.rewind(from_char(a));
                 self.handle_errors(IllegalChar, None);
                 if is_ent {
                     Some(Ref(ref_name))
@@ -1146,14 +1162,13 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_doctype_end_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"]",        self.buf);
-        let col  = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let rew  = self.read_str(2u);
 
         if rew == ~"]>" {
             Some(DoctypeClose)
         } else {
-            self.rewind(col,line, rew);
+            self.rewind(rew);
             Some(RightSqBracket)
         }
     }
@@ -1184,15 +1199,14 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_pcdata_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"#",    self.buf);
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let rew = self.read_str(6u);
         let result;
 
         if rew == ~"PCDATA" {
             result = Some(PCDataDecl);
         } else {
-            self.rewind(col, line, rew);
+            self.rewind(rew);
             result = Some(ErrorToken(~"#"));
         }
 
@@ -1203,14 +1217,13 @@ impl<R: Reader+Buffer> Lexer<R> {
         assert_eq!(~"<!E", self.buf);
 
         let mut result = Some(Text(~"<!E"));
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let mut read = self.read_str(6);
 
         if read == ~"LEMENT" {
             result = Some(ElementType);
         } else {
-            self.rewind(col, line, read);
+            self.rewind(read);
         }
 
         read = self.read_str(5);
@@ -1218,7 +1231,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         if read == ~"NTITY" {
             result = Some(EntityType);
         } else {
-            self.rewind(col, line, read);
+            self.rewind(read);
         }
 
         result
@@ -1227,8 +1240,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn get_notation_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<!N", self.buf);
 
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let result;
 
         let read = self.read_str(7u);
@@ -1236,7 +1248,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         if read == ~"OTATION" {
             result = Some(NotationType);
         } else {
-            self.rewind(col, line, read);
+            self.rewind(read);
             result = Some(Text(~"<!N"));
         }
         result
@@ -1309,12 +1321,11 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn process_quotes(&mut self, quote: ~str) -> XmlToken {
         let text = self.read_until_peek(quote);
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let peek = self.read_str(1u);
 
         if peek != quote {
-            self.rewind(col,line, peek);
+            self.rewind(peek);
             self.handle_errors(
                 IllegalChar,
                 Some(QuotedString(text.clone()))
@@ -1471,8 +1482,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_comment_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<!-", self.buf);
-        let col = self.col;
-        let line = self.line;
+        self.save_checkpoint();
         let rewind_str = self.read_str(1u);
 
         if rewind_str == ~"-" {
@@ -1481,19 +1491,19 @@ impl<R: Reader+Buffer> Lexer<R> {
             return Some(Comment(text))
         } else {
 
-            self.rewind(col,line, rewind_str);
+            self.rewind(rewind_str);
             return Some(ErrorToken(~"<!-"))
         }
     }
 
     fn process_comment(&mut self) -> ~str {
-        let mut col = self.col;
-        let mut line = self.line;
+        self.save_checkpoint();
         let mut peek = self.read_str(3u);
         let mut result = ~"";
         let mut found_end = false;
 
         while !found_end {
+
             if peek.starts_with("--") && peek == ~"-->" {
                 found_end = true;
             } else {
@@ -1504,7 +1514,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                     );
                 }
 
-                self.rewind(col, line, peek);
+                self.rewind(peek);
                 match self.read_chr() {
                     None
                     | Some(RestrictedChar(_)) => {},
@@ -1512,8 +1522,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                         result.push_char(a)
                     }
                 }
-                col = self.col;
-                line = self.line;
+                self.save_checkpoint();
                 peek = self.read_str(3u);
             }
         }
@@ -1539,8 +1548,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
     fn get_pi_end_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"?",   self.buf);
-        let line = self.line;
-        let col  = self.col;
+        self.save_checkpoint();
 
         let chr = self.read_chr();
         let result = match chr {
@@ -1549,7 +1557,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                 Some(PrologEnd)
             },
             Some(Char(a)) => {
-                self.rewind(col, line, a.to_str());
+                self.rewind(a.to_str());
                 Some(QuestionMark)
             },
             Some(RestrictedChar(_)) => {
@@ -2022,12 +2030,13 @@ mod tests {
     fn test_rewind(){
         let str1 = bytes!("abcd");
         let read = BufReader::new(str1);
-
         let mut lexer = Lexer::from_reader(read);
+
+        lexer.save_checkpoint();
         let read = lexer.read_str(3);
         assert_eq!(~"abc", read);
 
-        lexer.rewind(0,1, read);
+        lexer.rewind(read);
 
         let after = lexer.read_str(3);
         assert_eq!(~"abc", after);
