@@ -56,12 +56,6 @@ impl Config {
             illegal_char:               Some(Warn)
         }
     }
-
-    pub fn decide(error: &ErrKind) -> ErrBehavior {
-        match error {
-            _ => Warn
-        }
-    }
 }
 
 #[deriving(Eq, Clone)]
@@ -281,16 +275,6 @@ pub fn is_restricted(chr: &char) -> bool {
         | '\U000EFFFE' | '\U000EFFFF'
         | '\U000FFFFE' | '\U000FFFFF' => true,
         _ => false
-    }
-}
-
-pub fn is_valid_char(chr: &char) -> bool {
-    if is_restricted(chr) {
-        false
-    } else if is_char(chr) {
-        true
-    } else {
-        false
     }
 }
 
