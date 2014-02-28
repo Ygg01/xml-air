@@ -1769,7 +1769,7 @@ mod tests {
     }
 
     #[test]
-    fn test_doctype1() {
+    fn test_doctype_el() {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
         <!ELEMENT (name|(#PCDATA,%div;))?+*>
         ]>");
@@ -1807,7 +1807,7 @@ mod tests {
     }
 
     #[test]
-    fn test_doctype2() {
+    fn test_doctype_ent() {
         let str2 = bytes!("<!DOCTYPE PUBLIC [
         <!ENTITY % 'text%ent;&x;&#94;&#x7E;' PUBLIC 'quote'><![]]>
         ]>");
@@ -1844,7 +1844,7 @@ mod tests {
     }
 
     #[test]
-    fn test_doctype3() {
+    fn test_doctype_nota() {
         let str2 = bytes!("<!DOCTYPE PUBLIC [
         <!NOTATION PUBLIC \"blabla\">
         ]>");
