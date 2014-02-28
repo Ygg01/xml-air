@@ -838,6 +838,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         // these types are encoding, standalone and version.
         // Quotes that have specific behavior usually are handled
         // by lexer because they can have subtle errors.
+        //FIXME: NO STATE OUTSIDE parse char
         if self.state == InProlog && self.buf == ~"encoding" {
             self.state = ExpectEncoding
         } else if self.state == InProlog && self.buf == ~"standalone" {
@@ -919,6 +920,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             // attributes, so we look if we are outside
             // tag, to make sure we don't activate it for
             // Doctype Declaration for example
+            //FIXME: NO STATE OUTSIDE parse char
             if self.state == OutsideTag {
                 self.state = InStartTag;
             }
@@ -992,6 +994,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         let result;
 
         if peeked_str == ~"OCTYPE" {
+            //FIXME: NO STATE OUTSIDE parse char
             self.state = InDoctype;
             result = Some(DoctypeStart);
         } else {
@@ -1319,6 +1322,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
         // TODO only keep encoding quote, it has special rules, others are
         // Better reported by a parser.
+        //FIXME: NO STATE OUTSIDE parse char
         let result = match self.state {
             ExpectEncoding      => self.process_encoding_quote(&quote_char),
             ExpectStandalone    => self.proces_standalone(quote),
@@ -1332,6 +1336,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn proces_standalone(&mut self, quote: ~str) -> XmlToken {
         assert_eq!(ExpectStandalone, self.state);
         let quote = self.process_quotes(quote);
+        //FIXME: NO STATE OUTSIDE parse char
         self.state = InProlog;
 
         let result = match quote {
@@ -1345,6 +1350,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn proces_version(&mut self, quote: ~str) -> XmlToken {
         assert_eq!(ExpectVersion, self.state);
         let quote = self.process_quotes(quote);
+        //FIXME: NO STATE OUTSIDE parse char
         self.state = InProlog;
 
         let result = match quote {
@@ -1374,6 +1380,7 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn process_encoding_quote(&mut self, quote: &char) -> XmlToken {
         assert_eq!(ExpectEncoding, self.state);
         assert!(*quote == '\'' || *quote == '"');
+        //FIXME: NO STATE OUTSIDE parse char
         self.state = InProlog;
 
         let result;
@@ -1498,6 +1505,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
 
         if target.eq_ignore_ascii_case("xml") {
+            //FIXME: NO STATE OUTSIDE parse char
             self.state = InProlog;
             return Some(PrologStart);
         } else {
@@ -1589,6 +1597,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         let chr = self.read_chr();
         let result = match chr {
             Some(Char('>')) => {
+                //FIXME: NO STATE OUTSIDE parse char
                 self.state = OutsideTag;
                 Some(PrologEnd)
             },
