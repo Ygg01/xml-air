@@ -160,6 +160,7 @@ enum State {
     InElementType,
     InEntityType,
     InNotationType,
+    InAttlistType,
     InExternalId,
     Pubid,
     InProlog,
@@ -342,6 +343,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                             self.state = InElementType;
                         } else if res == Some(NotationType) {
                             self.state = InNotationType;
+                        } else if res == Some(AttlistType) {
+                            self.state = InAttlistType;
                         }
                         res
                     },
@@ -405,6 +408,17 @@ impl<R: Reader+Buffer> Lexer<R> {
                     }
                 }
             },
+            InAttlistType => {
+                match c {
+                    &'>' => {
+                        self.state = InternalSubset;
+                        self.get_right_bracket_token()
+                    }
+                    _ => {
+                        Some(self.handle_errors(IllegalChar, None))
+                    }
+                }
+            }
             InEntityType => {
                 match c {
                     chr if is_name_start(chr)
@@ -939,6 +953,10 @@ impl<R: Reader+Buffer> Lexer<R> {
             Some(Char('N')) => {
                 self.buf.push_char('N');
                 self.get_notation_token()
+            },
+            Some(Char('A')) => {
+                self.buf.push_char('A');
+                self.get_attlist_token()
             }
             None => Some(Text(~"<!")),
             _ => Some(Text(~"NON IMPLEMENTED"))
@@ -987,6 +1005,24 @@ impl<R: Reader+Buffer> Lexer<R> {
         result
     }
 
+    fn get_attlist_token(&mut self) -> Option<XmlToken> {
+        assert_eq!(~"<!A",       self.buf);
+        self.save_checkpoint();
+
+        let peeked_str = self.read_str(6u);
+        let result;
+
+        if peeked_str == ~"TTLIST" {
+            result = Some(AttlistType);
+        } else {
+            self.rewind(peeked_str);
+            result = Some(self.handle_errors(
+                            UnknownToken,
+                            Some(Text(~"<!A")))
+            );
+        }
+        result
+    }
 
     #[inline(always)]
     fn get_equal_token(&mut self) -> Option<XmlToken> {
