@@ -1594,7 +1594,7 @@ mod tests {
     use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
     use super::{LeftSqBracket, RightSqBracket, InEntityType,PCDataDecl};
     use super::{Comma,ParRef, DoctypeOpen, DoctypeClose, NotationType};
-    use super::{InNotationType,InternalSubset};
+    use super::{InNotationType,InternalSubset,AttlistType};
 
     use std::io::BufReader;
 
@@ -1865,6 +1865,27 @@ mod tests {
         assert_eq!(Some(QuotedString(~"blabla")),   lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(InternalSubset,                  lexer.state);
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(RightSqBracket),            lexer.pull());
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
+    }
+
+    #[test]
+    fn test_doctype_attlist() {
+        let str2 = bytes!("<!DOCTYPE PUBLIC [
+        <!ATTLIST>
+        ]>");
+        let read2 = BufReader::new(str2);
+        let mut lexer = Lexer::from_reader(read2);
+
+        assert_eq!(Some(DoctypeStart),              lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftSqBracket),             lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(AttlistType),               lexer.pull());
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(RightSqBracket),            lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
