@@ -387,7 +387,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'%' => self.get_peref_token(),
                     &',' => self.get_comma_token(),
                     &'?' => self.get_question_mark_token(),
-                    &'#' => self.get_pcdata_token(),
+                    &'#' => self.get_hash_token(),
                     // TODO Change to proper error
                     _     => {
                         Some(self.handle_errors(IllegalChar, None))
@@ -1243,7 +1243,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         Some(Percent)
     }
 
-    fn get_pcdata_token(&mut self) -> Option<XmlToken> {
+    fn get_hash_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"#",    self.buf);
         self.save_checkpoint();
         let rew = self.read_str(6u);
