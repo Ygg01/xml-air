@@ -99,15 +99,14 @@ pub enum XmlToken {
     QuotedString(~str),
     /// Quote token
     Quote,
-    /// Symbol #REQUIRED
-    RequiredDecl,
-    /// Symbol #IMPLIED
-    ImpliedDecl,
     /// Symbol #FIXED
     FixedDecl,
     /// Symbol #PCDATA
-    PCDataDecl
-
+    PCDataDecl,
+    /// Symbol #REQUIRED
+    RequiredDecl,
+    /// Symbol #IMPLIED
+    ImpliedDecl
 }
 
 #[deriving(Eq,Show)]
