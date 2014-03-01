@@ -283,7 +283,13 @@ impl<R: Reader+Buffer> Lexer<R> {
                                 self.state = Attlist(Quotes::from_chr(quote));
                                 self.get_spec_quote()
                             },
-                    &'<'    => self.get_left_bracket_token(),
+                    &'<'    => {
+                                let tok = self.get_left_bracket_token();
+                                if tok == Some(PrologStart) {
+                                    self.state = InProlog;
+                                }
+                                tok
+                            }
                     &'/'    => self.get_empty_tag_token(),
                     _       => Some(self.handle_errors(IllegalChar, None))
                 }
@@ -302,7 +308,13 @@ impl<R: Reader+Buffer> Lexer<R> {
             },
             InDoctype => {
                 match c {
-                    &'<'    => self.get_left_bracket_token(),
+                    &'<'    => {
+                                let tok = self.get_left_bracket_token();
+                                if tok == Some(PrologStart) {
+                                    self.state = InProlog;
+                                }
+                                tok
+                            },
                     &'>'    => {
                         let res = self.get_right_bracket_token();
                         self.state = OutsideTag;
@@ -336,6 +348,8 @@ impl<R: Reader+Buffer> Lexer<R> {
                             self.state = InNotationType;
                         } else if res == Some(AttlistType) {
                             self.state = InAttlistType;
+                        } else if res == Some(PrologStart) {
+                            self.state = InProlog;
                         }
                         res
                     },
@@ -465,6 +479,32 @@ impl<R: Reader+Buffer> Lexer<R> {
                     _       => self.get_ent_text(&quotes.to_char())
                 }
             },
+            OutsideTag => {
+                match c {
+                    chr if is_name_start(chr)
+                              => self.get_name_token(),
+                    chr if is_name_char(chr)
+                              => self.get_nmtoken(),
+                    &'<'  => {
+                        let tok = self.get_left_bracket_token();
+                        if tok == Some(LessBracket) {
+                            self.state = InStartTag
+                        } else if tok == Some(DoctypeStart) {
+                            self.state = InDoctype;
+                        }
+                        tok
+                    },
+                    &'&'  => self.get_ref_token(),
+                    &'%'  => self.get_peref_token(),
+                    &'>'  => self.get_right_bracket_token(),
+                    &'?'  => self.get_pi_end_token(),
+                    &'/'  => self.get_empty_tag_token(),
+                    &'='  => self.get_equal_token(),
+                    &'\''
+                    | &'"'  => self.get_quote_token(),
+                    _  => self.get_text_token(),
+                }
+            }
             _ => {
                 match c {
                     chr if is_name_start(chr)
@@ -894,14 +934,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         } else if self.buf == ~"<!" {
             result = self.get_amp_excl();
         } else {
-            // Only elements inside start tag can have
-            // attributes, so we look if we are outside
-            // tag, to make sure we don't activate it for
-            // Doctype Declaration for example
-            //FIXME: NO STATE OUTSIDE parse char
-            if self.state == OutsideTag {
-                self.state = InStartTag;
-            }
             self.rewind(rew);
             result = Some(LessBracket);
         }
@@ -972,8 +1004,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         let result;
 
         if peeked_str == ~"OCTYPE" {
-            //FIXME: NO STATE OUTSIDE parse char
-            self.state = InDoctype;
             result = Some(DoctypeStart);
         } else {
             self.rewind(peeked_str);
@@ -1394,8 +1424,7 @@ impl<R: Reader+Buffer> Lexer<R> {
 
 
         if target.eq_ignore_ascii_case("xml") {
-            //FIXME: NO STATE OUTSIDE parse char
-            self.state = InProlog;
+
             return Some(PrologStart);
         } else {
             // We skip a possible whitespace token
@@ -1486,8 +1515,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         let chr = self.read_chr();
         let result = match chr {
             Some(Char('>')) => {
-                //FIXME: NO STATE OUTSIDE parse char
-                self.state = OutsideTag;
                 Some(PrologEnd)
             },
             Some(Char(a)) => {
