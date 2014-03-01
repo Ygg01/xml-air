@@ -416,7 +416,11 @@ impl<R: Reader+Buffer> Lexer<R> {
                         self.state = InternalSubset;
                         self.get_right_bracket_token()
                     },
-                    &
+                    &'(' => self.get_paren_left_token(),
+                    &')' => self.get_paren_right_token(),
+                    &'|' => self.get_pipe_token(),
+                    &'#' => self.get_hash_token(),
+                    chr if is_name_start(chr) =>  self.get_name_token(),
                     _ => {
                         Some(self.handle_errors(IllegalChar, None))
                     }
@@ -1246,14 +1250,42 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn get_hash_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"#",    self.buf);
         self.save_checkpoint();
-        let rew = self.read_str(6u);
+        let mut rew = self.read_str(5u);
         let result;
 
-        if rew == ~"PCDATA" {
-            result = Some(PCDataDecl);
+        if rew == ~"FIXED" {
+            result = Some(FixedDecl);
+        } else if rew == ~"PCDAT" {
+
+            rew.push_str(self.read_str(1u));
+            if rew == ~"PCDATA" {
+                result = Some(PCDataDecl);
+            } else {
+                result = Some(ErrorToken(~"#"));
+            }
+        } else if rew ==  ~"IMPLI" {
+
+            rew.push_str(self.read_str(2u));
+            if rew == ~"IMPLIED" {
+                result = Some(ImpliedDecl);
+            } else {
+                result = Some(ErrorToken(~"#"));
+            }
+        } else if rew == ~"REQUI" {
+
+            rew.push_str(self.read_str(3u));
+            if rew == ~"REQUIRED" {
+                result = Some(RequiredDecl);
+            } else {
+                result = Some(ErrorToken(~"#"));
+            }
         } else {
-            self.rewind(rew);
             result = Some(ErrorToken(~"#"));
+        }
+
+        match result {
+            Some(ErrorToken(_)) => self.rewind(rew),
+            _ => {}
         }
 
         result
