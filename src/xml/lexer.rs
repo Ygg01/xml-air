@@ -1550,7 +1550,7 @@ mod tests {
     use super::{ GreaterBracket, LessBracket, ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
-    use super::{Ref, Quote, QNameToken};
+    use super::{Ref, Quote, QNameToken, ImpliedDecl};
     use super::{LeftSqBracket, RightSqBracket, InEntityType,PCDataDecl};
     use super::{Comma,ParRef, DoctypeOpen, DoctypeClose, NotationType};
     use super::{InNotationType,InternalSubset,AttlistType};
@@ -1832,7 +1832,7 @@ mod tests {
     #[test]
     fn test_doctype_attlist() {
         let str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!ATTLIST>
+        <!ATTLIST test NOTATION (stuff|stuf2) #IMPLIED>
         ]>");
         let read2 = BufReader::new(str2);
         let mut lexer = Lexer::from_reader(read2);
@@ -1844,6 +1844,18 @@ mod tests {
         assert_eq!(Some(LeftSqBracket),             lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(AttlistType),               lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"test")),        lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"NOTATION")),    lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftParen),                 lexer.pull());
+        assert_eq!(Some(NameToken(~"stuff")),       lexer.pull());
+        assert_eq!(Some(Pipe),                      lexer.pull());
+        assert_eq!(Some(NameToken(~"stuf2")),       lexer.pull());
+        assert_eq!(Some(RightParen),                lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(ImpliedDecl),               lexer.pull())
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(RightSqBracket),            lexer.pull());
