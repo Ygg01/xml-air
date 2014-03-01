@@ -22,12 +22,6 @@ pub enum XmlToken {
     PrologStart,
     /// End of PI block '?>'
     PrologEnd,
-    /// XML declaration encoding token
-    Encoding(~str),
-    /// XML declaration standalone token
-    Standalone(bool),
-    /// XML declaration version
-    Version(~str),
     /// Error token
     ErrorToken(~str),
     /// Symbol '<'
@@ -166,10 +160,7 @@ enum State {
     InProlog,
     InStartTag,
     InternalSubset,
-    Doctype,
-    ExpectEncoding,
-    ExpectStandalone,
-    ExpectVersion
+    Doctype
 }
 #[deriving(Eq,Show)]
 enum Quotes {
@@ -834,19 +825,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         let result = self.process_namechars();
         self.buf.push_str(result);
 
-        // Prolog has three special type of quotes
-        // these types are encoding, standalone and version.
-        // Quotes that have specific behavior usually are handled
-        // by lexer because they can have subtle errors.
-        //FIXME: NO STATE OUTSIDE parse char
-        if self.state == InProlog && self.buf == ~"encoding" {
-            self.state = ExpectEncoding
-        } else if self.state == InProlog && self.buf == ~"standalone" {
-            self.state = ExpectStandalone
-        } else if self.state == InProlog && self.buf == ~"version" {
-            self.state = ExpectVersion
-        }
-
         Some(NameToken(self.buf.clone()))
     }
 
@@ -1320,46 +1298,9 @@ impl<R: Reader+Buffer> Lexer<R> {
 
         let quote_char = if quote == ~"'" { '\''} else { '"'};
 
-        // TODO only keep encoding quote, it has special rules, others are
-        // Better reported by a parser.
-        //FIXME: NO STATE OUTSIDE parse char
-        let result = match self.state {
-            ExpectEncoding      => self.process_encoding_quote(&quote_char),
-            ExpectStandalone    => self.proces_standalone(quote),
-            ExpectVersion       => self.proces_version(quote),
-            _                   => self.process_quotes(quote)
-        };
-
-        Some(result)
+        Some(self.process_quotes(quote))
     }
 
-    fn proces_standalone(&mut self, quote: ~str) -> XmlToken {
-        assert_eq!(ExpectStandalone, self.state);
-        let quote = self.process_quotes(quote);
-        //FIXME: NO STATE OUTSIDE parse char
-        self.state = InProlog;
-
-        let result = match quote {
-            QuotedString(~"yes")    => Standalone(true),
-            QuotedString(~"no")     => Standalone(false),
-            _                       => quote
-        };
-        result
-    }
-
-    fn proces_version(&mut self, quote: ~str) -> XmlToken {
-        assert_eq!(ExpectVersion, self.state);
-        let quote = self.process_quotes(quote);
-        //FIXME: NO STATE OUTSIDE parse char
-        self.state = InProlog;
-
-        let result = match quote {
-            QuotedString(~"1.1")    => Version(~"1.1"),
-            QuotedString(~"1.0")    => Version(~"1.0"),
-            _                       => quote
-        };
-        result
-    }
 
     fn process_quotes(&mut self, quote: ~str) -> XmlToken {
         let text = self.read_until_peek(quote);
@@ -1375,58 +1316,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         }
 
         QuotedString(text.clone())
-    }
-
-    fn process_encoding_quote(&mut self, quote: &char) -> XmlToken {
-        assert_eq!(ExpectEncoding, self.state);
-        assert!(*quote == '\'' || *quote == '"');
-        //FIXME: NO STATE OUTSIDE parse char
-        self.state = InProlog;
-
-        let result;
-        let mut chr = self.read_chr();
-        let mut first_char = true;
-
-        //Clear buffer
-        self.buf = ~"";
-
-        while chr != Some(Char(*quote)) {
-            match chr {
-                Some(Char(c)) => {
-                    if first_char {
-                        if !util::is_encoding_start_char(&c) {
-                           return self.handle_errors(
-                                    IllegalChar,
-                                    Some(Encoding(self.buf.clone()))
-                            );
-                        }
-                        first_char = false;
-                    } else {
-                        if !util::is_encoding_char(&c) {
-                            return self.handle_errors(
-                                    IllegalChar,
-                                    Some(Encoding(self.buf.clone()))
-                            );
-                        }
-                    }
-                    self.buf.push_char(c);
-                },
-                Some(RestrictedChar(_)) => {
-                    return self.handle_errors(
-                                IllegalChar,
-                                Some(Encoding(self.buf.clone()))
-                    )
-                },
-                None => return self.handle_errors(
-                                PrematureEOF,
-                                Some(Encoding(self.buf.clone()))
-                    )
-            }
-
-            chr = self.read_chr();
-        }
-        result = Encoding(self.buf.clone());
-        result
     }
 
     #[inline]
@@ -1636,7 +1525,7 @@ mod tests {
     use super::{ GreaterBracket, LessBracket, ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
-    use super::{Encoding, Standalone, Version, Ref, Quote, QNameToken};
+    use super::{Ref, Quote, QNameToken};
     use super::{LeftSqBracket, RightSqBracket, InEntityType,PCDataDecl};
     use super::{Comma,ParRef, DoctypeOpen, DoctypeClose, NotationType};
     use super::{InNotationType,InternalSubset,AttlistType};
@@ -1676,7 +1565,7 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
         assert_eq!(Some(Eq),                            lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-        assert_eq!(Some(Encoding(~"UTF-8")),            lexer.pull());
+        assert_eq!(Some(QuotedString(~"UTF-8")),            lexer.pull());
         assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str3 = bytes!("<?xml standalone = 'yes'?>");
@@ -1690,7 +1579,7 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
         assert_eq!(Some(Eq),                            lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-        assert_eq!(Some(Standalone(true)),              lexer.pull());
+        assert_eq!(Some(QuotedString(~"yes")),          lexer.pull());
         assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str4 = bytes!("<?xml standalone = 'no'?>");
@@ -1704,7 +1593,7 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
         assert_eq!(Some(Eq),                            lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-        assert_eq!(Some(Standalone(false)),             lexer.pull());
+        assert_eq!(Some(QuotedString(~"no")),           lexer.pull());
         assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str5 = bytes!("<?xml version = '1.0'?>");
@@ -1718,7 +1607,7 @@ mod tests {
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
         assert_eq!(Some(Eq),                            lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-        assert_eq!(Some(Version(~"1.0")),               lexer.pull());
+        assert_eq!(Some(QuotedString(~"1.0")),          lexer.pull());
         assert_eq!(Some(PrologEnd),                     lexer.pull());
     }
 
