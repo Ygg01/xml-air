@@ -156,7 +156,6 @@ enum State {
     InNotationType,
     InAttlistType,
     InExternalId,
-    Pubid,
     InProlog,
     InStartTag,
     InternalSubset,
@@ -334,7 +333,6 @@ impl<R: Reader+Buffer> Lexer<R> {
                     _       => self.get_text_token()
                 }
             },
-
             InternalSubset => {
                 match c {
                     &'<' => {
@@ -418,12 +416,13 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'>' => {
                         self.state = InternalSubset;
                         self.get_right_bracket_token()
-                    }
+                    },
+                    &
                     _ => {
                         Some(self.handle_errors(IllegalChar, None))
                     }
                 }
-            }
+            },
             InEntityType => {
                 match c {
                     chr if is_name_start(chr)
@@ -504,8 +503,9 @@ impl<R: Reader+Buffer> Lexer<R> {
                     | &'"'  => self.get_quote_token(),
                     _  => self.get_text_token(),
                 }
-            }
-            _ => {
+            },
+            InProlog
+            | Doctype => {
                 match c {
                     chr if is_name_start(chr)
                               => self.get_name_token(),
@@ -1326,8 +1326,6 @@ impl<R: Reader+Buffer> Lexer<R> {
         let quote = self.buf.clone();
         assert!(quote == ~"'" || quote == ~"\"");
 
-        let quote_char = if quote == ~"'" { '\''} else { '"'};
-
         Some(self.process_quotes(quote))
     }
 
@@ -1421,11 +1419,10 @@ impl<R: Reader+Buffer> Lexer<R> {
 
         // Process target name
         let target = self.process_name();
-
+        let result;
 
         if target.eq_ignore_ascii_case("xml") {
-
-            return Some(PrologStart);
+            result = Some(PrologStart);
         } else {
             // We skip a possible whitespace token
             // to get to text of PI
@@ -1433,8 +1430,9 @@ impl<R: Reader+Buffer> Lexer<R> {
 
             let text = self.read_until_peek("?>");
             self.read_str(2u);
-            return Some(PI(target,text));
+            result = Some(PI(target,text));
         }
+        result
     }
 
     fn get_right_bracket_token(&mut self) -> Option<XmlToken> {
@@ -1532,6 +1530,7 @@ impl<R: Reader+Buffer> Lexer<R> {
         result
     }
 
+    #[inline(always)]
     fn get_question_mark_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"?", self.buf);
         Some(QuestionMark)
