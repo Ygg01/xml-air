@@ -1585,7 +1585,7 @@ mod tests {
     use super::{Ref, Quote, QNameToken, ImpliedDecl};
     use super::{LeftSqBracket, RightSqBracket, InEntityType,PCDataDecl};
     use super::{Comma,ParRef, DoctypeOpen, DoctypeClose, NotationType};
-    use super::{InNotationType,InternalSubset,AttlistType};
+    use super::{InNotationType,InternalSubset,AttlistType,NMToken};
 
     use std::io::BufReader;
 
@@ -1863,11 +1863,11 @@ mod tests {
 
     #[test]
     fn test_doctype_attlist() {
-        let str2 = bytes!("<!DOCTYPE PUBLIC [
+        let test_str = bytes!("<!DOCTYPE PUBLIC [
         <!ATTLIST test NOTATION (stuff|stuf2) #IMPLIED>
         ]>");
-        let read2 = BufReader::new(str2);
-        let mut lexer = Lexer::from_reader(read2);
+        let read = BufReader::new(test_str);
+        let mut lexer = Lexer::from_reader(read);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1885,6 +1885,36 @@ mod tests {
         assert_eq!(Some(NameToken(~"stuff")),       lexer.pull());
         assert_eq!(Some(Pipe),                      lexer.pull());
         assert_eq!(Some(NameToken(~"stuf2")),       lexer.pull());
+        assert_eq!(Some(RightParen),                lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(ImpliedDecl),               lexer.pull())
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(RightSqBracket),            lexer.pull());
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
+
+        let test_str2 = bytes!("<!DOCTYPE PUBLIC [
+        <!ATTLIST test NOTATION (9stuff|-stuf2) #IMPLIED>
+        ]>");
+        let read = BufReader::new(test_str2);
+        let mut lexer = Lexer::from_reader(read);
+
+        assert_eq!(Some(DoctypeStart),              lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftSqBracket),             lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(AttlistType),               lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"test")),        lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"NOTATION")),    lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftParen),                 lexer.pull());
+        assert_eq!(Some(NMToken(~"9stuff")),       lexer.pull());
+        assert_eq!(Some(Pipe),                      lexer.pull());
+        assert_eq!(Some(NMToken(~"-stuf2")),       lexer.pull());
         assert_eq!(Some(RightParen),                lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
         assert_eq!(Some(ImpliedDecl),               lexer.pull())
