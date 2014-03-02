@@ -420,7 +420,7 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &')' => self.get_paren_right_token(),
                     &'|' => self.get_pipe_token(),
                     &'#' => self.get_hash_token(),
-                    chr if is_name_start(chr) =>  self.get_name_token(),
+                    chr if is_name_char(chr) =>  self.get_name_token(),
                     _ => {
                         Some(self.handle_errors(IllegalChar, None))
                     }
@@ -865,10 +865,24 @@ impl<R: Reader+Buffer> Lexer<R> {
     /// consumes all name token until it reaches a non-name
     /// character.
     fn get_name_token(&mut self) -> Option<XmlToken> {
-        let result = self.process_namechars();
-        self.buf.push_str(result);
+        assert_eq!(1, self.buf.len());
+        let start_char = self.buf.char_at(0);
+        debug!("First cahr of name token: {:?}",start_char);
 
-        Some(NameToken(self.buf.clone()))
+        let result;
+
+        let temp = self.process_namechars();
+        self.buf.push_str(temp);
+
+        if is_name_start(&start_char) {
+            result = Some(NameToken(self.buf.clone()));
+        } else if is_name_char(&start_char) {
+            result = Some(NMToken(self.buf.clone()));
+        } else {
+            result = Some(self.handle_errors(IllegalChar, None));
+        }
+
+        result
     }
 
     /// If we find a name start character this method consumes
