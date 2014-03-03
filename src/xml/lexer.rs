@@ -148,6 +148,8 @@ enum State {
     // correctly display it, it treats each Quote as a special symbol
     // so for example "text&ref;" becomes `Quote Text(text) Ref(ref) Quote`
     Attlist(Quotes),
+    /// Similar as above but for Attlist in DTD
+    TypeAttlist(Quotes),
     EntityList(Quotes),
     InDoctype,
     InElementType,
@@ -304,6 +306,18 @@ impl<R: Reader+Buffer> Lexer<R> {
                     _       => self.get_attl_text(&quotes.to_char())
                 }
             },
+            TypeAttlist(quotes) => {
+                match c {
+                    &'&'    => self.get_ref_token(),
+                    &'<'    => self.get_attl_error_token(),
+                    &'\'' | &'"' if *c == quotes.to_char()
+                            => {
+                                self.state = InAttlistType;
+                                self.get_spec_quote()
+                            },
+                    _       => self.get_attl_text(&quotes.to_char())
+                }
+            }
             InDoctype => {
                 match c {
                     &'<'    => {
@@ -421,6 +435,10 @@ impl<R: Reader+Buffer> Lexer<R> {
                     &'|' => self.get_pipe_token(),
                     &'#' => self.get_hash_token(),
                     chr if is_name_char(chr) =>  self.get_name_token(),
+                    quote if quote == &'\'' || quote == &'"' => {
+                        self.state = TypeAttlist(Quotes::from_chr(quote));
+                        self.get_spec_quote()
+                    },
                     _ => {
                         Some(self.handle_errors(IllegalChar, None))
                     }
