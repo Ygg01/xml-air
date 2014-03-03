@@ -867,7 +867,6 @@ impl<R: Reader+Buffer> Lexer<R> {
     fn get_name_token(&mut self) -> Option<XmlToken> {
         assert_eq!(1, self.buf.len());
         let start_char = self.buf.char_at(0);
-        debug!("First cahr of name token: {:?}",start_char);
 
         let result;
 
@@ -1589,7 +1588,7 @@ pub fn main() {
 #[cfg(test)]
 mod tests {
 
-    use super::{Lexer, Char, RestrictedChar};
+    use super::{Lexer, Char, RestrictedChar,RequiredDecl,FixedDecl};
     use super::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
     use super::{DoctypeStart, CharRef, InDoctype};
     use super::{Percent, NameToken, EntityType, Comment};
@@ -1908,10 +1907,10 @@ mod tests {
         assert_eq!(Some(GreaterBracket),            lexer.pull());
 
         let test_str2 = bytes!("<!DOCTYPE PUBLIC [
-        <!ATTLIST test NOTATION (9stuff|-stuf2) #IMPLIED>
+        <!ATTLIST test NOTATION (9stuff|-stuf2) #FIXED>
         ]>");
-        let read = BufReader::new(test_str2);
-        let mut lexer = Lexer::from_reader(read);
+        let read2 = BufReader::new(test_str2);
+        let mut lexer = Lexer::from_reader(read2);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1926,12 +1925,41 @@ mod tests {
         assert_eq!(Some(NameToken(~"NOTATION")),    lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
         assert_eq!(Some(LeftParen),                 lexer.pull());
-        assert_eq!(Some(NMToken(~"9stuff")),       lexer.pull());
+        assert_eq!(Some(NMToken(~"9stuff")),        lexer.pull());
         assert_eq!(Some(Pipe),                      lexer.pull());
-        assert_eq!(Some(NMToken(~"-stuf2")),       lexer.pull());
+        assert_eq!(Some(NMToken(~"-stuf2")),        lexer.pull());
         assert_eq!(Some(RightParen),                lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-        assert_eq!(Some(ImpliedDecl),               lexer.pull())
+        assert_eq!(Some(FixedDecl),                 lexer.pull())
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(RightSqBracket),            lexer.pull());
+        assert_eq!(Some(GreaterBracket),            lexer.pull());
+
+        let test_str3 = bytes!("<!DOCTYPE PUBLIC [
+        <!ATTLIST test 'text&attr;' #REQUIRED #IMPLIED>
+        ]>");
+        let read3 = BufReader::new(test_str3);
+        let mut lexer = Lexer::from_reader(read3);
+
+        assert_eq!(Some(DoctypeStart),              lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(LeftSqBracket),             lexer.pull());
+        assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
+        assert_eq!(Some(AttlistType),               lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(NameToken(~"test")),        lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(Quote),                     lexer.pull());
+        assert_eq!(Some(Text(~"text")),             lexer.pull());
+        assert_eq!(Some(Ref(~"attr")),              lexer.pull());
+        assert_eq!(Some(Quote),                     lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(RequiredDecl),              lexer.pull());
+        assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
+        assert_eq!(Some(ImpliedDecl),               lexer.pull());
         assert_eq!(Some(GreaterBracket),            lexer.pull());
         assert_eq!(Some(WhiteSpace(~"\n        ")), lexer.pull());
         assert_eq!(Some(RightSqBracket),            lexer.pull());
