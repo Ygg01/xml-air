@@ -25,7 +25,8 @@
 
 // Import lexer
 pub use lexer::{Lexer,XmlToken};
-pub use util::{XmlError, is_whitespace, is_name_start, is_name_char};
+pub use util::{XmlError, is_whitespace, is_name_start};
+pub use util::{is_name_char, Config,ErrBehavior};
 
 pub mod lexer;
 pub mod parser;

@@ -1604,13 +1604,13 @@ pub fn main() {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
 
     use super::{Lexer, Char, RestrictedChar,RequiredDecl,FixedDecl};
     use super::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
     use super::{DoctypeStart, CharRef, InDoctype};
     use super::{Percent, NameToken, EntityType, Comment};
-    use super::{ GreaterBracket, LessBracket, ElementType};
+    use super::{GreaterBracket, LessBracket, ElementType};
     use super::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
     use super::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
     use super::{Ref, Quote, QNameToken, ImpliedDecl};

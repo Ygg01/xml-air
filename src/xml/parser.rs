@@ -4,9 +4,6 @@ use node::{XmlDoc, XmlElem, XNode};
 use util::{XmlError};
 use lexer::{Lexer};
 
-mod node;
-mod util;
-mod lexer;
 
 enum State {
     OutsideTag,
@@ -93,34 +90,21 @@ pub fn main() {
     debug!("This is a debug log");
 }
 
-/*
+
 #[cfg(test)]
-mod tests{
-    use super::*;
-    use std::io::*;
-    use xml_node::*;
+mod tests {
+    use super::XmlParser;
+    use std::io::BufReader;
 
     #[test]
     fn parse_simple(){
-        let r1 = @BytesReader {
-                bytes : "<a>".as_bytes(),
-                pos: @mut 0
-        } as ~Reader;
+        let str1 = bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F");
+        let read = BufReader::new(str1);
+        let parser = XmlParser::from_reader(read);
 
-        let mut parser = XmlParser::from_reader(r1);
-        let node = parser.next();
-        match node {
-            Some(Ok(a)) => {
-                println(fmt!("PRINT: %?", a));
-                assert_eq!(XElem(~XmlElem::new(~"a")), a);
-            }
-            _ => {
-                fail!(~"No element found");
-            }
-        }
 
     }
 
 
 }
-*/
+
