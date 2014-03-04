@@ -18,15 +18,13 @@ $(xml_parser_so): $(xml_parser_files)
 		mkdir -p build/
 		$(RUSTC) $(RUSTFLAGS) src/xml/lib.rs --out-dir=build
 
-build/%:: src/%/main.rs $(libhttp_so)
+build/%:: src/%/main.rs $(libxml_so)
 		mkdir -p "$(dir $@)"
 		$(RUSTC) $(RUSTFLAGS) $< -o $@ -L build/
 
-build/tests: $(http_files)
-		$(RUSTC) $(RUSTFLAGS) --test -o build/test src/xml/xml_lexer.rs
 
 all: parser
-#build/%:: src/%/main.rs $(libhttp_so)
+#build/%:: src/%/main.rs $(libxml_so)
 #        mkdir -p "$(dir $@)"
 #        $(RUSTC) $(RUSTFLAGS) $< -o $@ -L build/
 
@@ -38,10 +36,10 @@ docs: doc/http/index.html
 doc/http/index.html: $(xml_parser_files)
 		$(RUSTDOC) src/xml/lib.rs
 
-build/tests: $(http_files)
-		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/xml/lexer.rs
+build/tests: $(xml_parser_files)
+		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/xml/lib.rs
 
-check: all build/tests
+check: clean all build/tests
 		build/tests --test
 
 clean:
