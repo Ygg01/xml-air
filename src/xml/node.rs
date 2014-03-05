@@ -7,6 +7,20 @@ pub struct XmlDoc {
     pi: ~[PINode]
 }
 
+/// Struct that represents what XML events
+/// may be encountered during pull parsing
+/// of documents
+pub enum XmlEvent {
+    DeclEvent,
+    ElemStart,
+    ElemEnd,
+    EmptyElem,
+    PIEvent,
+    TextEvent,
+    CDataEvent
+}
+
+
 /// A struct representing an XML processing instruction
 pub struct PINode {
     /// The processing instruction's target

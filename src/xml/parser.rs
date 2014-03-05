@@ -1,6 +1,6 @@
 use std::io::{Reader, Buffer};
 
-use node::{XmlDoc, XmlElem, XNode};
+use node::{XmlDoc, XmlElem, XNode, XmlEvent};
 use util::{XmlError};
 use lexer::{Lexer};
 
