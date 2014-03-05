@@ -76,6 +76,10 @@ impl<R: Reader+Buffer> XmlParser<R> {
         Ok(XmlDoc::new())
     }
 
+    pub fn pull(&mut self)
+                -> Option<XmlEvent> {
+        None
+    }
 }
 
 
