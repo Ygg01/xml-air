@@ -28,8 +28,6 @@ enum State {
 }
 
 pub struct XmlParser<R> {
-    line: uint,
-    col: uint,
     depth: uint,
     elem: Option<XmlElem>,
     priv lexer: Lexer<R>,
@@ -61,8 +59,6 @@ impl<R: Reader+Buffer> XmlParser<R> {
     pub fn from_reader(data: R)
                      -> XmlParser<R> {
         XmlParser {
-            line: 1,
-            col: 0,
             depth: 0,
             elem: None,
             lexer: Lexer::from_reader(data),
