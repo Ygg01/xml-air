@@ -197,7 +197,7 @@ impl Quotes {
     }
 }
 
-pub struct Lexer<R> {
+pub struct Lexer<'r, R> {
     line: uint,
     col: uint,
     config: Config,
@@ -205,29 +205,49 @@ pub struct Lexer<R> {
     priv state: State,
     priv peek_buf: ~str,
     priv buf: ~str,
-    priv source: R
+    priv source: &'r mut R
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
-pub struct TokenIterator <'b,R> {
-    priv iter: &'b mut Lexer<R>
+pub struct TokenIterator <'b,'r, R> {
+    priv iter: &'b mut Lexer<'r, R>
 }
 
 // The problem seems to be here
-impl<'b,R: Reader+Buffer> Iterator<XmlToken> for TokenIterator<'b,R> {
+impl<'b,'r, R: Reader+Buffer> Iterator<XmlToken> for TokenIterator<'b, 'r, R> {
     // Apparently I can't have &'b mut
     fn next(&mut self) -> Option<XmlToken> {
         self.iter.pull()
     }
 }
 
-impl<'iter,R: Reader+Buffer> Lexer<R> {
-    pub fn tokens(&'iter mut self) -> TokenIterator<'iter,R>{
+impl<'iter, 'r, R: Reader+Buffer> Lexer<'r, R> {
+    pub fn tokens(&'iter mut self) -> TokenIterator<'iter,'r,R>{
         TokenIterator{ iter: self}
     }
 }
 
-impl<R: Reader+Buffer> Lexer<R> {
+impl<'r, R: Reader+Buffer> Lexer<'r, R> {
+    /// Constructs a new `Lexer` from data given.
+    /// Parameter `data` represents source for parsing,
+    /// that must implement Reader and Buffer traits.
+    /// Example
+    /// ```rust
+    ///    let bytes = bytes!("<an:elem />");
+    ///    let lexer = xml::Lexer::from_reader(BufReader::new(bytes));
+    /// ````
+    pub fn from_reader(data : &'r mut R) -> Lexer<'r, R> {
+        Lexer {
+            line: 1,
+            col: 0,
+            config: Config::default(),
+            peek_buf: ~"",
+            checkpoint: None,
+            state: OutsideTag,
+            buf: ~"",
+            source: data
+        }
+    }
     /// This method pulls tokens from Reader until it reaches
     /// end of file. From that point on, it will return None.
     ///
@@ -546,26 +566,7 @@ impl<R: Reader+Buffer> Lexer<R> {
             }
         }
     }
-    /// Constructs a new `Lexer` from data given.
-    /// Parameter `data` represents source for parsing,
-    /// that must implement Reader and Buffer traits.
-    /// Example
-    /// ```rust
-    ///    let bytes = bytes!("<an:elem />");
-    ///    let lexer = xml::Lexer::from_reader(BufReader::new(bytes));
-    /// ````
-    pub fn from_reader(data : R) -> Lexer<R> {
-        Lexer {
-            line: 1,
-            col: 0,
-            config: Config::default(),
-            peek_buf: ~"",
-            checkpoint: None,
-            state: OutsideTag,
-            buf: ~"",
-            source: data
-        }
-    }
+
 
     /// This method reads a string of given length skipping over any
     /// restricted character and adding an error for each such
