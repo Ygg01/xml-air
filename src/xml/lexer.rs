@@ -1625,8 +1625,8 @@ mod test {
     #[test]
     fn test_iteration() {
         let bytes = bytes!("<a>");
-        let r = BufReader::new(bytes);
-        let mut lexer = Lexer::from_reader(r);
+        let mut r = BufReader::new(bytes);
+        let mut lexer = Lexer::from_reader(&mut r);
         for token in lexer.tokens() {
         }
 
@@ -1636,17 +1636,17 @@ mod test {
     #[test]
     fn test_pi() {
         let str0 = bytes!("<?php var = echo()?><?php?>");
-        let buf0 = BufReader::new(str0);
+        let mut buf0 = BufReader::new(str0);
 
-        let mut lexer = Lexer::from_reader(buf0);
+        let mut lexer = Lexer::from_reader(&mut buf0);
 
         assert_eq!(Some(PI(~"php", ~"var = echo()")),   lexer.pull());
         assert_eq!(Some(PI(~"php", ~"")),               lexer.pull());
 
         let str1 = bytes!("<?xml encoding = 'UTF-8'?>");
-        let buf1 =BufReader::new(str1);
+        let mut buf1 =BufReader::new(str1);
 
-        lexer = Lexer::from_reader(buf1);
+        lexer = Lexer::from_reader(&mut buf1);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1658,9 +1658,9 @@ mod test {
         assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str3 = bytes!("<?xml standalone = 'yes'?>");
-        let buf3 = BufReader::new(str3);
+        let mut buf3 = BufReader::new(str3);
 
-        lexer = Lexer::from_reader(buf3);
+        lexer = Lexer::from_reader(&mut buf3);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1672,9 +1672,9 @@ mod test {
         assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str4 = bytes!("<?xml standalone = 'no'?>");
-        let buf4 =BufReader::new(str4);
+        let mut buf4 =BufReader::new(str4);
 
-        lexer = Lexer::from_reader(buf4);
+        lexer = Lexer::from_reader(&mut buf4);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1686,9 +1686,9 @@ mod test {
         assert_eq!(Some(PrologEnd),                     lexer.pull());
 
         let str5 = bytes!("<?xml version = '1.0'?>");
-        let buf5 =BufReader::new(str5);
+        let mut buf5 =BufReader::new(str5);
 
-        lexer = Lexer::from_reader(buf5);
+        lexer = Lexer::from_reader(&mut buf5);
 
         assert_eq!(Some(PrologStart),                   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1704,17 +1704,17 @@ mod test {
     fn test_cdata() {
 
         let str1  = bytes!("<![CDATA[various text data like <a>]]>!");
-        let read1 = BufReader::new(str1);
+        let mut read1 = BufReader::new(str1);
 
-        let mut lexer = Lexer::from_reader(read1);
+        let mut lexer = Lexer::from_reader(&mut read1);
 
         assert_eq!(Some(CData(~"various text data like <a>")),  lexer.pull());
         assert_eq!(Some(Char('!')),                     lexer.read_chr());
 
         let str2 = bytes!("<![C!");
-        let read2 = BufReader::new(str2);
+        let mut read2 = BufReader::new(str2);
 
-        lexer = Lexer::from_reader(read2);
+        lexer = Lexer::from_reader(&mut read2);
 
         lexer.pull();
         assert_eq!(Some(Char('C')),                     lexer.read_chr());
@@ -1723,9 +1723,9 @@ mod test {
     #[test]
     fn test_comment(){
         let str1  = bytes!("<!-- Nice comments --><>");
-        let read1 = BufReader::new(str1);
+        let mut read1 = BufReader::new(str1);
 
-        let mut lexer = Lexer::from_reader(read1);
+        let mut lexer = Lexer::from_reader(&mut read1);
 
         assert_eq!(Some(Comment(~" Nice comments ")), lexer.pull());
         assert_eq!(Some(LessBracket), lexer.pull());
@@ -1735,9 +1735,9 @@ mod test {
     #[test]
     fn test_element(){
         let str1  = bytes!("<elem attr='something &ref;bla&#35;&#x2A;'></elem><br/>");
-        let read1 = BufReader::new(str1);
+        let mut read1 = BufReader::new(str1);
 
-        let mut lexer = Lexer::from_reader(read1);
+        let mut lexer = Lexer::from_reader(&mut read1);
         assert_eq!(Some(LessBracket),           lexer.pull());
         assert_eq!(Some(NameToken(~"elem")),    lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),      lexer.pull());
@@ -1762,9 +1762,9 @@ mod test {
     #[test]
     fn test_qname(){
         let str1 = bytes!("<book:elem book:iso= '11231A'");
-        let read1 = BufReader::new(str1);
+        let mut read1 = BufReader::new(str1);
 
-        let mut lexer = Lexer::from_reader(read1);
+        let mut lexer = Lexer::from_reader(&mut read1);
         assert_eq!(Some(LessBracket),                   lexer.pull());
         assert_eq!(Some(QNameToken(~"book",~"elem")),   lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
@@ -1779,8 +1779,8 @@ mod test {
     #[test]
     fn test_quote_terminating(){
         let str1 = bytes!("<el name=\"test");
-        let read = BufReader::new(str1);
-        let mut lexer = Lexer::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(&mut read);
 
         assert_eq!(Some(LessBracket),               lexer.pull());
         assert_eq!(Some(NameToken(~"el")),          lexer.pull());
@@ -1796,8 +1796,8 @@ mod test {
         let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
         <!ELEMENT (name|(#PCDATA,%div;))?+*>
         ]>");
-        let read = BufReader::new(str1);
-        let mut lexer =             Lexer::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let mut lexer =             Lexer::from_reader(&mut read);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1834,8 +1834,8 @@ mod test {
         let str2 = bytes!("<!DOCTYPE PUBLIC [
         <!ENTITY % 'text%ent;&x;&#94;&#x7E;' PUBLIC 'quote'><![]]>
         ]>");
-        let read2 = BufReader::new(str2);
-        let mut lexer = Lexer::from_reader(read2);
+        let mut read2 = BufReader::new(str2);
+        let mut lexer = Lexer::from_reader(&mut read2);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1871,8 +1871,8 @@ mod test {
         let str2 = bytes!("<!DOCTYPE PUBLIC [
         <!NOTATION PUBLIC \"blabla\">
         ]>");
-        let read2 = BufReader::new(str2);
-        let mut lexer = Lexer::from_reader(read2);
+        let mut read2 = BufReader::new(str2);
+        let mut lexer = Lexer::from_reader(&mut read2);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1898,8 +1898,8 @@ mod test {
         let test_str = bytes!("<!DOCTYPE PUBLIC [
         <!ATTLIST test NOTATION (stuff|stuf2) #IMPLIED>
         ]>");
-        let read = BufReader::new(test_str);
-        let mut lexer = Lexer::from_reader(read);
+        let mut read = BufReader::new(test_str);
+        let mut lexer = Lexer::from_reader(&mut read);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1928,8 +1928,8 @@ mod test {
         let test_str2 = bytes!("<!DOCTYPE PUBLIC [
         <!ATTLIST test NOTATION (9stuff|-stuf2) #FIXED>
         ]>");
-        let read2 = BufReader::new(test_str2);
-        let mut lexer = Lexer::from_reader(read2);
+        let mut read2 = BufReader::new(test_str2);
+        let mut lexer = Lexer::from_reader(&mut read2);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1958,8 +1958,8 @@ mod test {
         let test_str3 = bytes!("<!DOCTYPE PUBLIC [
         <!ATTLIST test 'text&attr;' #REQUIRED #IMPLIED>
         ]>");
-        let read3 = BufReader::new(test_str3);
-        let mut lexer = Lexer::from_reader(read3);
+        let mut read3 = BufReader::new(test_str3);
+        let mut lexer = Lexer::from_reader(&mut read3);
 
         assert_eq!(Some(DoctypeStart),              lexer.pull());
         assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
@@ -1994,14 +1994,14 @@ mod test {
     /// If reader doesn't check peek buffer before the reader field
     /// it will cause premature end of file
     fn test_premature_eof() {
-
+        // TODO
     }
 
     #[test]
     fn test_whitespace() {
         let str1 = bytes!("  \t\n  a");
-        let read = BufReader::new(str1);
-        let mut lexer =         Lexer::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(&mut read);
 
         assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.pull());
         assert_eq!(6u,                                 lexer.col);
@@ -2012,8 +2012,8 @@ mod test {
     #[test]
     fn test_eof() {
         let str1 = bytes!("a");
-        let read = BufReader::new(str1);
-        let mut lexer = Lexer::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(&mut read);
 
         assert_eq!(Some(Char('a')),     lexer.read_chr());
         assert_eq!(None,                lexer.read_chr())
@@ -2022,8 +2022,8 @@ mod test {
     #[test]
     fn test_read_until() {
         let str1 = bytes!("aaaab");
-        let read = BufReader::new(str1);
-        let mut lexer = Lexer::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(&mut read);
 
         let result = lexer.read_while_fn(|c|{
             match c {
@@ -2045,8 +2045,8 @@ mod test {
     /// and recognize a char correctly
     fn test_restricted_char() {
         let str1 = bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F");
-        let read = BufReader::new(str1);
-        let mut lexer = Lexer::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(&mut read);
 
         assert_eq!(Some(RestrictedChar('\x01')),      lexer.read_chr());
         assert_eq!(Some(RestrictedChar('\x04')),      lexer.read_chr());
@@ -2071,8 +2071,8 @@ mod test {
     #[test]
     fn test_read_newline() {
         let str1  = bytes!("a\r\nt");
-        let read1 = BufReader::new(str1);
-        let mut lexer = Lexer::from_reader(read1);
+        let mut read1 = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(&mut read1);
 
         assert_eq!(Some(Char('a')), lexer.read_chr());
         assert_eq!(1,               lexer.line);
@@ -2085,8 +2085,8 @@ mod test {
         assert_eq!(1,               lexer.col);
 
         let str2  = bytes!("a\rt");
-        let read2 = BufReader::new(str2);
-        lexer = Lexer::from_reader(read2);
+        let mut read2 = BufReader::new(str2);
+        lexer = Lexer::from_reader(&mut read2);
 
         assert_eq!(Some(Char('a')), lexer.read_chr());
         assert_eq!(1,               lexer.line);
@@ -2099,8 +2099,8 @@ mod test {
         assert_eq!(1,               lexer.col);
 
         let str3  = bytes!("a\r\x85t");
-        let read3 = BufReader::new(str3);
-        lexer = Lexer::from_reader(read3);
+        let mut read3 = BufReader::new(str3);
+        lexer = Lexer::from_reader(&mut read3);
 
         assert_eq!(Some(Char('a')),     lexer.read_chr());
         assert_eq!(1,                   lexer.line);
@@ -2113,8 +2113,8 @@ mod test {
         assert_eq!(1,                   lexer.col);
 
         let str4  = bytes!("a\x85t");
-        let read4 = BufReader::new(str4);
-        let mut lexer = Lexer::from_reader(read4);
+        let mut read4 = BufReader::new(str4);
+        let mut lexer = Lexer::from_reader(&mut read4);
 
         assert_eq!(Some(Char('a')),     lexer.read_chr());
         assert_eq!(1,                   lexer.line);
@@ -2127,8 +2127,8 @@ mod test {
         assert_eq!(1,                   lexer.col);
 
         let str5  = bytes!("a\u2028t");
-        let read5 = BufReader::new(str5);
-        let mut lexer = Lexer::from_reader(read5);
+        let mut read5 = BufReader::new(str5);
+        let mut lexer = Lexer::from_reader(&mut read5);
 
         assert_eq!(Some(Char('a')), lexer.read_chr());
         assert_eq!(1,               lexer.line);
@@ -2144,8 +2144,8 @@ mod test {
     #[test]
     fn test_rewind(){
         let str1 = bytes!("abcd");
-        let read = BufReader::new(str1);
-        let mut lexer = Lexer::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let mut lexer = Lexer::from_reader(&mut read);
 
         lexer.save_checkpoint();
         let read = lexer.read_str(3);

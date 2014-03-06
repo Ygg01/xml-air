@@ -27,16 +27,16 @@ enum State {
     Namespace
 }
 
-pub struct XmlParser<R> {
+pub struct XmlParser<'r, R> {
     depth: uint,
     elem: Option<XmlElem>,
-    priv lexer: Lexer<R>,
+    priv lexer: Lexer<'r,R>,
     priv name: ~str,
     priv state: State
 
 }
 
-impl<R: Reader+Buffer> Iterator<XNode> for XmlParser<R> {
+impl<'r,R: Reader+Buffer> Iterator<XNode> for XmlParser<'r,R> {
     /// This method pulls tokens, until it reaches a fully formed XML node.
     /// Once it finds a node, it stops returning said node or error
     /// if it there was an error during processing.
@@ -49,15 +49,15 @@ impl<R: Reader+Buffer> Iterator<XNode> for XmlParser<R> {
     }
 }
 
-impl<R: Reader+Buffer> XmlParser<R> {
+impl<'r, R: Reader+Buffer> XmlParser<'r, R> {
     /// Constructs a new XmlParser from Reader `data`
     /// The XmlParser will use the given reader as the source for parsing.
     /// ~~~
     /// let mut p = XmlParser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
-    pub fn from_reader(data: R)
-                     -> XmlParser<R> {
+    pub fn from_reader(data: &'r mut R)
+                     -> XmlParser<'r, R> {
         XmlParser {
             depth: 0,
             elem: None,
@@ -99,8 +99,8 @@ mod tests {
     #[test]
     fn parse_simple(){
         let str1 = bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F");
-        let read = BufReader::new(str1);
-        let parser = XmlParser::from_reader(read);
+        let mut read = BufReader::new(str1);
+        let parser = XmlParser::from_reader(&mut read);
 
 
     }
