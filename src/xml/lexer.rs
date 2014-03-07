@@ -215,7 +215,6 @@ pub struct TokenIterator <'b,'r, R> {
 
 // The problem seems to be here
 impl<'b,'r, R: Reader+Buffer> Iterator<XmlToken> for TokenIterator<'b, 'r, R> {
-    // Apparently I can't have &'b mut
     fn next(&mut self) -> Option<XmlToken> {
         self.iter.pull()
     }

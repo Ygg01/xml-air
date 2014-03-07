@@ -35,16 +35,21 @@ pub struct Parser<'r, R> {
 
 }
 
-impl<'r,R: Reader+Buffer> Iterator<XNode> for XmlParser<'r,R> {
-    /// This method pulls tokens, until it reaches a fully formed XML node.
-    /// Once it finds a node, it stops returning said node or error
-    /// if it there was an error during processing.
-    ///
-    /// This method should be used similar to an outer iterator.
-    fn next(&mut self)
-            -> Option<XNode>{
-        None
+// Struct to help with the Iterator pattern emulating Rust native libraries
+pub struct XmlIterator <'i, 'r, R> {
+    priv iter: &'i mut Parser<'r, R>
+}
 
+// The problem seems to be here
+impl<'i, 'r, R: Reader+Buffer> Iterator<XmlEvent> for XmlIterator<'i, 'r, R> {
+    fn next(&mut self) -> Option<XmlEvent> {
+        self.iter.pull()
+    }
+}
+
+impl<'i, 'r, R: Reader+Buffer> Parser<'r, R> {
+    pub fn elems(&'i mut self) -> XmlIterator<'i, 'r, R>{
+        XmlIterator{ iter: self}
     }
 }
 
