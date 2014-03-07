@@ -27,11 +27,10 @@ enum State {
     Namespace
 }
 
-pub struct XmlParser<'r, R> {
+pub struct Parser<'r, R> {
     depth: uint,
     elem: Option<XmlElem>,
     priv lexer: Lexer<'r,R>,
-    priv name: ~str,
     priv state: State
 
 }
@@ -49,20 +48,19 @@ impl<'r,R: Reader+Buffer> Iterator<XNode> for XmlParser<'r,R> {
     }
 }
 
-impl<'r, R: Reader+Buffer> XmlParser<'r, R> {
-    /// Constructs a new XmlParser from Reader `data`
-    /// The XmlParser will use the given reader as the source for parsing.
+impl<'r, R: Reader+Buffer> Parser<'r, R> {
+    /// Constructs a new Parser from Reader `data`
+    /// The Parser will use the given reader as the source for parsing.
     /// ~~~
-    /// let mut p = XmlParser::from_read(stdin)
+    /// let mut p = Parser::from_read(stdin)
     /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
     /// ~~~
     pub fn from_reader(data: &'r mut R)
-                     -> XmlParser<'r, R> {
-        XmlParser {
+                     -> Parser<'r, R> {
+        Parser {
             depth: 0,
             elem: None,
             lexer: Lexer::from_reader(data),
-            name: ~"",
             state: OutsideTag
         }
     }
@@ -93,14 +91,14 @@ pub fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::XmlParser;
+    use super::Parser;
     use std::io::BufReader;
 
     #[test]
     fn parse_simple(){
         let str1 = bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F");
         let mut read = BufReader::new(str1);
-        let parser = XmlParser::from_reader(&mut read);
+        let parser = Parser::from_reader(&mut read);
 
 
     }
