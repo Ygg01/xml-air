@@ -5,7 +5,7 @@ use std::str::from_char;
 use std::num::from_str_radix;
 
 use util::{is_whitespace, is_name_start, is_name_char};
-use util::{ErrKind, Config};
+use util::{XmlError, ErrKind, Config};
 use util::{is_restricted, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
@@ -200,12 +200,13 @@ impl Quotes {
 pub struct Lexer<'r, R> {
     line: uint,
     col: uint,
-    config: Config,
     priv checkpoint: Option<Checkpoint>,
     priv state: State,
+    // TODO change these to borrowed str
     priv peek_buf: ~str,
     priv buf: ~str,
-    priv source: &'r mut R
+    priv source: &'r mut R,
+    priv err: Option<XmlError>
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
@@ -239,11 +240,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         Lexer {
             line: 1,
             col: 0,
-            config: Config::default(),
             peek_buf: ~"",
             checkpoint: None,
             state: OutsideTag,
             buf: ~"",
+            err: None,
             source: data
         }
     }
