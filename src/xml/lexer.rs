@@ -638,7 +638,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             }
         } else {
-            chr = self.peek_buf.pop_char();
+            chr = self.peek_buf.pop_char().unwrap();
         }
 
         if "\r\u2028\x85".contains_char(chr) {
