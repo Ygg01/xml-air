@@ -1,10 +1,11 @@
+use std::vec_ng::Vec;
 
 /// A struct representing an XML root document
 pub struct XmlDoc {
     // The document's root
     root: ~XmlElem,
     // The document's processing instructions
-    pi: ~[PINode]
+    pi: Vec<PINode>
 }
 
 /// Struct that represents what XML events
@@ -34,7 +35,7 @@ pub struct Doctype {
     /// Doctype name
     name: ~str,
     /// Internal Doctype definition
-    internal: ~[DoctypeDecl]
+    internal: Vec<DoctypeDecl>
 }
 
 pub enum DoctypeDecl {
@@ -56,7 +57,7 @@ pub struct DTDElem {
 pub enum ContentSpec {
     Empty,
     Any,
-    Mixed(~[MixedSpec]),
+    Mixed(Vec<MixedSpec>),
     Children(~ChildSpec)
 }
 
@@ -72,7 +73,7 @@ pub struct ChildSpec {
 }
 
 pub struct CPList {
-    elems: ~[ElemType]
+    elems: Vec<ElemType>
 }
 
 pub enum ElemType {
@@ -89,7 +90,7 @@ pub enum Multi {
 }
 pub struct DTDAttlist {
     name: ~str,
-    defs: ~[AttDef]
+    defs: Vec<AttDef>
 }
 
 pub struct AttDef {
@@ -101,7 +102,7 @@ pub struct AttDef {
 pub enum DefaultVal {
     Required,
     Implied,
-    Fixed(~[AttVal])
+    Fixed(Vec<AttVal>)
 }
 
 pub enum AttVal {
@@ -124,8 +125,8 @@ pub enum AttType {
     Entities,
     Nmtoken,
     Nmtokens,
-    Notation(~[~str]),
-    Enumeration(~[~str])
+    Notation(Vec<~str>),
+    Enumeration(Vec<~str>)
 }
 
 pub enum DTDEntity {
@@ -144,9 +145,9 @@ pub struct XmlElem {
     /// The element's namespace
     namespace: ~XmlNS,
     /// The element's `Attribute`s
-    attributes: ~[XmlAttr],
+    attributes: Vec<XmlAttr>,
     /// The element's child `XmlNode` nodes
-    children: ~[XNode]
+    children: Vec<XNode>
 }
 
 
@@ -199,10 +200,10 @@ impl XmlDoc {
             root: ~XmlElem {
                     name:~"",
                     namespace:~XmlNS{name: ~"", uri: ~""},
-                    attributes: ~[],
-                    children: ~[]
+                    attributes: Vec::new(),
+                    children: Vec::new()
             },
-            pi: ~[]
+            pi: Vec::new()
         }
     }
 
@@ -220,8 +221,8 @@ impl XmlElem {
         XmlElem {
                     name:new_name,
                     namespace:~XmlNS{name: ~"", uri: ~""},
-                    attributes: ~[],
-                    children: ~[]
+                    attributes: Vec::new(),
+                    children: Vec::new()
         }
     }
 }
