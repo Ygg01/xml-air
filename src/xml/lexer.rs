@@ -5,7 +5,7 @@ use std::str::from_char;
 use std::num::from_str_radix;
 
 use util::{is_whitespace, is_name_start, is_name_char};
-use util::{XmlError, ErrKind, Config};
+use util::{XmlError, ErrKind};
 use util::{is_restricted, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
