@@ -1,4 +1,4 @@
-use std::vec_ng::Vec;
+use std::vec::Vec;
 
 /// A struct representing an XML root document
 pub struct XmlDoc {
