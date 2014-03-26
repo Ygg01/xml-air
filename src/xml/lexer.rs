@@ -169,8 +169,8 @@ enum Quotes {
 }
 
 pub struct Checkpoint {
-    col: uint,
-    line: uint
+    col: u64,
+    line: u64
 }
 
 impl Quotes {
@@ -198,8 +198,8 @@ impl Quotes {
 }
 
 pub struct Lexer<'r, R> {
-    line: uint,
-    col: uint,
+    line: u64,
+    col: u64,
     priv checkpoint: Option<Checkpoint>,
     priv state: State,
     // TODO change these to borrowed str
@@ -574,7 +574,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     ///
     /// Restricted characters are *not included* into the output
     /// string.
-    pub fn read_str(&mut self, len: uint) -> ~str {
+    pub fn read_str(&mut self, len: u64) -> ~str {
         clean_restricted(self.read_raw_str(len))
     }
 
@@ -660,8 +660,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// Note: Lines and column start at 1 but the read character
     /// will be update after a new character is read.
     fn process_newline(&mut self, c: char) -> Character {
-        self.line += 1u;
-        self.col = 0u;
+        self.line += 1;
+        self.col = 0;
 
         if c == '\r' {
             let chrPeek = self.source.read_char();
@@ -684,17 +684,17 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// *c*, increasing position in reader.
     #[inline(always)]
     fn process_char(&mut self, c: char) -> Character {
-        self.col += 1u;
+        self.col += 1;
         Character::from_char(c)
     }
 
     /// This method reads a string of given length, adding any
     /// restricted char  into the error section.
     /// Restricted character are *included* into the output string
-    fn read_raw_str(&mut self, len: uint) -> ~str {
+    fn read_raw_str(&mut self, len: u64) -> ~str {
         let mut raw_str = ~"";
         let mut eof = false;
-        let mut l = 0u;
+        let mut l = 0;
 
         while l < len && !eof {
             let chr = self.read_chr();
@@ -764,7 +764,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn read_until_peek(&mut self, peek_look: &str) -> ~str {
         let mut peek_found = false;
         let mut result = ~"";
-        let peek_len = peek_look.char_len() - 1;
+        let peek_len = (peek_look.char_len() - 1) as u64;
 
         while !peek_found {
             let pre_cp = self.save_checkpoint();
@@ -1016,12 +1016,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         assert_eq!(~"<![",       self.buf);
 
         self.save_checkpoint();
-        let cdata = self.read_str(6u);
+        let cdata = self.read_str(6);
         let result;
 
         if cdata == ~"CDATA[" {
             let text = self.read_until_peek("]]>");
-            self.read_str(3u);
+            self.read_str(3);
 
             result = Some(CData(text));
         } else {
@@ -1035,7 +1035,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn get_doctype_start_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<!D",       self.buf);
         self.save_checkpoint();
-        let peeked_str  = self.read_str(6u);
+        let peeked_str  = self.read_str(6);
         let result;
 
         if peeked_str == ~"OCTYPE" {
@@ -1055,7 +1055,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         assert_eq!(~"<!A",       self.buf);
         self.save_checkpoint();
 
-        let peeked_str = self.read_str(6u);
+        let peeked_str = self.read_str(6);
         let result;
 
         if peeked_str == ~"TTLIST" {
@@ -1163,7 +1163,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
         }
 
-        let parse_char = from_str_radix::<uint>(char_ref,radix);
+        let parse_char = from_str_radix::<u64>(char_ref,radix);
 
         match parse_char {
             Some(a) => {
@@ -1245,7 +1245,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn get_doctype_end_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"]",        self.buf);
         self.save_checkpoint();
-        let rew  = self.read_str(2u);
+        let rew  = self.read_str(2);
 
         if rew == ~"]>" {
             Some(DoctypeClose)
@@ -1282,14 +1282,14 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn get_hash_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"#",    self.buf);
         self.save_checkpoint();
-        let mut rew = self.read_str(5u);
+        let mut rew = self.read_str(5);
         let result;
 
         if rew == ~"FIXED" {
             result = Some(FixedDecl);
         } else if rew == ~"PCDAT" {
 
-            rew.push_str(self.read_str(1u));
+            rew.push_str(self.read_str(1));
             if rew == ~"PCDATA" {
                 result = Some(PCDataDecl);
             } else {
@@ -1297,7 +1297,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
         } else if rew ==  ~"IMPLI" {
 
-            rew.push_str(self.read_str(2u));
+            rew.push_str(self.read_str(2));
             if rew == ~"IMPLIED" {
                 result = Some(ImpliedDecl);
             } else {
@@ -1305,7 +1305,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
         } else if rew == ~"REQUI" {
 
-            rew.push_str(self.read_str(3u));
+            rew.push_str(self.read_str(3));
             if rew == ~"REQUIRED" {
                 result = Some(RequiredDecl);
             } else {
@@ -1353,7 +1353,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         self.save_checkpoint();
         let result;
 
-        let read = self.read_str(7u);
+        let read = self.read_str(7);
 
         if read == ~"OTATION" {
             result = Some(NotationType);
@@ -1396,7 +1396,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn process_quotes(&mut self, quote: ~str) -> XmlToken {
         let text = self.read_until_peek(quote);
         self.save_checkpoint();
-        let peek = self.read_str(1u);
+        let peek = self.read_str(1);
 
         if peek != quote {
             self.rewind(peek);
@@ -1492,7 +1492,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             self.get_whitespace_token();
 
             let text = self.read_until_peek("?>");
-            self.read_str(2u);
+            self.read_str(2);
             result = Some(PI(target,text));
         }
         result
@@ -1506,7 +1506,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn get_comment_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<!-", self.buf);
         self.save_checkpoint();
-        let rewind_str = self.read_str(1u);
+        let rewind_str = self.read_str(1);
 
         if rewind_str == ~"-" {
 
@@ -1521,7 +1521,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
     fn process_comment(&mut self) -> ~str {
         self.save_checkpoint();
-        let mut peek = self.read_str(3u);
+        let mut peek = self.read_str(3);
         let mut result = ~"";
         let mut found_end = false;
 
@@ -1546,7 +1546,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     }
                 }
                 self.save_checkpoint();
-                peek = self.read_str(3u);
+                peek = self.read_str(3);
             }
         }
         result
@@ -1561,7 +1561,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         assert_eq!(~"/", self.buf);
 
         let result;
-        if self.read_str(1u) == ~">" {
+        if self.read_str(1) == ~">" {
             result = Some(EmptyTag);
         } else {
             result = Some(ErrorToken(~"/"));
@@ -2004,8 +2004,8 @@ mod test {
         let mut lexer = Lexer::from_reader(&mut read);
 
         assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.pull());
-        assert_eq!(6u,                                 lexer.col);
-        assert_eq!(1u,                                 lexer.line);
+        assert_eq!(6,                                  lexer.col);
+        assert_eq!(1,                                  lexer.line);
         assert_eq!(Some(NameToken(~"a")),              lexer.pull());
     }
 
@@ -2035,7 +2035,7 @@ mod test {
         assert_eq!(~"aaaa",      result);
         assert_eq!(1,            lexer.line);
         assert_eq!(4,            lexer.col);
-        assert_eq!(~"b",         lexer.read_str(1u));
+        assert_eq!(~"b",         lexer.read_str(1));
         assert_eq!(1,            lexer.line);
         assert_eq!(5,            lexer.col);
     }
