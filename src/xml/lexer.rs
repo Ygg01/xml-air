@@ -917,7 +917,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             || self.buf.char_at(self.buf.len()-1) == ':'{
                 result = Some(NameToken(self.buf.clone()));
             } else {
-                let split_name = self.buf.split(':').to_owned_vec();
+                let split_name: ~[&str] = self.buf.split(':').collect();
 
                 if split_name.len() == 2 {
                     result = Some(
