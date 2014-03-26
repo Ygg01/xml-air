@@ -1,7 +1,7 @@
 use std::fmt;
-#[deriving(Eq, Clone, Show)]
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
+#[deriving(Eq, Clone, Show)]
 pub struct XmlError {
     /// The line number at which the error occurred
     line: uint,
