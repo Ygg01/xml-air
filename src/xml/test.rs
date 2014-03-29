@@ -17,6 +17,18 @@ use std::io::BufReader;
 mod lexer;
 mod util;
 
+/*
+ * util tests
+
+   UUU   UUU  TTTTTTTTT   III     LLL
+   UUU   UUU     TTT      III     LLL
+   UUU   UUU     TTT      III     LLL
+   UUU   UUU     TTT      III     LLL
+   UUU   UUU     TTT      III     LLL
+   UUU   UUU     TTT      III     LLL
+     UUUUU       TTT      III     LLLLLL
+ */
+
 #[test]
 fn util_is_restricted(){
     assert_eq!(true, is_restricted(&'\x0B'));
@@ -60,6 +72,17 @@ fn util_is_restricted(){
     assert_eq!(true, is_restricted(&'\U000FFFFF'));
 }
 
+/*
+ * util tests
+
+   LLL        EEEEEEEEE      XXX     XXX
+   LLL        EEE             XXX   XXX
+   LLL        EEE              XXX XXX
+   LLL        EEEEEEEEE         XXXXX
+   LLL        EEE              XXX XXX
+   LLL        EEE             XXX   XXX
+   LLLLLLLL   EEEEEEEEE      XXX     XXX
+ */
 #[test]
 fn lexer_iteration() {
     let bytes = bytes!("<a>");
@@ -542,3 +565,22 @@ fn lexer_doctype_notation() {
     assert_eq!(Some(RightSqBracket),            lexer.pull());
     assert_eq!(Some(GreaterBracket),            lexer.pull());
 }
+/*
+    NNN   NNN     OOOO      DDDD        EEEEEE
+    NNN   NNN    OOOOOO     DDDDD       EEE
+    NNNN  NNN   OOO  OOO    DDD DDD     EEE
+    NNNNN NNN   OOO  OOO    DDD  DDD    EEEEEE
+    NNN NNNNN   OOO  OOO    DDD DDD     EEE
+    NNN  NNNN    OOOOOO     DDDDD       EEE
+    NNN   NNN     OOOO      DDDD        EEEEEE
+   */
+
+/*
+    PPPPPPP      AAAAAA     RRRRRRR
+    PPP  PPP    AAA  AAA    RRR  RRR
+    PPP   PPP   AAA  AAA    RRR   RRR
+    PPP  PPP    AAAAAAAA    RRR  RRR
+    PPPPPPP     AAA  AAA    RRRRRRR
+    PPP         AAA  AAA    RRR  RRR
+    PPP         AAA  AAA    RRR    RRR
+   */
