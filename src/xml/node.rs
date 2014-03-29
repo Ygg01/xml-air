@@ -239,20 +239,3 @@ impl XmlNS {
         ~""
     }
 }
-
-
-#[cfg(test)]
-mod tests{
-    use super::{PINode};
-
-    #[test]
-    fn test_pi_to_str(){
-        let pi = ~PINode { target: ~"php", value: ~"echo"};
-        assert_eq!(~"<?php echo ?>",pi.to_str())
-    }
-
-    #[test]
-    fn test_cdata_to_str(){
-
-    }
-}

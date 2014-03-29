@@ -21,7 +21,7 @@
 //#[warn(owned_heap_memory)];
 
 // Ignore dead code
-#[allow(dead_code)];
+//#[allow(dead_code)];
 
 // Import lexer
 pub use lexer::{Lexer,XmlToken};

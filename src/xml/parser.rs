@@ -90,21 +90,3 @@ pub fn main() {
 
 }
 
-
-#[cfg(test)]
-mod tests {
-    use super::Parser;
-    use std::io::BufReader;
-
-    #[test]
-    fn parse_simple(){
-        let str1 = bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F");
-        let mut read = BufReader::new(str1);
-        let parser = Parser::from_reader(&mut read);
-
-
-    }
-
-
-}
-

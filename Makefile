@@ -37,10 +37,12 @@ doc/http/index.html: $(xml_parser_files)
 		$(RUSTDOC) src/xml/lib.rs
 
 build/tests: $(xml_parser_files)
-		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/xml/lib.rs
+		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/xml/test.rs
+		$(RUSTC) $(RUSTFLAGS) --test -o build/inter src/xml/lib.rs
 
 check: clean all build/tests
 		build/tests --test
+		build/inter --test
 
 clean:
 		rm -rf build/
@@ -49,4 +51,4 @@ clean-docs:
 		rm -rf doc/
 
 
-.PHONY: all parser clean check
+.PHONY: all parser clean check clean-docs
