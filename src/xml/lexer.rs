@@ -1986,18 +1986,6 @@ mod test {
     }
 
     #[test]
-    /// This method tests buffer to ensure that adding characters
-    /// into it will not cause premature end of line.
-    /// If lexer takes six characters and then peeks six
-    /// character the reader will be moved, and those characters
-    /// added to peek buffer.
-    /// If reader doesn't check peek buffer before the reader field
-    /// it will cause premature end of file
-    fn test_premature_eof() {
-        // TODO
-    }
-
-    #[test]
     fn test_whitespace() {
         let str1 = bytes!("  \t\n  a");
         let mut read = BufReader::new(str1);
