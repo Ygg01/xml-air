@@ -12,6 +12,9 @@ use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
 mod util;
 
+pub type XmlResult = Result<XmlToken,(XmlError, XmlToken)>;
+
+
 #[deriving(Eq, Show, Clone)]
 pub enum XmlToken {
     /// Processing instruction token
