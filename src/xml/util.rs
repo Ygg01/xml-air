@@ -106,7 +106,7 @@ pub fn clean_restricted(input: ~str) -> ~str {
     let mut result = ~"";
 
     for c in input.chars() {
-        if !is_restricted(&c) {
+        if !is_restricted_char(&c) {
             result.push_char(c);
         }
     }
@@ -252,7 +252,7 @@ pub fn is_whitespace(chr: &char) -> bool {
 /// [#xAFFFE-#xAFFFF], [#xBFFFE-#xBFFFF], [#xCFFFE-#xCFFFF],
 /// [#xDFFFE-#xDFFFF], [#xEFFFE-#xEFFFF], [#xFFFFE-#xFFFFF],
 /// [#x10FFFE-#x10FFFF].
-pub fn is_restricted(chr: &char) -> bool {
+pub fn is_restricted_char(chr: &char) -> bool {
     match *chr {
         '\x01'..'\x08'
         | '\x0B'.. '\x0C'
@@ -288,4 +288,12 @@ pub fn main() {
     println!("{}", mark.to_str());
 }
 
+#[cfg(test)]
+mod test {
 
+    use super::is_restricted_char;
+    #[test]
+    fn name(){
+        assert_eq!(true, is_restricted_char(&'\x0B'));
+    }
+}
