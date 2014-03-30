@@ -1,90 +1,18 @@
-#[cfg(test)]
-
-use util::is_restricted;
-use lexer::{Lexer, Char, RestrictedChar,RequiredDecl,FixedDecl};
-use lexer::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
-use lexer::{DoctypeStart, CharRef};
-use lexer::{Percent, NameToken, EntityType, Comment};
-use lexer::{GreaterBracket, LessBracket, ElementType};
-use lexer::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
-use lexer::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
-use lexer::{Ref, Quote, QNameToken, ImpliedDecl};
-use lexer::{LeftSqBracket, RightSqBracket, PCDataDecl};
-use lexer::{Comma,ParRef, DoctypeOpen, DoctypeClose, NotationType};
-use lexer::{AttlistType,NMToken};
+use xml::lexer::{Lexer, Char, RestrictedChar,RequiredDecl,FixedDecl};
+use xml::lexer::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
+use xml::lexer::{DoctypeStart, CharRef};
+use xml::lexer::{Percent, NameToken, EntityType, Comment};
+use xml::lexer::{GreaterBracket, LessBracket, ElementType};
+use xml::lexer::{CloseTag,Eq,Star,QuestionMark,Plus,Pipe};
+use xml::lexer::{LeftParen,RightParen,EmptyTag,QuotedString,Text};
+use xml::lexer::{Ref, Quote, QNameToken, ImpliedDecl};
+use xml::lexer::{LeftSqBracket, RightSqBracket, PCDataDecl};
+use xml::lexer::{Comma,ParRef, DoctypeOpen, DoctypeClose, NotationType};
+use xml::lexer::{AttlistType,NMToken};
 use std::io::BufReader;
 
-mod lexer;
-mod util;
-
-/*
- * util tests
-
-   UUU   UUU  TTTTTTTTT   III     LLL
-   UUU   UUU     TTT      III     LLL
-   UUU   UUU     TTT      III     LLL
-   UUU   UUU     TTT      III     LLL
-   UUU   UUU     TTT      III     LLL
-   UUU   UUU     TTT      III     LLL
-     UUUUU       TTT      III     LLLLLL
- */
-
 #[test]
-fn util_is_restricted(){
-    assert_eq!(true, is_restricted(&'\x0B'));
-    assert_eq!(true, is_restricted(&'\x02'));
-    assert_eq!(true, is_restricted(&'\x0C'));
-    assert_eq!(true, is_restricted(&'\x0F'));
-    assert_eq!(true, is_restricted(&'\x1F'));
-    assert_eq!(true, is_restricted(&'\x7F'));
-    assert_eq!(true, is_restricted(&'\x84'));
-    assert_eq!(true, is_restricted(&'\x86'));
-    assert_eq!(true, is_restricted(&'\x9A'));
-    assert_eq!(true, is_restricted(&'\U0001FFFE'));
-    assert_eq!(true, is_restricted(&'\U0001FFFF'));
-    assert_eq!(true, is_restricted(&'\U0002FFFE'));
-    assert_eq!(true, is_restricted(&'\U0002FFFF'));
-    assert_eq!(true, is_restricted(&'\U0003FFFE'));
-    assert_eq!(true, is_restricted(&'\U0003FFFF'));
-    assert_eq!(true, is_restricted(&'\U0004FFFE'));
-    assert_eq!(true, is_restricted(&'\U0004FFFF'));
-    assert_eq!(true, is_restricted(&'\U0005FFFE'));
-    assert_eq!(true, is_restricted(&'\U0005FFFF'));
-    assert_eq!(true, is_restricted(&'\U0006FFFE'));
-    assert_eq!(true, is_restricted(&'\U0006FFFF'));
-    assert_eq!(true, is_restricted(&'\U0007FFFE'));
-    assert_eq!(true, is_restricted(&'\U0007FFFF'));
-    assert_eq!(true, is_restricted(&'\U0008FFFE'));
-    assert_eq!(true, is_restricted(&'\U0008FFFF'));
-    assert_eq!(true, is_restricted(&'\U0009FFFE'));
-    assert_eq!(true, is_restricted(&'\U0009FFFF'));
-    assert_eq!(true, is_restricted(&'\U000AFFFE'));
-    assert_eq!(true, is_restricted(&'\U000AFFFF'));
-    assert_eq!(true, is_restricted(&'\U000BFFFE'));
-    assert_eq!(true, is_restricted(&'\U000BFFFF'));
-    assert_eq!(true, is_restricted(&'\U000CFFFE'));
-    assert_eq!(true, is_restricted(&'\U000CFFFF'));
-    assert_eq!(true, is_restricted(&'\U000DFFFE'));
-    assert_eq!(true, is_restricted(&'\U000DFFFF'));
-    assert_eq!(true, is_restricted(&'\U000EFFFE'));
-    assert_eq!(true, is_restricted(&'\U000EFFFF'));
-    assert_eq!(true, is_restricted(&'\U000FFFFE'));
-    assert_eq!(true, is_restricted(&'\U000FFFFF'));
-}
-
-/*
- * util tests
-
-   LLL        EEEEEEEEE      XXX     XXX
-   LLL        EEE             XXX   XXX
-   LLL        EEE              XXX XXX
-   LLL        EEEEEEEEE         XXXXX
-   LLL        EEE              XXX XXX
-   LLL        EEE             XXX   XXX
-   LLLLLLLL   EEEEEEEEE      XXX     XXX
- */
-#[test]
-fn lexer_iteration() {
+fn iteration() {
     let bytes = bytes!("<a>");
     let mut r = BufReader::new(bytes);
     let mut lexer = Lexer::from_reader(&mut r);
@@ -95,7 +23,7 @@ fn lexer_iteration() {
 }
 
 #[test]
-fn lexer_whitespace() {
+fn whitespace() {
     let str1 = bytes!("  \t\n  a");
     let mut read = BufReader::new(str1);
     let mut lexer = Lexer::from_reader(&mut read);
@@ -107,7 +35,7 @@ fn lexer_whitespace() {
 }
 
 #[test]
-fn lexer_pi_token() {
+fn pi_token() {
     let str0 = bytes!("<?php var = echo()?><?php?>");
     let mut buf0 = BufReader::new(str0);
 
@@ -174,7 +102,7 @@ fn lexer_pi_token() {
 }
 
 #[test]
-fn lexer_cdata() {
+fn cdata() {
 
     let str1  = bytes!("<![CDATA[various text data like <a>]]>!");
     let mut read1 = BufReader::new(str1);
@@ -195,7 +123,7 @@ fn lexer_cdata() {
 
 
 #[test]
-fn lexer_eof() {
+fn eof() {
     let str1 = bytes!("a");
     let mut read = BufReader::new(str1);
     let mut lexer = Lexer::from_reader(&mut read);
@@ -207,7 +135,7 @@ fn lexer_eof() {
 #[test]
 /// Tests if it reads a restricted character
 /// and recognize a char correctly
-fn lexer_restricted_char() {
+fn restricted_char() {
     let str1 = bytes!("\x01\x04\x08a\x0B\x0Cb\x0E\x10\x1Fc\x7F\x80\x84d\x86\x90\x9F");
     let mut read = BufReader::new(str1);
     let mut lexer = Lexer::from_reader(&mut read);
@@ -233,7 +161,7 @@ fn lexer_restricted_char() {
 }
 
 #[test]
-fn lexer_read_newline() {
+fn read_newline() {
     let str1  = bytes!("a\r\nt");
     let mut read1 = BufReader::new(str1);
     let mut lexer = Lexer::from_reader(&mut read1);
@@ -306,7 +234,7 @@ fn lexer_read_newline() {
 }
 
 #[test]
-fn lexer_comment(){
+fn comment(){
     let str1  = bytes!("<!-- Nice comments --><>");
     let mut read1 = BufReader::new(str1);
 
@@ -318,7 +246,7 @@ fn lexer_comment(){
 }
 
 #[test]
-fn lexer_element(){
+fn element(){
     let str1  = bytes!("<elem attr='something &ref;bla&#35;&#x2A;'></elem><br/>");
     let mut read1 = BufReader::new(str1);
 
@@ -345,7 +273,7 @@ fn lexer_element(){
 }
 
 #[test]
-fn lexer_qname(){
+fn qname(){
     let str1 = bytes!("<book:elem book:iso= '11231A'");
     let mut read1 = BufReader::new(str1);
 
@@ -362,7 +290,7 @@ fn lexer_qname(){
 }
 
 #[test]
-fn lexer_quote_terminating(){
+fn quote_terminating(){
     let str1 = bytes!("<el name=\"test");
     let mut read = BufReader::new(str1);
     let mut lexer = Lexer::from_reader(&mut read);
@@ -377,7 +305,7 @@ fn lexer_quote_terminating(){
 }
 
 #[test]
-fn  lexer_doctype_attlist() {
+fn  doctype_attlist() {
     let test_str = bytes!("<!DOCTYPE PUBLIC [
     <!ATTLIST test NOTATION (stuff|stuf2) #IMPLIED>
     ]>");
@@ -469,7 +397,7 @@ fn  lexer_doctype_attlist() {
 }
 
 #[test]
-fn lexer_doctype_el() {
+fn doctype_el() {
     let str1 = bytes!("<!DOCTYPE stuff SYSTEM 'pubid' [
     <!ELEMENT (name|(#PCDATA,%div;))?+*>
     ]>");
@@ -507,7 +435,7 @@ fn lexer_doctype_el() {
 }
 
 #[test]
-fn lexer_doctype_ent() {
+fn doctype_ent() {
     let str2 = bytes!("<!DOCTYPE PUBLIC [
     <!ENTITY % 'text%ent;&x;&#94;&#x7E;' PUBLIC 'quote'><![]]>
     ]>");
@@ -542,7 +470,7 @@ fn lexer_doctype_ent() {
 }
 
 #[test]
-fn lexer_doctype_notation() {
+fn doctype_notation() {
     let str2 = bytes!("<!DOCTYPE PUBLIC [
     <!NOTATION PUBLIC \"blabla\">
     ]>");
@@ -565,22 +493,3 @@ fn lexer_doctype_notation() {
     assert_eq!(Some(RightSqBracket),            lexer.pull());
     assert_eq!(Some(GreaterBracket),            lexer.pull());
 }
-/*
-    NNN   NNN     OOOO      DDDD        EEEEEE
-    NNN   NNN    OOOOOO     DDDDD       EEE
-    NNNN  NNN   OOO  OOO    DDD DDD     EEE
-    NNNNN NNN   OOO  OOO    DDD  DDD    EEEEEE
-    NNN NNNNN   OOO  OOO    DDD DDD     EEE
-    NNN  NNNN    OOOOOO     DDDDD       EEE
-    NNN   NNN     OOOO      DDDD        EEEEEE
-   */
-
-/*
-    PPPPPPP      AAAAAA     RRRRRRR
-    PPP  PPP    AAA  AAA    RRR  RRR
-    PPP   PPP   AAA  AAA    RRR   RRR
-    PPP  PPP    AAAAAAAA    RRR  RRR
-    PPPPPPP     AAA  AAA    RRRRRRR
-    PPP         AAA  AAA    RRR  RRR
-    PPP         AAA  AAA    RRR    RRR
-   */

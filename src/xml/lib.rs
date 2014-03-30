@@ -1,5 +1,5 @@
 // Crate linkage metadata
-#[crate_id = "xml-rust#0.1-pre"];
+#[crate_id = "xml#0.1"];
 
 
 //Metadata
@@ -21,7 +21,7 @@
 //#[warn(owned_heap_memory)];
 
 // Ignore dead code
-//#[allow(dead_code)];
+#[allow(dead_code)];
 
 // Import lexer
 pub use lexer::{Lexer,XmlToken};
@@ -31,7 +31,7 @@ pub use util::{is_name_char, Config,ErrBehavior};
 pub mod lexer;
 pub mod parser;
 pub mod node;
-mod util;
+pub mod util;
 
 
 fn main() {
