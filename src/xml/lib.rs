@@ -1,27 +1,27 @@
 // Crate linkage metadata
-#[crate_id = "xml#0.1"];
+#![crate_id = "xml#0.1"]
 
 
 //Metadata
-#[comment = "XML pull parser for rust"];
-#[license = "MIT/LGPL"];
-#[crate_type = "lib"];
+#![comment = "XML pull parser for rust"]
+#![license = "MIT/LGPL"]
+#![crate_type = "lib"]
 
 
 // Forbidden things
-#[forbid(non_camel_case_types)];
-#[forbid(non_uppercase_statics)];
-#[forbid(unreachable_code)];
+#![forbid(non_camel_case_types)]
+#![forbid(non_uppercase_statics)]
+#![forbid(unreachable_code)]
 
 
 // Warn on missing docs
-#[warn(unnecessary_qualification)];
-#[warn(managed_heap_memory)];
+#![warn(unnecessary_qualification)]
+#![warn(managed_heap_memory)]
 //#[warn(missing_doc)];
 //#[warn(owned_heap_memory)];
 
 // Ignore dead code
-#[allow(dead_code)];
+#![allow(dead_code)]
 
 // Import lexer
 pub use lexer::{Lexer,XmlToken};
