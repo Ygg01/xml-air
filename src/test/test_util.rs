@@ -1,7 +1,7 @@
 use xml::util::is_restricted_char;
 
 #[test]
-fn is_restricted(){
+fn test_restricted(){
     assert_eq!(true, is_restricted_char(&'\x0B'));
     assert_eq!(true, is_restricted_char(&'\x02'));
     assert_eq!(true, is_restricted_char(&'\x0C'));
