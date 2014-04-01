@@ -8,7 +8,7 @@ RUSTFLAGS ?= -O
 VERSION=0.1-pre
 
 
-xml_parser_so=build/libxml-rust-ef77197d-0.1-pre.so
+xml_parser_so=build/libxml-rust-3c2055d-0.1.so
 xml_parser_files=\
 		$(wildcard src/xml/*.rs)
 
