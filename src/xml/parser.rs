@@ -28,16 +28,16 @@ enum State {
 }
 
 pub struct Parser<'r, R> {
-    depth: uint,
-    elem: Option<XmlElem>,
-    priv lexer: Lexer<'r,R>,
-    priv state: State
+    pub depth: uint,
+    pub elem: Option<XmlElem>,
+    lexer: Lexer<'r,R>,
+    state: State
 
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
 pub struct XmlIterator <'i, 'r, R> {
-    priv iter: &'i mut Parser<'r, R>
+    iter: &'i mut Parser<'r, R>
 }
 
 // The problem seems to be here

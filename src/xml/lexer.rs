@@ -201,20 +201,20 @@ impl Quotes {
 }
 
 pub struct Lexer<'r, R> {
-    line: u64,
-    col: u64,
-    priv checkpoint: Option<Checkpoint>,
-    priv state: State,
+    pub line: u64,
+    pub col: u64,
+    checkpoint: Option<Checkpoint>,
+    state: State,
     // TODO change these to borrowed str
-    priv peek_buf: ~str,
-    priv buf: ~str,
-    priv source: &'r mut R,
-    priv err: Option<XmlError>
+    peek_buf: ~str,
+    buf: ~str,
+    source: &'r mut R,
+    err: Option<XmlError>
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
 pub struct TokenIterator <'b,'r, R> {
-    priv iter: &'b mut Lexer<'r, R>
+    iter: &'b mut Lexer<'r, R>
 }
 
 // The problem seems to be here
