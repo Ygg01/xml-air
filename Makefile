@@ -37,7 +37,7 @@ doc/http/index.html: $(xml_parser_files)
 		$(RUSTDOC) src/xml/lib.rs
 
 build/tests: $(xml_parser_files)
-		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/test/test.rs -L build/.
+		$(RUSTC) $(RUSTFLAGS) --test -o build/tests src/test/test.rs -L build/
 		$(RUSTC) $(RUSTFLAGS) --test -o build/inter_test src/xml/lib.rs
 
 check: clean all build/tests
