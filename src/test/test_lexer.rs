@@ -1,4 +1,4 @@
-use xml::lexer::{Lexer, Char, RestrictedChar,RequiredDecl,FixedDecl};
+use xml::lexer::{Lexer, XmlResult, Char, RestrictedChar,RequiredDecl,FixedDecl};
 use xml::lexer::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
 use xml::lexer::{DoctypeStart, CharRef};
 use xml::lexer::{Percent, NameToken, EntityType, Comment};
@@ -28,10 +28,10 @@ fn whitespace() {
     let mut read = BufReader::new(str1);
     let mut lexer = Lexer::from_reader(&mut read);
 
-    assert_eq!(Some(WhiteSpace(~"  \t\n  ")),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"  \t\n  "))),  lexer.pull());
     assert_eq!(6,                                  lexer.col);
     assert_eq!(1,                                  lexer.line);
-    assert_eq!(Some(NameToken(~"a")),              lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"a"))),          lexer.pull());
 }
 
 #[test]
@@ -41,64 +41,64 @@ fn pi_token() {
 
     let mut lexer = Lexer::from_reader(&mut buf0);
 
-    assert_eq!(Some(PI(~"php", ~"var = echo()")),   lexer.pull());
-    assert_eq!(Some(PI(~"php", ~"")),               lexer.pull());
+    assert_eq!(Some(Ok(PI(~"php", ~"var = echo()"))),   lexer.pull());
+    assert_eq!(Some(Ok(PI(~"php", ~""))),               lexer.pull());
 
     let str1 = bytes!("<?xml encoding = 'UTF-8'?>");
     let mut buf1 =BufReader::new(str1);
 
     lexer = Lexer::from_reader(&mut buf1);
 
-    assert_eq!(Some(PrologStart),                   lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(NameToken(~"encoding")),        lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(Eq),                            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(QuotedString(~"UTF-8")),            lexer.pull());
-    assert_eq!(Some(PrologEnd),                     lexer.pull());
+    assert_eq!(Some(Ok(PrologStart)),                   lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"encoding"))),        lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(Eq)),                            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(QuotedString(~"UTF-8"))),        lexer.pull());
+    assert_eq!(Some(Ok(PrologEnd)),                     lexer.pull());
 
     let str3 = bytes!("<?xml standalone = 'yes'?>");
     let mut buf3 = BufReader::new(str3);
 
     lexer = Lexer::from_reader(&mut buf3);
 
-    assert_eq!(Some(PrologStart),                   lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(NameToken(~"standalone")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(Eq),                            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(QuotedString(~"yes")),          lexer.pull());
-    assert_eq!(Some(PrologEnd),                     lexer.pull());
+    assert_eq!(Some(Ok(PrologStart)),                   lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"standalone"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(Eq)),                            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(QuotedString(~"yes"))),          lexer.pull());
+    assert_eq!(Some(Ok(PrologEnd)),                     lexer.pull());
 
     let str4 = bytes!("<?xml standalone = 'no'?>");
     let mut buf4 =BufReader::new(str4);
 
     lexer = Lexer::from_reader(&mut buf4);
 
-    assert_eq!(Some(PrologStart),                   lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(NameToken(~"standalone")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(Eq),                            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(QuotedString(~"no")),           lexer.pull());
-    assert_eq!(Some(PrologEnd),                     lexer.pull());
+    assert_eq!(Some(Ok(PrologStart)),                   lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"standalone"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(Eq)),                            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(QuotedString(~"no"))),           lexer.pull());
+    assert_eq!(Some(Ok(PrologEnd)),                     lexer.pull());
 
     let str5 = bytes!("<?xml version = '1.0'?>");
     let mut buf5 =BufReader::new(str5);
 
     lexer = Lexer::from_reader(&mut buf5);
 
-    assert_eq!(Some(PrologStart),                   lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(NameToken(~"version")),         lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(Eq),                            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(QuotedString(~"1.0")),          lexer.pull());
-    assert_eq!(Some(PrologEnd),                     lexer.pull());
+    assert_eq!(Some(Ok(PrologStart)),                   lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"version"))),         lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(Eq)),                            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(QuotedString(~"1.0"))),          lexer.pull());
+    assert_eq!(Some(Ok(PrologEnd)),                     lexer.pull());
 }
 
 #[test]
@@ -109,7 +109,7 @@ fn cdata() {
 
     let mut lexer = Lexer::from_reader(&mut read1);
 
-    assert_eq!(Some(CData(~"various text data like <a>")),  lexer.pull());
+    assert_eq!(Some(Ok(CData(~"various text data like <a>"))),  lexer.pull());
     assert_eq!(Some(Char('!')),                     lexer.read_chr());
 
     let str2 = bytes!("<![C!");
@@ -240,9 +240,9 @@ fn comment(){
 
     let mut lexer = Lexer::from_reader(&mut read1);
 
-    assert_eq!(Some(Comment(~" Nice comments ")), lexer.pull());
-    assert_eq!(Some(LessBracket), lexer.pull());
-    assert_eq!(Some(GreaterBracket), lexer.pull());
+    assert_eq!(Some(Ok(Comment(~" Nice comments "))), lexer.pull());
+    assert_eq!(Some(Ok(LessBracket)), lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)), lexer.pull());
 }
 
 #[test]
@@ -251,25 +251,25 @@ fn element(){
     let mut read1 = BufReader::new(str1);
 
     let mut lexer = Lexer::from_reader(&mut read1);
-    assert_eq!(Some(LessBracket),           lexer.pull());
-    assert_eq!(Some(NameToken(~"elem")),    lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),      lexer.pull());
-    assert_eq!(Some(NameToken(~"attr")),    lexer.pull());
-    assert_eq!(Some(Eq),                    lexer.pull());
-    assert_eq!(Some(Quote),                 lexer.pull());
-    assert_eq!(Some(Text(~"something ")),   lexer.pull());
-    assert_eq!(Some(Ref(~"ref")),           lexer.pull());
-    assert_eq!(Some(Text(~"bla")),          lexer.pull());
-    assert_eq!(Some(CharRef('#')),          lexer.pull());
-    assert_eq!(Some(CharRef('*')),          lexer.pull());
-    assert_eq!(Some(Quote),                 lexer.pull());
-    assert_eq!(Some(GreaterBracket),        lexer.pull());
-    assert_eq!(Some(CloseTag),              lexer.pull());
-    assert_eq!(Some(NameToken(~"elem")),    lexer.pull());
-    assert_eq!(Some(GreaterBracket),        lexer.pull());
-    assert_eq!(Some(LessBracket),           lexer.pull());
-    assert_eq!(Some(NameToken(~"br")),      lexer.pull());
-    assert_eq!(Some(EmptyTag),              lexer.pull());
+    assert_eq!(Some(Ok(LessBracket)),           lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"elem"))),    lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),      lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"attr"))),    lexer.pull());
+    assert_eq!(Some(Ok(Eq)),                    lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                 lexer.pull());
+    assert_eq!(Some(Ok(Text(~"something "))),   lexer.pull());
+    assert_eq!(Some(Ok(Ref(~"ref"))),           lexer.pull());
+    assert_eq!(Some(Ok(Text(~"bla"))),          lexer.pull());
+    assert_eq!(Some(Ok(CharRef('#'))),          lexer.pull());
+    assert_eq!(Some(Ok(CharRef('*'))),          lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                 lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),        lexer.pull());
+    assert_eq!(Some(Ok(CloseTag)),              lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"elem"))),    lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),        lexer.pull());
+    assert_eq!(Some(Ok(LessBracket)),           lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"br"))),      lexer.pull());
+    assert_eq!(Some(Ok(EmptyTag)),              lexer.pull());
 }
 
 #[test]
@@ -278,15 +278,15 @@ fn qname(){
     let mut read1 = BufReader::new(str1);
 
     let mut lexer = Lexer::from_reader(&mut read1);
-    assert_eq!(Some(LessBracket),                   lexer.pull());
-    assert_eq!(Some(QNameToken(~"book",~"elem")),   lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(QNameToken(~"book",~"iso")),    lexer.pull());
-    assert_eq!(Some(Eq),                            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),              lexer.pull());
-    assert_eq!(Some(Quote),                         lexer.pull());
-    assert_eq!(Some(Text(~"11231A")),               lexer.pull());
-    assert_eq!(Some(Quote),                         lexer.pull());
+    assert_eq!(Some(Ok(LessBracket)),                   lexer.pull());
+    assert_eq!(Some(Ok(QNameToken(~"book",~"elem"))),   lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(QNameToken(~"book",~"iso"))),    lexer.pull());
+    assert_eq!(Some(Ok(Eq)),                            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),              lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                         lexer.pull());
+    assert_eq!(Some(Ok(Text(~"11231A"))),               lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                         lexer.pull());
 }
 
 #[test]
@@ -295,13 +295,13 @@ fn quote_terminating(){
     let mut read = BufReader::new(str1);
     let mut lexer = Lexer::from_reader(&mut read);
 
-    assert_eq!(Some(LessBracket),               lexer.pull());
-    assert_eq!(Some(NameToken(~"el")),          lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"name")),        lexer.pull());
-    assert_eq!(Some(Eq),                        lexer.pull());
-    assert_eq!(Some(Quote),                     lexer.pull());
-    assert_eq!(Some(Text(~"test")),             lexer.pull());
+    assert_eq!(Some(Ok(LessBracket)),               lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"el"))),          lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"name"))),        lexer.pull());
+    assert_eq!(Some(Ok(Eq)),                        lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                     lexer.pull());
+    assert_eq!(Some(Ok(Text(~"test"))),             lexer.pull());
 }
 
 #[test]
@@ -312,29 +312,29 @@ fn  doctype_attlist() {
     let mut read = BufReader::new(test_str);
     let mut lexer = Lexer::from_reader(&mut read);
 
-    assert_eq!(Some(DoctypeStart),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftSqBracket),             lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(AttlistType),               lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"test")),        lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"NOTATION")),    lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftParen),                 lexer.pull());
-    assert_eq!(Some(NameToken(~"stuff")),       lexer.pull());
-    assert_eq!(Some(Pipe),                      lexer.pull());
-    assert_eq!(Some(NameToken(~"stuf2")),       lexer.pull());
-    assert_eq!(Some(RightParen),                lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(ImpliedDecl),               lexer.pull())
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(RightSqBracket),            lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
+    assert_eq!(Some(Ok(DoctypeStart)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(AttlistType)),               lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"test"))),        lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"NOTATION"))),    lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftParen)),                 lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"stuff"))),       lexer.pull());
+    assert_eq!(Some(Ok(Pipe)),                      lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"stuf2"))),       lexer.pull());
+    assert_eq!(Some(Ok(RightParen)),                lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(ImpliedDecl)),               lexer.pull())
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 
     let test_str2 = bytes!("<!DOCTYPE PUBLIC [
     <!ATTLIST test NOTATION (9stuff|-stuf2) #FIXED>
@@ -342,29 +342,29 @@ fn  doctype_attlist() {
     let mut read2 = BufReader::new(test_str2);
     let mut lexer = Lexer::from_reader(&mut read2);
 
-    assert_eq!(Some(DoctypeStart),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftSqBracket),             lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(AttlistType),               lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"test")),        lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"NOTATION")),    lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftParen),                 lexer.pull());
-    assert_eq!(Some(NMToken(~"9stuff")),        lexer.pull());
-    assert_eq!(Some(Pipe),                      lexer.pull());
-    assert_eq!(Some(NMToken(~"-stuf2")),        lexer.pull());
-    assert_eq!(Some(RightParen),                lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(FixedDecl),                 lexer.pull())
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(RightSqBracket),            lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
+    assert_eq!(Some(Ok(DoctypeStart)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(AttlistType)),               lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"test"))),        lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"NOTATION"))),    lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftParen)),                 lexer.pull());
+    assert_eq!(Some(Ok(NMToken(~"9stuff"))),        lexer.pull());
+    assert_eq!(Some(Ok(Pipe)),                      lexer.pull());
+    assert_eq!(Some(Ok(NMToken(~"-stuf2"))),        lexer.pull());
+    assert_eq!(Some(Ok(RightParen)),                lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(FixedDecl)),                 lexer.pull())
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 
     let test_str3 = bytes!("<!DOCTYPE PUBLIC [
     <!ATTLIST test 'text&attr;' #REQUIRED #IMPLIED>
@@ -372,28 +372,28 @@ fn  doctype_attlist() {
     let mut read3 = BufReader::new(test_str3);
     let mut lexer = Lexer::from_reader(&mut read3);
 
-    assert_eq!(Some(DoctypeStart),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftSqBracket),             lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(AttlistType),               lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"test")),        lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(Quote),                     lexer.pull());
-    assert_eq!(Some(Text(~"text")),             lexer.pull());
-    assert_eq!(Some(Ref(~"attr")),              lexer.pull());
-    assert_eq!(Some(Quote),                     lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(RequiredDecl),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(ImpliedDecl),               lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(RightSqBracket),            lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
+    assert_eq!(Some(Ok(DoctypeStart)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(AttlistType)),               lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"test"))),        lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                     lexer.pull());
+    assert_eq!(Some(Ok(Text(~"text"))),             lexer.pull());
+    assert_eq!(Some(Ok(Ref(~"attr"))),              lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                     lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(RequiredDecl)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(ImpliedDecl)),               lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 }
 
 #[test]
@@ -404,34 +404,34 @@ fn doctype_el() {
     let mut read = BufReader::new(str1);
     let mut lexer =             Lexer::from_reader(&mut read);
 
-    assert_eq!(Some(DoctypeStart),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"stuff")),       lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"SYSTEM")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(QuotedString(~"pubid")),    lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftSqBracket),             lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(ElementType),               lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftParen),                 lexer.pull());
-    assert_eq!(Some(NameToken(~"name")),        lexer.pull());
-    assert_eq!(Some(Pipe),                      lexer.pull());
-    assert_eq!(Some(LeftParen),                 lexer.pull());
-    assert_eq!(Some(PCDataDecl),                lexer.pull());
-    assert_eq!(Some(Comma),                     lexer.pull());
-    assert_eq!(Some(ParRef(~"div")),            lexer.pull());
-    assert_eq!(Some(RightParen),                lexer.pull());
-    assert_eq!(Some(RightParen),                lexer.pull());
-    assert_eq!(Some(QuestionMark),              lexer.pull());
-    assert_eq!(Some(Plus),                      lexer.pull());
-    assert_eq!(Some(Star),                      lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(RightSqBracket),            lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
+    assert_eq!(Some(Ok(DoctypeStart)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"stuff"))),       lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"SYSTEM"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(QuotedString(~"pubid"))),    lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(ElementType)),               lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftParen)),                 lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"name"))),        lexer.pull());
+    assert_eq!(Some(Ok(Pipe)),                      lexer.pull());
+    assert_eq!(Some(Ok(LeftParen)),                 lexer.pull());
+    assert_eq!(Some(Ok(PCDataDecl)),                lexer.pull());
+    assert_eq!(Some(Ok(Comma)),                     lexer.pull());
+    assert_eq!(Some(Ok(ParRef(~"div"))),            lexer.pull());
+    assert_eq!(Some(Ok(RightParen)),                lexer.pull());
+    assert_eq!(Some(Ok(RightParen)),                lexer.pull());
+    assert_eq!(Some(Ok(QuestionMark)),              lexer.pull());
+    assert_eq!(Some(Ok(Plus)),                      lexer.pull());
+    assert_eq!(Some(Ok(Star)),                      lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 }
 
 #[test]
@@ -442,31 +442,31 @@ fn doctype_ent() {
     let mut read2 = BufReader::new(str2);
     let mut lexer = Lexer::from_reader(&mut read2);
 
-    assert_eq!(Some(DoctypeStart),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftSqBracket),             lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(EntityType),                lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(Percent),                   lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(Quote),                     lexer.pull());
-    assert_eq!(Some(Text(~"text")),             lexer.pull());
-    assert_eq!(Some(ParRef(~"ent")),            lexer.pull());
-    assert_eq!(Some(Ref(~"x")),                 lexer.pull());
-    assert_eq!(Some(CharRef('^')),              lexer.pull());
-    assert_eq!(Some(CharRef('~')),              lexer.pull());
-    assert_eq!(Some(Quote),                     lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(QuotedString(~"quote")),    lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
-    assert_eq!(Some(DoctypeOpen),               lexer.pull());
-    assert_eq!(Some(DoctypeClose),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
+    assert_eq!(Some(Ok(DoctypeStart)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(EntityType)),                lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(Percent)),                   lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                     lexer.pull());
+    assert_eq!(Some(Ok(Text(~"text"))),             lexer.pull());
+    assert_eq!(Some(Ok(ParRef(~"ent"))),            lexer.pull());
+    assert_eq!(Some(Ok(Ref(~"x"))),                 lexer.pull());
+    assert_eq!(Some(Ok(CharRef('^'))),              lexer.pull());
+    assert_eq!(Some(Ok(CharRef('~'))),              lexer.pull());
+    assert_eq!(Some(Ok(Quote)),                     lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(QuotedString(~"quote"))),    lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(DoctypeOpen)),               lexer.pull());
+    assert_eq!(Some(Ok(DoctypeClose)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
 }
 
 #[test]
@@ -477,19 +477,19 @@ fn doctype_notation() {
     let mut read2 = BufReader::new(str2);
     let mut lexer = Lexer::from_reader(&mut read2);
 
-    assert_eq!(Some(DoctypeStart),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(LeftSqBracket),             lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(NotationType),              lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(NameToken(~"PUBLIC")),      lexer.pull());
-    assert_eq!(Some(WhiteSpace(~" ")),          lexer.pull());
-    assert_eq!(Some(QuotedString(~"blabla")),   lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
-    assert_eq!(Some(WhiteSpace(~"\n    ")), lexer.pull());
-    assert_eq!(Some(RightSqBracket),            lexer.pull());
-    assert_eq!(Some(GreaterBracket),            lexer.pull());
+    assert_eq!(Some(Ok(DoctypeStart)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(NotationType)),              lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
+    assert_eq!(Some(Ok(QuotedString(~"blabla"))),   lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
+    assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 }

@@ -12,7 +12,7 @@ use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
 mod util;
 
-pub type XmlResult = Result<XmlToken,(XmlError, XmlToken)>;
+pub type XmlResult = Result<XmlToken,(XmlError, Option<XmlToken>)>;
 
 
 #[deriving(Eq, Show, Clone)]
@@ -203,13 +203,15 @@ impl Quotes {
 pub struct Lexer<'r, R> {
     pub line: u64,
     pub col: u64,
+    token: Option<XmlToken>,
+    err: Option<XmlError>,
     checkpoint: Option<Checkpoint>,
     state: State,
     // TODO change these to borrowed str
     peek_buf: ~str,
     buf: ~str,
-    source: &'r mut R,
-    err: Option<XmlError>
+    source: &'r mut R
+
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
@@ -218,8 +220,8 @@ pub struct TokenIterator <'b,'r, R> {
 }
 
 // The problem seems to be here
-impl<'b,'r, R: Reader+Buffer> Iterator<XmlToken> for TokenIterator<'b, 'r, R> {
-    fn next(&mut self) -> Option<XmlToken> {
+impl<'b,'r, R: Reader+Buffer> Iterator<XmlResult> for TokenIterator<'b, 'r, R> {
+    fn next(&mut self) -> Option<XmlResult> {
         self.iter.pull()
     }
 }
@@ -248,6 +250,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             state: OutsideTag,
             buf: ~"",
             err: None,
+            token: None,
             source: data
         }
     }
@@ -267,7 +270,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     ///         println!(tok);
     ///     }
     ///     assert_eq!(None, lexer.pull());
-    pub fn pull(&mut self) -> Option<XmlToken> {
+    pub fn pull(&mut self) -> Option<XmlResult> {
         self.buf = ~"";
 
         let read_chr = match self.read_chr() {
@@ -280,21 +283,37 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             _ => {}
         }
 
-        let token = match read_chr {
+        match read_chr {
             RestrictedChar(_) => {
-                Some(self.handle_errors(RestrictedCharError, None))
+                self.handle_errors(RestrictedCharError, None);
             },
             Char(chr) if is_whitespace(&chr)
                       => self.get_whitespace_token(),
             Char(a) => self.parse_char(&a)
         };
 
-        token
+        let result = match self.token {
+            Some(ref token) => Ok(token.clone()),
+            None => {
+                //FIXME: Do real error checking
+                let err = XmlError {
+                        line: 0,
+                        col: 0,
+                        msg: ~"",
+                        mark: None
+                };
+                Err((err, None))
+            }
+        };
+
+        Some(result)
 
     }
 
-    fn parse_char(&mut self, c: &char ) -> Option<XmlToken> {
-        match self.state {
+    fn parse_char(&mut self, c: &char ) {
+        //FIXME: This must be removed and emitting token 
+        // will be per case basis (possible macro!)
+        self.token = match self.state {
             InStartTag => {
                 match c {
                     chr if is_name_start(chr)
@@ -567,7 +586,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     _  => self.get_text_token(),
                 }
             }
-        }
+        };
     }
 
 
@@ -869,7 +888,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// consumes all following whitespace characters until it
     /// reaches a non white space character be it Restricted char,
     /// EndFile or  a non-white space char.
-    fn get_whitespace_token(&mut self) -> Option<XmlToken> {
+    fn get_whitespace_token(&mut self) {
 
         let ws = self.read_while_fn( |val| {
             match val {
@@ -879,8 +898,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         });
 
         self.buf.push_str(ws);
-
-        Some(WhiteSpace(self.buf.clone()))
+        self.token = Some(WhiteSpace(self.buf.clone()));
     }
 
     /// If we find a name start character this method

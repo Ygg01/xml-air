@@ -4,15 +4,15 @@ use std::fmt;
 #[deriving(Eq, Clone, Show)]
 pub struct XmlError {
     /// The line number at which the error occurred
-    line: uint,
+    pub line: uint,
     /// The column number at which the error occurred
-    col: uint,
+    pub col: uint,
     /// A message describing the type of the error
-    msg: ~str,
+    pub msg: ~str,
     /// Type of error
     //kind: ErrKind,
     /// Position and context of error in Context
-    mark: Option<Mark>
+    pub mark: Option<Mark>
 }
 
 #[deriving(Eq, Clone, Show)]
