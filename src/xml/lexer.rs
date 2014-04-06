@@ -109,7 +109,9 @@ pub enum XmlToken {
     /// Symbol #REQUIRED
     RequiredDecl,
     /// Symbol #IMPLIED
-    ImpliedDecl
+    ImpliedDecl,
+    /// FIXME token is temporarily
+    FIXME
 }
 
 #[deriving(Eq,Show)]
@@ -333,7 +335,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                                 tok
                             }
                     &'/'    => self.get_empty_tag_token(),
-                    _       => Some(self.handle_errors(IllegalChar, None))
+                    _       => Some(FIXME)
                 }
             },
             Attlist(quotes) => {
@@ -446,7 +448,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     &'#' => self.get_hash_token(),
                     // TODO Change to proper error
                     _     => {
-                        Some(self.handle_errors(IllegalChar, None))
+                        Some(FIXME)
                     }
                 }
             },
@@ -462,7 +464,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     &'\''
                     | &'"'  => self.get_quote_token(),
                     _    => {
-                        Some(self.handle_errors(IllegalChar, None))
+                        Some(FIXME)
                     }
                 }
             },
@@ -482,7 +484,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                         self.get_spec_quote()
                     },
                     _ => {
-                        Some(self.handle_errors(IllegalChar, None))
+                        Some(FIXME)
                     }
                 }
             },
@@ -509,7 +511,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     },
                     // TODO Change to proper error
                     _     => {
-                        Some(self.handle_errors(IllegalChar, None))
+                        Some(FIXME)
                     }
                 }
             },
@@ -524,7 +526,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                         self.get_right_bracket_token()
                     },
                     _     => {
-                        Some(self.handle_errors(IllegalChar, None))
+                        Some(FIXME)
                     }
                 }
             }
@@ -827,11 +829,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
     fn handle_errors(&self, kind: ErrKind,
                      pass: Option<XmlToken>)
-                     -> XmlToken {
+                      {
         if kind == IllegalChar  {
             //println!("ERROR!");
         }
-        ErrorToken(~"")
+       
     }
 
     fn process_namechars(&mut self) -> ~str {
@@ -916,7 +918,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         } else if is_name_char(&start_char) {
             result = Some(NMToken(self.buf.clone()));
         } else {
-            result = Some(self.handle_errors(IllegalChar, None));
+            result = Some(FIXME);
         }
 
         result
@@ -969,10 +971,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 rew = from_char(a);
             }
             Some(RestrictedChar(_)) => {
-                return Some(self.handle_errors(IllegalChar, None));
+                return Some(FIXME);
             },
             None => {
-                return Some(self.handle_errors(PrematureEOF, None));
+                return Some(FIXME);
             }
         }
 
@@ -1056,11 +1058,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             result = Some(DoctypeStart);
         } else {
             self.rewind(peeked_str);
-            result = Some(self.handle_errors(
-                            UnknownToken,
-                            Some(Text(~"<!D"))
-                            )
-                    );
+            result = Some(FIXME);
         }
         result
     }
@@ -1076,10 +1074,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             result = Some(AttlistType);
         } else {
             self.rewind(peeked_str);
-            result = Some(self.handle_errors(
-                            UnknownToken,
-                            Some(Text(~"<!A")))
-            );
+            result = Some(FIXME);
         }
         result
     }
@@ -1113,10 +1108,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 Some(Text(~"&"))
             },
             None => {
-                Some(self.handle_errors(
-                    PrematureEOF,
-                    None
-                ))
+                Some(FIXME)
             }
         };
         token
@@ -1144,18 +1136,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             },
             Some(Char(_))
             | Some(RestrictedChar(_)) => {
-                return Some(self.handle_errors(
-                                NonDigitError,
-                                Some(ErrorToken(self.buf.clone()))
-                            )
-                       );
+                return Some(FIXME);
             },
             None => {
-                return Some(self.handle_errors(
-                                PrematureEOF,
-                                Some(ErrorToken(self.buf.clone()))
-                            )
-                        );
+                return Some(FIXME);
             }
         }
 
@@ -1188,20 +1172,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                          Some(CharRef(a))
                     }
                     _ => {
-                        Some(self.handle_errors(
-                                CharParsingError,
-                                Some(ErrorToken(self.buf.clone()))
-                            )
-                        )
+                        Some(FIXME)
                     }
                 }
             },
             None => {
-                Some(self.handle_errors(
-                        NumParsingError,
-                        Some(ErrorToken(self.buf.clone()))
-                    )
-                )
+                Some(FIXME)
             }
         }
     }
@@ -1240,11 +1216,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             },
             None => {
-                Some(self.handle_errors(
-                        PrematureEOF,
-                        Some(ErrorToken(self.buf.clone()))
-                    )
-                )
+                Some(FIXME)
             }
         };
         result
@@ -1454,7 +1426,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     #[inline(always)]
     fn get_attl_error_token(&mut self) -> Option<XmlToken> {
         assert_eq!(~"<", self.buf);
-        Some(self.handle_errors(IllegalChar, None))
+        Some(FIXME)
     }
 
     fn get_text_token(&mut self) -> Option<XmlToken> {
