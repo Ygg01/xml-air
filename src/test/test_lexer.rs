@@ -317,7 +317,7 @@ fn  doctype_attlist() {
     assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(AttlistType)),               lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(NameToken(~"test"))),        lexer.pull());
@@ -332,7 +332,7 @@ fn  doctype_attlist() {
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(ImpliedDecl)),               lexer.pull())
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 
@@ -347,7 +347,7 @@ fn  doctype_attlist() {
     assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(AttlistType)),               lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(NameToken(~"test"))),        lexer.pull());
@@ -362,7 +362,7 @@ fn  doctype_attlist() {
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(FixedDecl)),                 lexer.pull())
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 
@@ -377,7 +377,7 @@ fn  doctype_attlist() {
     assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(AttlistType)),               lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(NameToken(~"test"))),        lexer.pull());
@@ -391,7 +391,7 @@ fn  doctype_attlist() {
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(ImpliedDecl)),               lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 }
@@ -413,7 +413,7 @@ fn doctype_el() {
     assert_eq!(Some(Ok(QuotedString(~"pubid"))),    lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(ElementType)),               lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(LeftParen)),                 lexer.pull());
@@ -429,7 +429,7 @@ fn doctype_el() {
     assert_eq!(Some(Ok(Plus)),                      lexer.pull());
     assert_eq!(Some(Ok(Star)),                      lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 }
@@ -447,7 +447,7 @@ fn doctype_ent() {
     assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(EntityType)),                lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(Percent)),                   lexer.pull());
@@ -466,7 +466,7 @@ fn doctype_ent() {
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
     assert_eq!(Some(Ok(DoctypeOpen)),               lexer.pull());
     assert_eq!(Some(Ok(DoctypeClose)),              lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
 }
 
 #[test]
@@ -482,14 +482,14 @@ fn doctype_notation() {
     assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(LeftSqBracket)),             lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(NotationType)),              lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(NameToken(~"PUBLIC"))),      lexer.pull());
     assert_eq!(Some(Ok(WhiteSpace(~" "))),          lexer.pull());
     assert_eq!(Some(Ok(QuotedString(~"blabla"))),   lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
-    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))), lexer.pull());
+    assert_eq!(Some(Ok(WhiteSpace(~"\n    "))),     lexer.pull());
     assert_eq!(Some(Ok(RightSqBracket)),            lexer.pull());
     assert_eq!(Some(Ok(GreaterBracket)),            lexer.pull());
 }
