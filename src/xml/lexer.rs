@@ -543,10 +543,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             },
             OutsideTag => {
                 match c {
-                    chr if is_name_start(chr)
+                    chr if is_name_start(chr) || is_name_char(chr)
                               => self.get_name_token(),
-                    chr if is_name_char(chr)
-                              => self.get_nmtoken(),
                     &'<'  => {
                         let tok = self.get_left_bracket_token();
                         if tok == Some(LessBracket) {
@@ -573,7 +571,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     chr if is_name_start(chr)
                               => self.get_name_token(),
                     chr if is_name_char(chr)
-                              => self.get_nmtoken(),
+                              => self.get_name_token(),
                     &'<'  => self.get_left_bracket_token(),
                     &'&'  => self.get_ref_token(),
                     &'%'  => self.get_peref_token(),
@@ -955,11 +953,6 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
         result
 
-    }
-
-    // TODO Write test
-    fn get_nmtoken(&mut self) -> Option<XmlToken> {
-        None
     }
 
     fn get_left_bracket_token(&mut self) -> Option<XmlToken> {
