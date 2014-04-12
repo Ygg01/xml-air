@@ -1,4 +1,4 @@
-use xml::util::is_restricted_char;
+use xml::util::{is_restricted_char, is_whitespace};
 
 #[test]
 fn test_restricted(){
@@ -41,4 +41,13 @@ fn test_restricted(){
     assert_eq!(true, is_restricted_char(&'\U000EFFFF'));
     assert_eq!(true, is_restricted_char(&'\U000FFFFE'));
     assert_eq!(true, is_restricted_char(&'\U000FFFFF'));
+}
+
+#[test]
+fn test_whitespace(){
+    assert!(is_whitespace(&'\x20'));
+    assert!(is_whitespace(&'\x09'));
+    assert!(is_whitespace(&'\x0D'));
+    assert!(is_whitespace(&'\x0A'));
+    assert!(!is_whitespace(&'\x0B'));
 }
