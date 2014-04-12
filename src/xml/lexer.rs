@@ -3,9 +3,11 @@ use std::io::{Reader, Buffer};
 use std::char::from_u32;
 use std::str::from_char;
 use std::num::from_str_radix;
+use std::strbuf::StrBuf;
 
 use util::{is_whitespace, is_name_start, is_name_char};
 use util::{XmlError, ErrKind};
+use util::{pop_char, shift_char, clone_to_str};
 use util::{is_restricted_char, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
@@ -210,8 +212,8 @@ pub struct Lexer<'r, R> {
     checkpoint: Option<Checkpoint>,
     state: State,
     // TODO change these to borrowed str
-    peek_buf: ~str,
-    buf: ~str,
+    peek_buf: StrBuf,
+    buf: StrBuf,
     source: &'r mut R
 
 }
@@ -247,10 +249,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         Lexer {
             line: 1,
             col: 0,
-            peek_buf: ~"",
+            peek_buf: StrBuf::new(),
             checkpoint: None,
             state: OutsideTag,
-            buf: ~"",
+            buf: StrBuf::new(),
             err: None,
             token: None,
             source: data
@@ -273,7 +275,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     ///     }
     ///     assert_eq!(None, lexer.pull());
     pub fn pull(&mut self) -> Option<XmlResult> {
-        self.buf = ~"";
+        self.buf = StrBuf::new();
 
         let read_chr = match self.read_chr() {
             Some(a) => a,
@@ -660,7 +662,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             }
         } else {
-            chr = self.peek_buf.pop_char().unwrap();
+            chr = util::pop_char(&self.peek_buf).unwrap();
         }
 
         if "\r\u2028\x85".contains_char(chr) {
@@ -714,7 +716,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// restricted char  into the error section.
     /// Restricted character are *included* into the output string
     fn read_raw_str(&mut self, len: u64) -> ~str {
-        let mut raw_str = ~"";
+        let mut raw_str = StrBuf::new();
         let mut eof = false;
         let mut l = 0;
 
@@ -738,7 +740,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             };
 
         };
-        raw_str
+        raw_str.into_owned()
     }
 
     //TODO Doc
@@ -748,7 +750,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                      -> ~str {
         let mut col = self.col;
         let mut line = self.line;
-        let mut ret_str = ~"";
+        let mut ret_str = StrBuf::new();
         let mut chr = self.read_chr();
 
         while fn_while (chr) {
@@ -780,12 +782,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             None => {}
         }
 
-        ret_str
+        ret_str.into_owned()
     }
 
     fn read_until_peek(&mut self, peek_look: &str) -> ~str {
         let mut peek_found = false;
-        let mut result = ~"";
+        let mut result = StrBuf::new();
         let peek_len = (peek_look.char_len() - 1) as u64;
 
         while !peek_found {
@@ -796,12 +798,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 None          => {},
                 Some(Char(a)) => {
                     self.save_checkpoint();
-                    let mut rew = ~"";
-                    let mut peek = from_char(a);
+                    let mut rew = StrBuf::new();
+                    let mut peek = StrBuf::from_char(1,a);
 
                     if peek_len > 0 {
-                        rew = self.read_str(peek_len);
-                        peek.push_str(rew);
+                        rew = StrBuf::from_str(self.read_str(peek_len));
+                        peek.push_str(rew.clone().into_owned());
                     }
 
                     if peek.as_slice() == peek_look {
@@ -810,11 +812,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                         result.push_char(a);
                     }
 
-                    if rew != ~"" {
+                    if !rew.len() > 0{
                         if peek_found {
-                            self.rewind_to(peek, pre_cp);
+                            self.rewind_to(peek.into_owned(), pre_cp);
                         } else {
-                            self.rewind(rew);
+                            self.rewind(rew.into_owned());
                         }
                     }
                 },
@@ -823,7 +825,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             }
         }
-        result
+        result.into_owned()
     }
 
 
@@ -833,7 +835,6 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         if kind == IllegalChar  {
             //println!("ERROR!");
         }
-       
     }
 
     fn process_namechars(&mut self) -> ~str {
@@ -846,7 +847,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn process_name(&mut self) -> ~str {
-        let mut result = ~"";
+        let mut result = StrBuf::new();
         match self.read_chr() {
             Some(Char(a)) if util::is_name_start(&a) => {
                 result.push_char(a);
@@ -862,7 +863,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
         }
         result.push_str(self.process_namechars());
-        result
+        result.into_owned()
     }
 
     /// It will attempt to consume all digits until it reaches a non-digit
@@ -898,7 +899,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         });
 
         self.buf.push_str(ws);
-        self.token = Some(WhiteSpace(self.buf.clone()));
+        self.token = Some(WhiteSpace(self.buf.clone().into_owned()));
     }
 
     /// If we find a name start character this method
@@ -906,7 +907,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// character.
     fn get_name_token(&mut self) -> Option<XmlToken> {
         assert_eq!(1, self.buf.len());
-        let start_char = self.buf.char_at(0);
+        let start_char = self.buf.as_slice().char_at(0);
 
         let result;
 
@@ -914,9 +915,9 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         self.buf.push_str(temp);
 
         if is_name_start(&start_char) {
-            result = Some(NameToken(self.buf.clone()));
+            result = Some(NameToken(util::clone_to_str(&self.buf)));
         } else if is_name_char(&start_char) {
-            result = Some(NMToken(self.buf.clone()));
+            result = Some(NMToken(util::clone_to_str(&self.buf)));
         } else {
             result = Some(FIXME);
         }
@@ -933,12 +934,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         let namechars = self.process_namechars();
 
         self.buf.push_str(namechars);
-        if self.buf.contains_char(':'){
-            if self.buf.char_at(0) == ':'
-            || self.buf.char_at(self.buf.len()-1) == ':'{
-                result = Some(NameToken(self.buf.clone()));
+        if self.buf.as_slice().contains_char(':'){
+            if self.buf.as_slice().char_at(0) == ':'
+            || self.buf.as_slice().char_at(self.buf.len()-1) == ':'{
+                result = Some(NameToken(util::clone_to_str(&self.buf)));
             } else {
-                let split_name: ~[&str] = self.buf.split(':').collect();
+                let split_name: ~[&str] = self.buf.as_slice().split(':').collect();
 
                 if split_name.len() == 2 {
                     result = Some(
@@ -946,11 +947,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                                    split_name[1].to_owned())
                     );
                 } else {
-                    result = Some(NameToken(self.buf.clone()));
+                    result = Some(NameToken(util::clone_to_str(&self.buf)));
                 }
             }
         } else {
-            result = Some(NameToken(self.buf.clone()));
+            result = Some(NameToken(util::clone_to_str(&self.buf)));
         }
 
         result
@@ -958,7 +959,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_left_bracket_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<",   self.buf);
+        assert_eq!("<",   self.buf.as_slice());
 
         let result;
         self.save_checkpoint();
@@ -978,11 +979,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
         }
 
-        if self.buf == ~"</"{
+        if self.buf.as_slice() == "</"{
             result = self.get_close_tag_token();
-        } else if self.buf == ~"<?" {
+        } else if self.buf.as_slice() == "<?" {
             result = self.get_pi_token();
-        } else if self.buf == ~"<!" {
+        } else if self.buf.as_slice() == "<!" {
             result = self.get_amp_excl();
         } else {
             self.rewind(rew);
@@ -993,7 +994,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_amp_excl(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!",   self.buf);
+        assert_eq!("<!",   self.buf.as_slice());
         let read = self.read_chr();
 
         let result = match read {
@@ -1029,7 +1030,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_cdata_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<![",       self.buf);
+        assert_eq!("<![",       self.buf.as_slice());
 
         self.save_checkpoint();
         let cdata = self.read_str(6);
@@ -1049,7 +1050,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_doctype_start_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!D",       self.buf);
+        assert_eq!("<!D",       self.buf.as_slice());
         self.save_checkpoint();
         let peeked_str  = self.read_str(6);
         let result;
@@ -1064,7 +1065,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_attlist_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!A",       self.buf);
+        assert_eq!("<!A",       self.buf.as_slice());
         self.save_checkpoint();
 
         let peeked_str = self.read_str(6);
@@ -1081,12 +1082,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
     #[inline(always)]
     fn get_equal_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"=",       self.buf);
+        assert_eq!("=",       self.buf.as_slice());
         Some(Eq)
     }
 
     fn get_ref_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"&",  self.buf);
+        assert_eq!("&",  self.buf.as_slice());
         self.save_checkpoint();
         let chr = self.read_chr();
 
@@ -1115,12 +1116,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_peref_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"%",       self.buf);
+        assert_eq!("%",       self.buf.as_slice());
         self.get_entity_ref_token(false)
     }
 
     fn get_char_ref_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"&#",       self.buf);
+        assert_eq!("&#",       self.buf.as_slice());
         self.save_checkpoint();
         let next_char = self.read_chr();
 
@@ -1157,7 +1158,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 self.rewind(from_char(a));
             }
             _ => {
-                return Some(ErrorToken(self.buf.clone()));
+                return Some(ErrorToken(util::clone_to_str(&self.buf)));
             }
         }
 
@@ -1224,12 +1225,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
     #[inline(always)]
     fn get_sqbracket_left_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"[",       self.buf);
+        assert_eq!("[",       self.buf.as_slice());
         Some(LeftSqBracket)
     }
 
     fn get_doctype_end_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"]",        self.buf);
+        assert_eq!("]",        self.buf.as_slice());
         self.save_checkpoint();
         let rew  = self.read_str(2);
 
@@ -1243,56 +1244,56 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
     #[inline(always)]
     fn get_sqbracket_right_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"]",       self.buf);
+        assert_eq!("]",       self.buf.as_slice());
         Some(RightSqBracket)
     }
 
     #[inline(always)]
     fn get_paren_left_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"(",       self.buf);
+        assert_eq!("(",       self.buf.as_slice());
         Some(LeftParen)
     }
 
     #[inline(always)]
     fn get_paren_right_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~")",       self.buf);
+        assert_eq!(")",       self.buf.as_slice());
         Some(RightParen)
     }
 
     #[inline(always)]
     fn get_percent_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"%",       self.buf);
+        assert_eq!("%",       self.buf.as_slice());
         Some(Percent)
     }
 
     fn get_hash_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"#",    self.buf);
+        assert_eq!("#",    self.buf.as_slice());
         self.save_checkpoint();
-        let mut rew = self.read_str(5);
+        let mut rew = StrBuf::from_str(self.read_str(5));
         let result;
 
-        if rew == ~"FIXED" {
+        if rew.as_slice() == "FIXED" {
             result = Some(FixedDecl);
-        } else if rew == ~"PCDAT" {
+        } else if rew.as_slice() == "PCDAT" {
 
             rew.push_str(self.read_str(1));
-            if rew == ~"PCDATA" {
+            if rew.as_slice() == "PCDATA" {
                 result = Some(PCDataDecl);
             } else {
                 result = Some(ErrorToken(~"#"));
             }
-        } else if rew ==  ~"IMPLI" {
+        } else if rew.as_slice() ==  "IMPLI" {
 
             rew.push_str(self.read_str(2));
-            if rew == ~"IMPLIED" {
+            if rew.as_slice() == "IMPLIED" {
                 result = Some(ImpliedDecl);
             } else {
                 result = Some(ErrorToken(~"#"));
             }
-        } else if rew == ~"REQUI" {
+        } else if rew.as_slice() == "REQUI" {
 
             rew.push_str(self.read_str(3));
-            if rew == ~"REQUIRED" {
+            if rew.as_slice() == "REQUIRED" {
                 result = Some(RequiredDecl);
             } else {
                 result = Some(ErrorToken(~"#"));
@@ -1302,7 +1303,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         }
 
         match result {
-            Some(ErrorToken(_)) => self.rewind(rew),
+            Some(ErrorToken(_)) => self.rewind(rew.into_owned()),
             _ => {}
         }
 
@@ -1310,7 +1311,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_entity_or_element_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!E", self.buf);
+        assert_eq!("<!E", self.buf.as_slice());
 
         let mut result = Some(Text(~"<!E"));
         self.save_checkpoint();
@@ -1334,7 +1335,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_notation_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!N", self.buf);
+        assert_eq!("<!N", self.buf.as_slice());
 
         self.save_checkpoint();
         let result;
@@ -1351,28 +1352,28 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_star_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"*",       self.buf);
+        assert_eq!("*",       self.buf.as_slice());
         Some(Star)
     }
 
     fn get_plus_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"+",       self.buf);
+        assert_eq!("+",       self.buf.as_slice());
         Some(Plus)
     }
 
     fn get_pipe_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"|",       self.buf);
+        assert_eq!("|",       self.buf.as_slice());
         Some(Pipe)
     }
 
     fn get_comma_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~",",       self.buf);
+        assert_eq!(",",       self.buf.as_slice());
         Some(Comma)
     }
 
 
     fn get_quote_token(&mut self) -> Option<XmlToken> {
-        let quote = self.buf.clone();
+        let quote = util::clone_to_str(&self.buf);
         assert!(quote == ~"'" || quote == ~"\"");
 
         Some(self.process_quotes(quote))
@@ -1397,7 +1398,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
     #[inline]
     fn get_spec_quote(&mut self) -> Option<XmlToken> {
-        assert!(self.buf == ~"'" || self.buf == ~"\"");
+        assert!(self.buf.as_slice() == "'"
+                || self.buf.as_slice() == "\"");
         Some(Quote)
     }
 
@@ -1408,7 +1410,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 _ => false
             }
         });
-        let result = self.buf.clone().append(text);
+        let result = self.buf.clone().append(text).into_owned();
         Some(Text(result))
     }
 
@@ -1419,18 +1421,18 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 _ => false
             }
         });
-        let result = self.buf.clone().append(text);
+        let result = self.buf.clone().append(text).into_owned();
         Some(Text(result))
     }
 
     #[inline(always)]
     fn get_attl_error_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<", self.buf);
+        assert_eq!("<", self.buf.as_slice());
         Some(FIXME)
     }
 
     fn get_text_token(&mut self) -> Option<XmlToken> {
-        let mut peek = ~"";
+        let mut peek = StrBuf::new();
         let mut text = self.buf.clone();
         let mut run_loop = true;
         while run_loop {
@@ -1443,14 +1445,14 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 Some(Char('<'))         => run_loop = false,
                 Some(Char(a))           => {
                     if peek.len() == 3 {
-                        peek.shift_char();
+                        util::shift_char(&peek);
                         peek.push_char(a);
                     }
-                    if peek == ~"]]>" {
+                    if peek.as_slice() == "]]>" {
                         run_loop = false;
                         // if we found this, it means we already took `]]`
-                        text.pop_char();
-                        text.pop_char();
+                        util::pop_char(&text);
+                        util::pop_char(&text);
                     }
 
                     if run_loop {
@@ -1460,11 +1462,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
 
         }
-        Some(Text(text))
+        Some(Text(text.into_owned()))
     }
 
     fn get_pi_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<?",       self.buf);
+        assert_eq!("<?",       self.buf.as_slice());
 
         // Process target name
         let target = self.process_name();
@@ -1485,12 +1487,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_right_bracket_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~">", self.buf);
+        assert_eq!(">", self.buf.as_slice());
         return Some(GreaterBracket)
     }
 
     fn get_comment_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"<!-", self.buf);
+        assert_eq!("<!-", self.buf.as_slice());
         self.save_checkpoint();
         let rewind_str = self.read_str(1);
 
@@ -1508,7 +1510,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn process_comment(&mut self) -> ~str {
         self.save_checkpoint();
         let mut peek = self.read_str(3);
-        let mut result = ~"";
+        let mut result = StrBuf::new();
         let mut found_end = false;
 
         while !found_end {
@@ -1519,7 +1521,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 if peek.starts_with("--") && peek != ~"-->" {
                     self.handle_errors(
                         MinMinInComment,
-                        Some(Comment(result.clone()))
+                        Some(Comment(clone_to_str(&result)))
                     );
                 }
 
@@ -1535,16 +1537,16 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 peek = self.read_str(3);
             }
         }
-        result
+        result.into_owned()
     }
 
     fn get_close_tag_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"</",  self.buf);
+        assert_eq!("</",  self.buf.as_slice());
         return Some(CloseTag)
     }
 
     fn get_empty_tag_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"/", self.buf);
+        assert_eq!("/", self.buf.as_slice());
 
         let result;
         if self.read_str(1) == ~">" {
@@ -1556,7 +1558,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_pi_end_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"?",   self.buf);
+        assert_eq!("?",   self.buf.as_slice());
         self.save_checkpoint();
 
         let chr = self.read_chr();
@@ -1581,7 +1583,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
     #[inline(always)]
     fn get_question_mark_token(&mut self) -> Option<XmlToken> {
-        assert_eq!(~"?", self.buf);
+        assert_eq!("?", self.buf.as_slice());
         Some(QuestionMark)
     }
 }

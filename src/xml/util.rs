@@ -1,4 +1,5 @@
 use std::fmt;
+use std::strbuf::StrBuf;
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
 #[deriving(Eq, Clone, Show)]
@@ -77,7 +78,7 @@ impl fmt::Show for Mark {
     ///       Thes text isn't spelt properly
     ///       ^~~~
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut mark_str = self.offset_msg.clone();
+        let mut mark_str = StrBuf::from_owned_str(self.offset_msg.clone());
 
         mark_str.push_str(self.context);
         mark_str.push_char('\n');
@@ -103,7 +104,7 @@ impl fmt::Show for Mark {
 /// This methods removes all restricted character from a given ~str
 /// It emites no error or causes failures
 pub fn clean_restricted(input: ~str) -> ~str {
-    let mut result = ~"";
+    let mut result = StrBuf::new();
 
     for c in input.chars() {
         if !is_restricted_char(&c) {
@@ -111,7 +112,7 @@ pub fn clean_restricted(input: ~str) -> ~str {
         }
     }
 
-    result
+    result.into_owned()
 }
 #[inline(always)]
 /// Returns `true` if a character can be part of
@@ -276,6 +277,18 @@ pub fn is_restricted_char(chr: &char) -> bool {
         | '\U000FFFFE' | '\U000FFFFF' => true,
         _ => false
     }
+}
+
+pub fn pop_char(buf: &StrBuf) -> Option<char> {
+    None
+}
+
+pub fn shift_char(buf: &StrBuf) -> Option<char> {
+    None
+}
+
+pub fn clone_to_str(buf: &StrBuf) -> ~str {
+    ~""
 }
 
 pub fn main() {
