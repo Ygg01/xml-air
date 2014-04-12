@@ -1,4 +1,6 @@
 use xml::util::{is_restricted_char, is_whitespace};
+use xml::util::{pop_char, shift_char, clone_to_str};
+use std::strbuf::StrBuf;
 
 #[test]
 fn test_restricted(){
@@ -50,4 +52,33 @@ fn test_whitespace(){
     assert!(is_whitespace(&'\x0D'));
     assert!(is_whitespace(&'\x0A'));
     assert!(!is_whitespace(&'\x0B'));
+}
+
+#[test]
+fn test_clone_to_str(){
+    let s = ~"hellO!";
+    let buf = StrBuf::from_str(s);
+    let rez = clone_to_str(&buf);
+
+    assert_eq!(s, rez);
+}
+
+#[test]
+fn test_pop_char(){
+    let s = ~"华b¢€𤭢";
+    let buf = StrBuf::from_str(s);
+    let rez = pop_char(&buf);
+
+    assert_eq!(Some('𤭢'), rez);
+    assert_eq!("华b¢€", buf.as_slice());
+}
+
+#[test]
+fn test_shift_char(){
+    let s = ~"华b¢€𤭢";
+    let buf = StrBuf::from_str(s);
+    let rez = shift_char(&buf);
+
+    assert_eq!(Some('华'), rez);
+    assert_eq!("b¢€𤭢", buf.as_slice());
 }
