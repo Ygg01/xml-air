@@ -279,34 +279,126 @@ pub fn is_restricted_char(chr: &char) -> bool {
     }
 }
 
-pub fn pop_char(buf: &StrBuf) -> Option<char> {
-    None
+pub trait PopShiftShim {
+    fn pop_char_shim(&mut self) -> Option<char>;
+    fn shift_char_shim(&mut self) -> Option<char>;
 }
 
-pub fn shift_char(buf: &StrBuf) -> Option<char> {
-    None
-}
+impl PopShiftShim for StrBuf {
+    fn  shift_char_shim(&mut self) -> Option<char> {
+        let mut result;
+        if self.as_slice() == "" {
+            result = None;
+        } else {
+            let s = clone_to_str(self);
+            let mut pop = None;
+            let mut rest = StrBuf::new();
+            let mut is_first = true;
 
-pub fn clone_to_str(buf: &StrBuf) -> ~str {
-    ~""
+            for chr in s.chars() {
+                if is_first {
+                    pop = Some(chr);
+                    is_first = false;
+                } else {
+                    rest.push_char(chr);
+                }
+            }
+
+
+            self.truncate(0);
+            self.push_str(rest.into_owned());
+
+            result = pop;
+        }
+        result
+    }
+
+    fn pop_char_shim(&mut self) -> Option<char> {
+        let mut result;
+        if self.as_slice() == "" {
+            result = None;
+        } else {
+            let s = clone_to_str(self);
+            let mut shift = None;
+            let mut rest = StrBuf::new();
+
+
+            let char_len = s.char_len();
+            let mut i = 0;
+
+            for chr in s.chars() {
+                if i == char_len-1 {
+                    shift = Some(chr);
+                } else {
+                    rest.push_char(chr);
+                }
+                i += 1;
+
+            }
+
+            self.truncate(0);
+            self.push_str(rest.into_owned());
+
+            result = shift;
+        }
+        result
+    }
 }
 
 pub fn main() {
-    let mark = Mark {
-        offset_msg: ~"Error on line 1:  ",
-        pos: 6,
-        length: 4,
-        context: ~" Well that went well"
-    };
-    println!("{}", mark.to_str());
+    let s = ~"华b¢€𤭢";
+    let mut buf = StrBuf::from_str(s);
+    let rez = buf.pop_char_shim();
+
+    println!("length {:?}", s.len());
+    assert_eq!(Some('𤭢'), rez);
+    assert_eq!("华b¢€", buf.as_slice());
 }
+
+
+
+pub fn clone_to_str(buf: &StrBuf) -> ~str {
+    buf.clone().into_owned()
+}
+
 
 #[cfg(test)]
 mod test {
 
-    use super::is_restricted_char;
+    use super::{is_restricted_char, clone_to_str};
+    use super::{PopShiftShim};
     #[test]
     fn name(){
         assert_eq!(true, is_restricted_char(&'\x0B'));
     }
+
+    #[test]
+    fn test_clone_to_str(){
+        let s = ~"hellO!";
+        let buf = StrBuf::from_str(s);
+        let rez = clone_to_str(&buf);
+
+        assert_eq!(s, rez);
+    }
+
+    #[test]
+    fn test_pop_char(){
+        let s = ~"华b¢€𤭢";
+        let mut buf = StrBuf::from_str(s);
+        let rez = buf.pop_char_shim();
+
+        assert_eq!(Some('𤭢'), rez);
+        assert_eq!("华b¢€", buf.as_slice());
+    }
+
+    #[test]
+    fn test_shift_char(){
+        let s = ~"华b¢€𤭢";
+        let mut buf = StrBuf::from_str(s);
+        let rez = buf.shift_char_shim();
+
+        assert_eq!(Some('华'), rez);
+        assert_eq!("b¢€𤭢", buf.as_slice());
+    }
+
 }

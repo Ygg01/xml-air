@@ -7,7 +7,7 @@ use std::strbuf::StrBuf;
 
 use util::{is_whitespace, is_name_start, is_name_char};
 use util::{XmlError, ErrKind};
-use util::{pop_char, shift_char, clone_to_str};
+use util::{PopShiftShim, clone_to_str};
 use util::{is_restricted_char, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
@@ -662,7 +662,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             }
         } else {
-            chr = util::pop_char(&self.peek_buf).unwrap();
+            chr = self.peek_buf.pop_char_shim().unwrap();
         }
 
         if "\r\u2028\x85".contains_char(chr) {
@@ -1445,14 +1445,14 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 Some(Char('<'))         => run_loop = false,
                 Some(Char(a))           => {
                     if peek.len() == 3 {
-                        util::shift_char(&peek);
+                        peek.shift_char_shim();
                         peek.push_char(a);
                     }
                     if peek.as_slice() == "]]>" {
                         run_loop = false;
                         // if we found this, it means we already took `]]`
-                        util::pop_char(&text);
-                        util::pop_char(&text);
+                        text.pop_char_shim();
+                        text.pop_char_shim();
                     }
 
                     if run_loop {
