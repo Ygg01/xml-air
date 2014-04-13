@@ -278,6 +278,8 @@ pub fn is_restricted_char(chr: &char) -> bool {
         _ => false
     }
 }
+/// This trait is a temporary shim, until Rust readds
+/// pop_char, shift_char to StrBuf or similar structure
 
 pub trait PopShiftShim {
     fn pop_char_shim(&mut self) -> Option<char>;
