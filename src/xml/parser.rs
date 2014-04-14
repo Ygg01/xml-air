@@ -30,6 +30,7 @@ enum State {
 pub struct Parser<'r, R> {
     pub depth: uint,
     pub elem: Option<XmlElem>,
+    pub err: Option<XmlError>,
     lexer: Lexer<'r,R>,
     state: State
 
@@ -65,6 +66,7 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
         Parser {
             depth: 0,
             elem: None,
+            err: None,
             lexer: Lexer::from_reader(data),
             state: OutsideTag
         }
