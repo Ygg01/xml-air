@@ -8,7 +8,8 @@ extern crate xml;
 mod test_util;
 #[cfg(test)]
 mod test_lexer;
+#[cfg(test)]
+mod test_parser;
 
 fn main() {
-    
 }
