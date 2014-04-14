@@ -1,3 +1,5 @@
+use std::io::BufReader;
+
 use xml::lexer::{Lexer, XmlResult, Char, RestrictedChar,RequiredDecl,FixedDecl};
 use xml::lexer::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
 use xml::lexer::{DoctypeStart, CharRef};
@@ -9,7 +11,6 @@ use xml::lexer::{Ref, Quote, QNameToken, ImpliedDecl};
 use xml::lexer::{LeftSqBracket, RightSqBracket, PCDataDecl};
 use xml::lexer::{Comma,ParRef, DoctypeOpen, DoctypeClose, NotationType};
 use xml::lexer::{AttlistType,NMToken};
-use std::io::BufReader;
 
 #[test]
 fn iteration() {
