@@ -1,6 +1,6 @@
 use std::io::{Reader, Buffer};
 
-use node::{XmlDoc, XmlElem,  XmlEvent};
+use node::{XmlDoc, XmlElem, XmlEvent, ElemStart};
 use util::{XmlError};
 use lexer::{Lexer};
 
@@ -81,9 +81,11 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
         Ok(XmlDoc::new())
     }
 
+    /// This method will pull next event and the result
     pub fn pull(&mut self)
                 -> Option<XmlEvent> {
-        None
+        //FIXME
+        Some(ElemStart)
     }
 }
 

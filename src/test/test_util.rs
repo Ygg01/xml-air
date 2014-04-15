@@ -2,6 +2,7 @@ use std::strbuf::StrBuf;
 
 use xml::util::{is_restricted_char, is_whitespace};
 use xml::util::{PopShiftShim, clone_to_str};
+
 #[test]
 fn test_restricted(){
     assert_eq!(true, is_restricted_char(&'\x0B'));
