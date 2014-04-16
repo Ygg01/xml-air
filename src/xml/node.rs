@@ -24,6 +24,7 @@ pub enum XmlEvent {
 
 
 /// A struct representing an XML processing instruction
+#[deriving(Clone,Eq,Show)]
 pub struct PINode {
     /// The processing instruction's target
     target: ~str,
@@ -32,6 +33,7 @@ pub struct PINode {
     value: ~str
 }
 
+#[deriving(Clone,Eq,Show)]
 pub struct Doctype {
     /// Doctype name
     name: ~str,
@@ -140,41 +142,44 @@ pub enum DTDNota {
 
 
 /// A struct representing an XML element
+#[deriving(Clone,Eq,Show)]
 pub struct XmlElem {
     /// The element's name
-    name: ~str,
+    pub name: ~str,
     /// The element's namespace
-    namespace: ~XmlNS,
+    pub namespace: ~XmlNS,
     /// The element's `Attribute`s
-    attributes: Vec<XmlAttr>,
+    pub attributes: Vec<XmlAttr>,
     /// The element's child `XmlNode` nodes
-    children: Vec<XNode>
+    pub children: Vec<XNode>
 }
 
 
-#[deriving(Clone,Eq,Show)]
+
 /// A struct representing an XML attribute
+#[deriving(Clone,Eq,Show)]
 pub struct XmlAttr {
     /// The attribute's name
-    name: ~str,
+    pub name: ~str,
     /// The attribute's value
-    value: ~str,
+    pub value: ~str,
     /// The attribute's namespace
-    namespace: ~XmlNS
+    pub namespace: ~XmlNS
 }
 
 #[deriving(Clone,Eq,Show)]
 /// A struct that models an XML namespace
 pub struct XmlNS {
     /// The namespace's shorthand name
-    name: ~str,
+    pub name: ~str,
     /// The namespace's uri value
-    uri: ~str
+    pub uri: ~str
 }
 
 
-// General types
+/// General types
 /// An Enum describing a XML Node
+#[deriving(Clone,Eq,Show)]
 pub enum XNode {
     XDoctype(~Doctype),
     /// An XML Element
