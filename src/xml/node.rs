@@ -218,12 +218,12 @@ impl XmlDoc {
 }
 
 impl XmlElem {
-    pub fn new(new_name : ~str) -> XmlElem {
+    pub fn new(new_name : &str) -> XmlElem {
         XmlElem {
-                    name:new_name,
-                    namespace:~XmlNS{name: ~"", uri: ~""},
-                    attributes: Vec::new(),
-                    children: Vec::new()
+            name: new_name.to_owned(),
+            namespace:~XmlNS{name: ~"", uri: ~""},
+            attributes: Vec::new(),
+            children: Vec::new()
         }
     }
 }
