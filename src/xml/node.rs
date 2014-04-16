@@ -36,9 +36,9 @@ pub struct PINode {
 #[deriving(Clone,Eq,Show)]
 pub struct Doctype {
     /// Doctype name
-    name: ~str,
-    /// Internal Doctype definition
-    internal: Vec<DoctypeDecl>
+    name: ~str
+    // Internal Doctype definition
+    //internal: Vec<DoctypeDecl>
 }
 
 pub enum DoctypeDecl {
