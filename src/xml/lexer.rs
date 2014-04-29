@@ -6,13 +6,12 @@ use std::num::from_str_radix;
 use std::strbuf::StrBuf;
 
 use util::{is_whitespace, is_name_start, is_name_char};
-use util::{XmlError, ErrKind};
+use util::{XmlError, ErrKind, is_hex_digit, is_digit};
 use util::{PopShiftShim, clone_to_str};
 use util::{is_restricted_char, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
-mod util;
 
 pub type XmlResult = Result<XmlToken,(XmlError, Option<XmlToken>)>;
 
@@ -215,7 +214,6 @@ pub struct Lexer<'r, R> {
     peek_buf: StrBuf,
     buf: StrBuf,
     source: &'r mut R
-
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
@@ -315,7 +313,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn parse_char(&mut self, c: &char ) {
-        //FIXME: This must be removed and emitting token 
+        //FIXME: This must be removed and emitting token
         // will be per case basis (possible macro!)
         self.token = match self.state {
             InStartTag => {
@@ -840,7 +838,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn process_namechars(&mut self) -> ~str {
         self.read_while_fn( |val| {
             match val {
-                Some(Char(v))             => util::is_name_char(&v),
+                Some(Char(v))             => is_name_char(&v),
                 _ => false
             }
         })
@@ -849,7 +847,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn process_name(&mut self) -> ~str {
         let mut result = StrBuf::new();
         match self.read_chr() {
-            Some(Char(a)) if util::is_name_start(&a) => {
+            Some(Char(a)) if is_name_start(&a) => {
                 result.push_char(a);
             },
             Some(Char(_)) => {
@@ -875,9 +873,9 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 match val {
                     Some(Char(v)) => {
                         if *is_hex  {
-                            util::is_hex_digit(&v)
+                            is_hex_digit(&v)
                         } else {
-                            util::is_digit(&v)
+                            is_digit(&v)
                         }
                     },
                     _ => false
@@ -893,7 +891,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
         let ws = self.read_while_fn( |val| {
             match val {
-                Some(Char(v))             => util::is_whitespace(&v),
+                Some(Char(v))             => is_whitespace(&v),
                 _   => false
             }
         });
@@ -915,9 +913,9 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         self.buf.push_str(temp);
 
         if is_name_start(&start_char) {
-            result = Some(NameToken(util::clone_to_str(&self.buf)));
+            result = Some(NameToken(clone_to_str(&self.buf)));
         } else if is_name_char(&start_char) {
-            result = Some(NMToken(util::clone_to_str(&self.buf)));
+            result = Some(NMToken(clone_to_str(&self.buf)));
         } else {
             result = Some(FIXME);
         }
@@ -937,7 +935,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         if self.buf.as_slice().contains_char(':'){
             if self.buf.as_slice().char_at(0) == ':'
             || self.buf.as_slice().char_at(self.buf.len()-1) == ':'{
-                result = Some(NameToken(util::clone_to_str(&self.buf)));
+                result = Some(NameToken(clone_to_str(&self.buf)));
             } else {
                 let split_name: ~[&str] = self.buf.as_slice().split(':').collect();
 
@@ -947,11 +945,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                                    split_name[1].to_owned())
                     );
                 } else {
-                    result = Some(NameToken(util::clone_to_str(&self.buf)));
+                    result = Some(NameToken(clone_to_str(&self.buf)));
                 }
             }
         } else {
-            result = Some(NameToken(util::clone_to_str(&self.buf)));
+            result = Some(NameToken(clone_to_str(&self.buf)));
         }
 
         result
@@ -1131,7 +1129,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             Some(Char('x')) => {
                 radix = 16;
             },
-            Some(Char(a)) if (util::is_digit(&a)) => {
+            Some(Char(a)) if (is_digit(&a)) => {
                 self.rewind(from_char(a));
                 radix = 10;
             },
@@ -1158,7 +1156,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 self.rewind(from_char(a));
             }
             _ => {
-                return Some(ErrorToken(util::clone_to_str(&self.buf)));
+                return Some(ErrorToken(clone_to_str(&self.buf)));
             }
         }
 
@@ -1373,7 +1371,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
 
     fn get_quote_token(&mut self) -> Option<XmlToken> {
-        let quote = util::clone_to_str(&self.buf);
+        let quote = clone_to_str(&self.buf);
         assert!(quote == ~"'" || quote == ~"\"");
 
         Some(self.process_quotes(quote))
