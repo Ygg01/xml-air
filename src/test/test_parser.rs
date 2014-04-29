@@ -1,7 +1,7 @@
 use std::io::BufReader;
 
-use xml::parser::{Parser};
-use xml::node::{ElemStart};
+use xml::parser::{Parser, ElemStart};
+use xml::node::{XmlElem};
 
 #[test]
 fn test_element(){
