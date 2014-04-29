@@ -8,19 +8,6 @@ pub struct XmlDoc {
     pi: Vec<PINode>
 }
 
-/// Struct that represents what XML events
-/// may be encountered during pull parsing
-/// of documents
-#[deriving(Clone,Eq,Show)]
-pub enum XmlEvent {
-    DeclEvent,
-    ElemStart,
-    ElemEnd,
-    EmptyElem,
-    PIEvent,
-    TextEvent,
-    CDataEvent
-}
 
 
 /// A struct representing an XML processing instruction

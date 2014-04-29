@@ -1,9 +1,23 @@
 use std::io::{Reader, Buffer};
 
-use node::{XmlDoc, XmlElem, XmlEvent, ElemStart};
+use node::{XmlDoc, XmlElem};
 use util::{XmlError};
 use lexer::{Lexer};
 
+/// Struct that represents what XML events
+/// may be encountered during pull parsing
+/// of documents
+#[deriving(Clone,Eq,Show)]
+pub enum XmlEvent {
+    DeclEvent,
+    ElemStart,
+    ElemEnd,
+    EmptyElem,
+    PIEvent,
+    TextEvent,
+    CDataEvent,
+    ErrEvent
+}
 
 enum State {
     OutsideTag,
