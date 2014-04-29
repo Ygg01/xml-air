@@ -2,7 +2,7 @@ use std::io::{Reader, Buffer};
 
 use node::{XmlDoc, XmlElem};
 use util::{XmlError};
-use lexer::{Lexer};
+use lexer::{Lexer, XmlResult};
 
 /// Struct that represents what XML events
 /// may be encountered during pull parsing
@@ -45,9 +45,9 @@ pub struct Parser<'r, R> {
     pub depth: uint,
     pub elem: Option<XmlElem>,
     pub err: Option<XmlError>,
+    peek: Option<XmlResult>,
     lexer: Lexer<'r,R>,
     state: State
-
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
@@ -81,6 +81,7 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
             depth: 0,
             elem: None,
             err: None,
+            peek: None,
             lexer: Lexer::from_reader(data),
             state: OutsideTag
         }
@@ -98,13 +99,77 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
     /// This method will pull next event and the result
     pub fn pull(&mut self)
                 -> Option<XmlEvent> {
-        //FIXME
-        Some(ElemStart)
+        let token = self.peek_token();
+        let mut event;
+        // If end of token stream is found, return None
+        if token.is_none() {
+            event =  None;
+        }
+
+        // Otherwise it's time to see how states work
+        event = match self.state {
+            OutsideTag => Some(self.parse_outside_tag()),
+            _ => None
+        };
+
+        event
+    }
+
+    fn peek_token(&mut self) -> Option<XmlResult> {
+        if self.peek.is_none() {
+            self.peek = self.lexer.pull();
+        }
+        self.peek.clone()
+    }
+
+    fn read_token(&mut self) -> Option<XmlResult> {
+        if self.peek.is_none() {
+            self.lexer.pull()
+        } else {
+            let token = self.peek.clone();
+            self.peek = None;
+            token
+        }
+    }
+
+    fn parse_outside_tag(&mut self) -> XmlEvent {
+        ErrEvent
     }
 }
 
 
 pub fn main() {
 
+}
+
+#[cfg(test)]
+mod test {
+    use super::{Parser};
+    use lexer::{XmlResult, LessBracket, NameToken};
+
+    use std::io::BufReader;
+
+    #[test]
+    fn read_token(){
+        let str1 = bytes!("<XML>");
+        let mut read = BufReader::new(str1);
+        let mut parser = Parser::from_reader(&mut read);
+
+        assert_eq!(Some(Ok(LessBracket)),           parser.read_token());
+        assert_eq!(Some(Ok(NameToken(~"XML"))),     parser.read_token());
+    }
+
+    #[test]
+    fn peek_token(){
+        let str1 = bytes!("<XML>");
+        let mut read = BufReader::new(str1);
+        let mut parser = Parser::from_reader(&mut read);
+
+        assert_eq!(Some(Ok(LessBracket)),       parser.peek_token());
+        assert_eq!(Some(Ok(LessBracket)),       parser.peek_token());
+        assert_eq!(Some(Ok(LessBracket)),       parser.read_token());
+        assert_eq!(Some(Ok(NameToken(~"XML"))), parser.peek_token());
+        assert_eq!(Some(Ok(NameToken(~"XML"))), parser.read_token());
+    }
 }
 
