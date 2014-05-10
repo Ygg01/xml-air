@@ -2,7 +2,7 @@ use std::io::{Reader, Buffer};
 
 use node::{XmlDoc, XmlElem};
 use util::{XmlError};
-use lexer::{Lexer, XmlResult};
+use lexer::{Lexer, XmlResult, NameToken, LessBracket, GreaterBracket};
 
 /// Struct that represents what XML events
 /// may be encountered during pull parsing
@@ -21,24 +21,7 @@ pub enum XmlEvent {
 
 enum State {
     OutsideTag,
-    TagOpened,
-    InProcessingInstructions,
-    InTagName,
-    InCloseTagName,
-    InTag,
-    InAttrName,
-    InAttrValue,
-    ExpectDelimiter,
-    ExpectClose,
-    ExpectSpaceOrClose,
-    InExclamationMark,
-    InCDATAOpening,
-    InCDATA,
-    InCommentOpening,
-    InComment1,
-    InComment2,
-    InDoctype,
-    Namespace
+    InStartTag
 }
 
 pub struct Parser<'r, R> {
@@ -103,13 +86,13 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
         let mut event;
         // If end of token stream is found, return None
         if token.is_none() {
-            event =  None;
+            return None;
         }
 
         // Otherwise it's time to see how states work
         event = match self.state {
-            OutsideTag => Some(self.parse_outside_tag()),
-            _ => None
+            OutsideTag  => Some(self.parse_outside_tag(&token)),
+            _           => None
         };
 
         event
@@ -132,9 +115,47 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
         }
     }
 
-    fn parse_outside_tag(&mut self) -> XmlEvent {
-        ErrEvent
+    fn parse_outside_tag(&mut self, token_peek: &Option<XmlResult> ) -> XmlEvent {
+
+        match *token_peek {
+            Some(Ok(LessBracket)) => {
+                self.read_token();
+                self.state = InStartTag;
+                self.parse_start_tag()
+            },
+            _           => ErrEvent
+        }
+
     }
+
+    fn parse_start_tag(&mut self) -> XmlEvent {
+        let mut event;
+        let elem;
+        match self.read_token() {
+            Some(Ok(NameToken(x))) => {
+                elem = Some(XmlElem::new(x));
+                event = ElemStart;
+            },
+            // FIXME: Proper error handling
+            _ => {
+                elem = None;
+                event = ErrEvent;
+            }
+        }
+
+        match self.read_token() {
+            Some(Ok(RightBracket)) => {
+                self.elem = elem;
+            },
+            // FIXME: Proper error handling
+            _ => {
+                event = ErrEvent;
+            }
+        }
+
+        event
+    }
+
 }
 
 
