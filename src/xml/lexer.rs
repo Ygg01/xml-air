@@ -3,31 +3,32 @@ use std::io::{Reader, Buffer};
 use std::char::from_u32;
 use std::str::from_char;
 use std::num::from_str_radix;
-use std::strbuf::StrBuf;
+use std::string::String;
 
 use util::{is_whitespace, is_name_start, is_name_char};
-use util::{XmlError, ErrKind, is_hex_digit, is_digit};
-use util::{PopShiftShim, clone_to_str};
+use util::{XmlError, ErrKind, PopShiftShim};
+use util::{is_hex_digit, is_digit};
 use util::{is_restricted_char, clean_restricted, is_char};
 use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
 use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
 
 
+
 pub type XmlResult = Result<XmlToken,(XmlError, Option<XmlToken>)>;
 
 
-#[deriving(Eq, Show, Clone)]
+#[deriving(PartialEq, Eq, Show, Clone)]
 pub enum XmlToken {
     /// Processing instruction token
     /// First string represents target and the second string
     /// represents text
-    PI(~str, ~str),
+    PI(String, String),
     /// Start of PI block '<?'
     PrologStart,
     /// End of PI block '?>'
     PrologEnd,
     /// Error token
-    ErrorToken(~str),
+    ErrorToken(String),
     /// Symbol '<'
     LessBracket,
     /// Symbol '>'
@@ -63,18 +64,18 @@ pub enum XmlToken {
     /// Symbol '/>'
     EmptyTag,
     /// Tag or attribute name
-    NameToken(~str),
+    NameToken(String),
     /// Qualified name token
     /// first string is prefix, second is local-part
-    QNameToken(~str,~str),
+    QNameToken(String,String),
     /// NMToken
-    NMToken(~str),
+    NMToken(String),
     /// Various characters
-    Text(~str),
+    Text(String),
     /// Whitespace
-    WhiteSpace(~str),
+    WhiteSpace(String),
     /// CData token with inner structure
-    CData(~str),
+    CData(String),
     /// Start of Doctype block '<!DOCTYPE'
     DoctypeStart,
     /// Start of inner IGNORE/INCLUDE block
@@ -91,16 +92,16 @@ pub enum XmlToken {
     /// Symbol <!NOTATION
     NotationType,
     /// Comment token
-    Comment(~str),
+    Comment(String),
     /// Encoded char or '&#'
     CharRef(char),
     /// Attribute reference
-    Ref(~str),
+    Ref(String),
     /// Parsed entity reference
-    ParRef(~str),
+    ParRef(String),
     /// Single or double quoted string
     /// e.g. 'example' or "example"
-    QuotedString(~str),
+    QuotedString(String),
     /// Quote token
     Quote,
     /// Symbol #FIXED
@@ -115,7 +116,7 @@ pub enum XmlToken {
     FIXME
 }
 
-#[deriving(Eq,Show)]
+#[deriving(PartialEq, Eq, Show)]
 pub enum Character {
     Char(char),
     RestrictedChar(char),
@@ -147,7 +148,7 @@ impl Character {
         }
     }
 }
-#[deriving(Eq,Show)]
+#[deriving(PartialEq, Eq, Show)]
 enum State {
     OutsideTag,
     // Attlist takes quote, because attributes are mixed content and to
@@ -168,7 +169,7 @@ enum State {
     InternalSubset,
     Doctype
 }
-#[deriving(Eq,Show)]
+#[deriving(PartialEq, Eq, Show)]
 enum Quotes {
     Single,
     Double
@@ -187,13 +188,13 @@ impl Quotes {
         }
     }
 
-    pub fn from_str(quote: ~str) -> Quotes {
-        if quote == ~"'" {
+    pub fn from_str(quote: String) -> Quotes {
+        if quote == String::from_str("'") {
             Single
-        } else if quote == ~"\"" {
+        } else if quote == String::from_str("\"") {
             Double
         } else {
-            println!(" Expected single (`'`) or double quotes (`\"`) got `{:?}` instead ", quote);
+            println!(" Expected single (`'`) or double quotes (`\"`) got `{}` instead ", quote);
             fail!("fail");
         }
     }
@@ -211,8 +212,8 @@ pub struct Lexer<'r, R> {
     checkpoint: Option<Checkpoint>,
     state: State,
     // TODO change these to borrowed str
-    peek_buf: StrBuf,
-    buf: StrBuf,
+    peek_buf: String,
+    buf: String,
     source: &'r mut R
 }
 
@@ -247,10 +248,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         Lexer {
             line: 1,
             col: 0,
-            peek_buf: StrBuf::new(),
+            peek_buf: String::new(),
             checkpoint: None,
             state: OutsideTag,
-            buf: StrBuf::new(),
+            buf: String::new(),
             err: None,
             token: None,
             source: data
@@ -273,7 +274,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     ///     }
     ///     assert_eq!(None, lexer.pull());
     pub fn pull(&mut self) -> Option<XmlResult> {
-        self.buf = StrBuf::new();
+        self.buf = String::new();
 
         let read_chr = match self.read_chr() {
             Some(a) => a,
@@ -301,7 +302,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 let err = XmlError {
                         line: 0,
                         col: 0,
-                        msg: ~"",
+                        msg: String::new(),
                         mark: None
                 };
                 Err((err, None))
@@ -493,8 +494,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     chr if is_name_start(chr)
                          => {
                             let res = self.get_name_token();
-                            if res == Some(NameToken(~"PUBLIC")) ||
-                               res == Some(NameToken(~"SYSTEM")) {
+                            if res == Some(NameToken(String::from_str("PUBLIC"))) ||
+                               res == Some(NameToken(String::from_str("SYSTEM"))) {
                                 self.state = InExternalId;
                             }
                             res
@@ -596,12 +597,12 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     ///
     /// Restricted characters are *not included* into the output
     /// string.
-    pub fn read_str(&mut self, len: u64) -> ~str {
+    pub fn read_str(&mut self, len: u64) -> String {
         clean_restricted(self.read_raw_str(len))
     }
 
     #[inline]
-    fn rewind(&mut self, peeked: ~str) {
+    fn rewind(&mut self, peeked: String) {
         match self.checkpoint {
             Some(cp) => {
                 self.rewind_to(peeked, cp);
@@ -611,11 +612,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     #[inline]
-    fn rewind_to(&mut self, peeked: ~str, cp: Checkpoint) {
+    fn rewind_to(&mut self, peeked: String, cp: Checkpoint) {
         self.col  = cp.col;
         self.line = cp.line;
 
-        for c in peeked.chars_rev(){
+        for c in peeked.as_slice().chars().rev(){
             self.peek_buf.push_char(c);
         }
     }
@@ -651,6 +652,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         if self.peek_buf.is_empty() {
 
             let read_chr = self.source.read_char();
+            println!("read char {}", read_chr);
 
             match read_chr {
                 Ok(a) => chr = a,
@@ -713,8 +715,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// This method reads a string of given length, adding any
     /// restricted char  into the error section.
     /// Restricted character are *included* into the output string
-    fn read_raw_str(&mut self, len: u64) -> ~str {
-        let mut raw_str = StrBuf::new();
+    fn read_raw_str(&mut self, len: u64) -> String {
+        let mut raw_str = String::new();
         let mut eof = false;
         let mut l = 0;
 
@@ -745,10 +747,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     // TODO rewrite this function to take a Filter trait, which will
     // deal with various queries behind screen
     fn read_while_fn(&mut self, fn_while: |Option<Character>|-> bool )
-                     -> ~str {
+                     -> String {
         let mut col = self.col;
         let mut line = self.line;
-        let mut ret_str = StrBuf::new();
+        let mut ret_str = String::new();
         let mut chr = self.read_chr();
 
         while fn_while (chr) {
@@ -783,10 +785,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         ret_str.into_owned()
     }
 
-    fn read_until_peek(&mut self, peek_look: &str) -> ~str {
+    fn read_until_peek(&mut self, peek_look: String) -> String {
         let mut peek_found = false;
-        let mut result = StrBuf::new();
-        let peek_len = (peek_look.char_len() - 1) as u64;
+        let mut result = String::new();
+        let peek_len = (peek_look.as_slice().char_len() - 1) as u64;
 
         while !peek_found {
             let pre_cp = self.save_checkpoint();
@@ -796,15 +798,15 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 None          => {},
                 Some(Char(a)) => {
                     self.save_checkpoint();
-                    let mut rew = StrBuf::new();
-                    let mut peek = StrBuf::from_char(1,a);
+                    let mut rew = String::new();
+                    let mut peek = String::from_char(1,a);
 
                     if peek_len > 0 {
-                        rew = StrBuf::from_str(self.read_str(peek_len));
-                        peek.push_str(rew.clone().into_owned());
+                        rew = String::from_str(self.read_str(peek_len).as_slice());
+                        peek.push_str(rew.clone().as_slice());
                     }
 
-                    if peek.as_slice() == peek_look {
+                    if peek == peek_look {
                         peek_found = true;
                     } else {
                         result.push_char(a);
@@ -835,7 +837,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         }
     }
 
-    fn process_namechars(&mut self) -> ~str {
+    fn process_namechars(&mut self) -> String {
         self.read_while_fn( |val| {
             match val {
                 Some(Char(v))             => is_name_char(&v),
@@ -844,8 +846,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         })
     }
 
-    fn process_name(&mut self) -> ~str {
-        let mut result = StrBuf::new();
+    fn process_name(&mut self) -> String {
+        let mut result = String::new();
         match self.read_chr() {
             Some(Char(a)) if is_name_start(&a) => {
                 result.push_char(a);
@@ -860,7 +862,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 self.handle_errors(PrematureEOF, None);
             }
         }
-        result.push_str(self.process_namechars());
+        result.push_str(self.process_namechars().as_slice());
         result.into_owned()
     }
 
@@ -868,7 +870,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// numeral. If value `is_hex` is true it will consume all hexadecimal
     /// digits including values 0-9 a-f or A-F. If value `is_hex` is false it
     /// will only consume decimal digits
-    fn process_digits(&mut self, is_hex: &bool) -> ~str {
+    fn process_digits(&mut self, is_hex: &bool) -> String {
          self.read_while_fn( |val| {
                 match val {
                     Some(Char(v)) => {
@@ -896,7 +898,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
         });
 
-        self.buf.push_str(ws);
+        self.buf.push_str(ws.as_slice());
         self.token = Some(WhiteSpace(self.buf.clone().into_owned()));
     }
 
@@ -905,17 +907,20 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// character.
     fn get_name_token(&mut self) -> Option<XmlToken> {
         assert_eq!(1, self.buf.len());
-        let start_char = self.buf.as_slice().char_at(0);
+
 
         let result;
 
         let temp = self.process_namechars();
-        self.buf.push_str(temp);
+        self.buf.push_str(temp.as_slice());
+
+        let buf_slice = self.buf.as_slice();
+        let start_char = buf_slice.char_at(0);
 
         if is_name_start(&start_char) {
-            result = Some(NameToken(clone_to_str(&self.buf)));
+            result = Some(NameToken(self.buf.clone()));
         } else if is_name_char(&start_char) {
-            result = Some(NMToken(clone_to_str(&self.buf)));
+            result = Some(NMToken(self.buf.clone()));
         } else {
             result = Some(FIXME);
         }
@@ -931,25 +936,26 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         let result;
         let namechars = self.process_namechars();
 
-        self.buf.push_str(namechars);
+        self.buf.push_str(namechars.as_slice());
         if self.buf.as_slice().contains_char(':'){
             if self.buf.as_slice().char_at(0) == ':'
             || self.buf.as_slice().char_at(self.buf.len()-1) == ':'{
-                result = Some(NameToken(clone_to_str(&self.buf)));
+                result = Some(NameToken(self.buf.clone()));
             } else {
-                let split_name: ~[&str] = self.buf.as_slice().split(':').collect();
+                let split_name: Vec<&str> = self.buf.as_slice().split(':').collect();
 
                 if split_name.len() == 2 {
+                    let ns = (*split_name.get(0)).into_string();
+                    let name = (*split_name.get(1)).into_string();
                     result = Some(
-                        QNameToken(split_name[0].to_owned(),
-                                   split_name[1].to_owned())
+                        QNameToken(ns, name)
                     );
                 } else {
-                    result = Some(NameToken(clone_to_str(&self.buf)));
+                    result = Some(NameToken(self.buf.clone()));
                 }
             }
         } else {
-            result = Some(NameToken(clone_to_str(&self.buf)));
+            result = Some(NameToken(self.buf.clone()));
         }
 
         result
@@ -1020,8 +1026,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 self.buf.push_char('A');
                 self.get_attlist_token()
             }
-            None => Some(Text(~"<!")),
-            _ => Some(Text(~"NON IMPLEMENTED"))
+            None => Some(Text("<!".into_string())),
+            _ => Some(Text("NON IMPLEMENTED".into_string()))
         };
 
         result
@@ -1034,8 +1040,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         let cdata = self.read_str(6);
         let result;
 
-        if cdata == ~"CDATA[" {
-            let text = self.read_until_peek("]]>");
+        if cdata == "CDATA[".into_string() {
+            let text = self.read_until_peek("]]>".into_string());
             self.read_str(3);
 
             result = Some(CData(text));
@@ -1053,7 +1059,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         let peeked_str  = self.read_str(6);
         let result;
 
-        if peeked_str == ~"OCTYPE" {
+        if peeked_str == "OCTYPE".into_string() {
             result = Some(DoctypeStart);
         } else {
             self.rewind(peeked_str);
@@ -1069,7 +1075,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         let peeked_str = self.read_str(6);
         let result;
 
-        if peeked_str == ~"TTLIST" {
+        if peeked_str == "TTLIST".into_string() {
             result = Some(AttlistType);
         } else {
             self.rewind(peeked_str);
@@ -1104,7 +1110,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     RestrictedCharError,
                     None
                 );
-                Some(Text(~"&"))
+                Some(Text("&".into_string()))
             },
             None => {
                 Some(FIXME)
@@ -1156,11 +1162,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 self.rewind(from_char(a));
             }
             _ => {
-                return Some(ErrorToken(clone_to_str(&self.buf)));
+                return Some(ErrorToken(self.buf.clone()));
             }
         }
 
-        let parse_char = from_str_radix::<u64>(char_ref,radix);
+        let parse_char = from_str_radix::<u64>(char_ref.as_slice(),radix);
 
         match parse_char {
             Some(a) => {
@@ -1232,7 +1238,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         self.save_checkpoint();
         let rew  = self.read_str(2);
 
-        if rew == ~"]>" {
+        if rew == "]>".into_string() {
             Some(DoctypeClose)
         } else {
             self.rewind(rew);
@@ -1267,37 +1273,37 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn get_hash_token(&mut self) -> Option<XmlToken> {
         assert_eq!("#",    self.buf.as_slice());
         self.save_checkpoint();
-        let mut rew = StrBuf::from_str(self.read_str(5));
+        let mut rew = String::from_owned_str(self.read_str(5));
         let result;
 
         if rew.as_slice() == "FIXED" {
             result = Some(FixedDecl);
         } else if rew.as_slice() == "PCDAT" {
 
-            rew.push_str(self.read_str(1));
+            rew.push_str(self.read_str(1).as_slice());
             if rew.as_slice() == "PCDATA" {
                 result = Some(PCDataDecl);
             } else {
-                result = Some(ErrorToken(~"#"));
+                result = Some(ErrorToken("#".into_string()));
             }
         } else if rew.as_slice() ==  "IMPLI" {
 
-            rew.push_str(self.read_str(2));
+            rew.push_str(self.read_str(2).as_slice());
             if rew.as_slice() == "IMPLIED" {
                 result = Some(ImpliedDecl);
             } else {
-                result = Some(ErrorToken(~"#"));
+                result = Some(ErrorToken("#".into_string()));
             }
         } else if rew.as_slice() == "REQUI" {
 
-            rew.push_str(self.read_str(3));
+            rew.push_str(self.read_str(3).as_slice());
             if rew.as_slice() == "REQUIRED" {
                 result = Some(RequiredDecl);
             } else {
-                result = Some(ErrorToken(~"#"));
+                result = Some(ErrorToken("#".into_string()));
             }
         } else {
-            result = Some(ErrorToken(~"#"));
+            result = Some(ErrorToken("#".into_string()));
         }
 
         match result {
@@ -1311,11 +1317,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn get_entity_or_element_token(&mut self) -> Option<XmlToken> {
         assert_eq!("<!E", self.buf.as_slice());
 
-        let mut result = Some(Text(~"<!E"));
+        let mut result = Some(Text("<!E".into_string()));
         self.save_checkpoint();
         let mut read = self.read_str(6);
 
-        if read == ~"LEMENT" {
+        if read.as_slice() == "LEMENT" {
             result = Some(ElementType);
         } else {
             self.rewind(read);
@@ -1323,7 +1329,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
         read = self.read_str(5);
 
-        if read == ~"NTITY" {
+        if read.as_slice()  == "NTITY" {
             result = Some(EntityType);
         } else {
             self.rewind(read);
@@ -1340,11 +1346,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
         let read = self.read_str(7);
 
-        if read == ~"OTATION" {
+        if read.as_slice()  == "OTATION" {
             result = Some(NotationType);
         } else {
             self.rewind(read);
-            result = Some(Text(~"<!N"));
+            result = Some(Text("<!N".into_string()));
         }
         result
     }
@@ -1371,19 +1377,19 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
 
     fn get_quote_token(&mut self) -> Option<XmlToken> {
-        let quote = clone_to_str(&self.buf);
-        assert!(quote == ~"'" || quote == ~"\"");
+        let quote = self.buf.clone();
+        assert!(quote.as_slice() == "'" || quote.as_slice()  == "\"");
 
         Some(self.process_quotes(quote))
     }
 
 
-    fn process_quotes(&mut self, quote: ~str) -> XmlToken {
-        let text = self.read_until_peek(quote);
+    fn process_quotes(&mut self, quote: String) -> XmlToken {
+        let text = self.read_until_peek(quote.clone());
         self.save_checkpoint();
         let peek = self.read_str(1);
 
-        if peek != quote {
+        if peek != quote.clone() {
             self.rewind(peek);
             self.handle_errors(
                 IllegalChar,
@@ -1408,7 +1414,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 _ => false
             }
         });
-        let result = self.buf.clone().append(text).into_owned();
+        let result = self.buf.clone().append(text.as_slice());
         Some(Text(result))
     }
 
@@ -1419,7 +1425,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 _ => false
             }
         });
-        let result = self.buf.clone().append(text).into_owned();
+        let result = self.buf.clone().append(text.as_slice());
         Some(Text(result))
     }
 
@@ -1430,7 +1436,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     }
 
     fn get_text_token(&mut self) -> Option<XmlToken> {
-        let mut peek = StrBuf::new();
+        let mut peek = String::new();
         let mut text = self.buf.clone();
         let mut run_loop = true;
         while run_loop {
@@ -1470,14 +1476,14 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         let target = self.process_name();
         let result;
 
-        if target.eq_ignore_ascii_case("xml") {
+        if target.as_slice().eq_ignore_ascii_case("xml") {
             result = Some(PrologStart);
         } else {
             // We skip a possible whitespace token
             // to get to text of PI
             self.get_whitespace_token();
 
-            let text = self.read_until_peek("?>");
+            let text = self.read_until_peek("?>".into_string());
             self.read_str(2);
             result = Some(PI(target,text));
         }
@@ -1494,32 +1500,32 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         self.save_checkpoint();
         let rewind_str = self.read_str(1);
 
-        if rewind_str == ~"-" {
+        if rewind_str.as_slice() == "-" {
 
             let text = self.process_comment();
             return Some(Comment(text))
         } else {
 
             self.rewind(rewind_str);
-            return Some(ErrorToken(~"<!-"))
+            return Some(ErrorToken("<!-".into_string()))
         }
     }
 
-    fn process_comment(&mut self) -> ~str {
+    fn process_comment(&mut self) -> String {
         self.save_checkpoint();
         let mut peek = self.read_str(3);
-        let mut result = StrBuf::new();
+        let mut result = String::new();
         let mut found_end = false;
 
         while !found_end {
 
-            if peek.starts_with("--") && peek == ~"-->" {
+            if peek.as_slice().starts_with("--") && peek.as_slice() == "-->" {
                 found_end = true;
             } else {
-                if peek.starts_with("--") && peek != ~"-->" {
+                if peek.as_slice().starts_with("--") && peek.as_slice() != "-->" {
                     self.handle_errors(
                         MinMinInComment,
-                        Some(Comment(clone_to_str(&result)))
+                        Some(Comment(self.buf.clone()))
                     );
                 }
 
@@ -1547,10 +1553,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         assert_eq!("/", self.buf.as_slice());
 
         let result;
-        if self.read_str(1) == ~">" {
+        if self.read_str(1).as_slice() == ">" {
             result = Some(EmptyTag);
         } else {
-            result = Some(ErrorToken(~"/"));
+            result = Some(ErrorToken("/".into_string()));
         }
         result
     }
@@ -1598,8 +1604,7 @@ mod test {
 
     #[test]
     fn lexer_read_until() {
-        let str1 = bytes!("aaaab");
-        let mut read = BufReader::new(str1);
+        let mut read = BufReader::new(b"aaaab");
         let mut lexer = Lexer::from_reader(&mut read);
 
         let result = lexer.read_while_fn(|c|{
@@ -1609,28 +1614,27 @@ mod test {
             }
         });
 
-        assert_eq!(~"aaaa",      result);
-        assert_eq!(1,            lexer.line);
-        assert_eq!(4,            lexer.col);
-        assert_eq!(~"b",         lexer.read_str(1));
-        assert_eq!(1,            lexer.line);
-        assert_eq!(5,            lexer.col);
+        assert_eq!("aaaa".into_string(),    result);
+        assert_eq!(1,                       lexer.line);
+        assert_eq!(4,                       lexer.col);
+        assert_eq!("b".into_string(),       lexer.read_str(1));
+        assert_eq!(1,                       lexer.line);
+        assert_eq!(5,                       lexer.col);
     }
 
     #[test]
     fn test_rewind(){
-        let str1 = bytes!("abcd");
-        let mut read = BufReader::new(str1);
+        let mut read = BufReader::new(b"abcd");
         let mut lexer = Lexer::from_reader(&mut read);
 
         lexer.save_checkpoint();
         let read = lexer.read_str(3);
-        assert_eq!(~"abc", read);
+        assert_eq!("abc".into_string(), read);
 
         lexer.rewind(read);
 
         let after = lexer.read_str(3);
-        assert_eq!(~"abc", after);
+        assert_eq!("abc".into_string(), after);
     }
 
 }

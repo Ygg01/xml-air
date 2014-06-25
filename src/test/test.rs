@@ -10,6 +10,3 @@ mod test_util;
 mod test_lexer;
 #[cfg(test)]
 mod test_parser;
-
-fn main() {
-}

@@ -7,7 +7,7 @@ use lexer::{Lexer, XmlResult, NameToken, LessBracket, GreaterBracket};
 /// Struct that represents what XML events
 /// may be encountered during pull parsing
 /// of documents
-#[deriving(Clone,Eq,Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub enum XmlEvent {
     DeclEvent,
     ElemStart,
@@ -133,7 +133,7 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
         let elem;
         match self.read_token() {
             Some(Ok(NameToken(x))) => {
-                elem = Some(XmlElem::new(x));
+                elem = Some(XmlElem::new(x.as_slice()));
                 event = ElemStart;
             },
             // FIXME: Proper error handling
@@ -172,25 +172,23 @@ mod test {
 
     #[test]
     fn read_token(){
-        let str1 = bytes!("<XML>");
-        let mut read = BufReader::new(str1);
+        let mut read = BufReader::new(b"<XML>");
         let mut parser = Parser::from_reader(&mut read);
 
-        assert_eq!(Some(Ok(LessBracket)),           parser.read_token());
-        assert_eq!(Some(Ok(NameToken(~"XML"))),     parser.read_token());
+        assert_eq!(Some(Ok(LessBracket)),                       parser.read_token());
+        assert_eq!(Some(Ok(NameToken("XML".into_string()))),    parser.read_token());
     }
 
     #[test]
     fn peek_token(){
-        let str1 = bytes!("<XML>");
-        let mut read = BufReader::new(str1);
+        let mut read = BufReader::new(b"<XML>");
         let mut parser = Parser::from_reader(&mut read);
 
-        assert_eq!(Some(Ok(LessBracket)),       parser.peek_token());
-        assert_eq!(Some(Ok(LessBracket)),       parser.peek_token());
-        assert_eq!(Some(Ok(LessBracket)),       parser.read_token());
-        assert_eq!(Some(Ok(NameToken(~"XML"))), parser.peek_token());
-        assert_eq!(Some(Ok(NameToken(~"XML"))), parser.read_token());
+        assert_eq!(Some(Ok(LessBracket)),                       parser.peek_token());
+        assert_eq!(Some(Ok(LessBracket)),                       parser.peek_token());
+        assert_eq!(Some(Ok(LessBracket)),                       parser.read_token());
+        assert_eq!(Some(Ok(NameToken("XML".into_string()))),    parser.peek_token());
+        assert_eq!(Some(Ok(NameToken("XML".into_string()))),    parser.read_token());
     }
 }
 

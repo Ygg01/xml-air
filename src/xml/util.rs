@@ -1,22 +1,24 @@
+extern crate debug;
+
 use std::fmt;
-use std::strbuf::StrBuf;
+use std::string::String;
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
-#[deriving(Eq, Clone, Show)]
+#[deriving(PartialEq, Eq, Clone, Show)]
 pub struct XmlError {
     /// The line number at which the error occurred
     pub line: uint,
     /// The column number at which the error occurred
     pub col: uint,
     /// A message describing the type of the error
-    pub msg: ~str,
+    pub msg: String,
     /// Type of error
     //kind: ErrKind,
     /// Position and context of error in Context
     pub mark: Option<Mark>
 }
 
-#[deriving(Eq, Clone, Show)]
+#[deriving(PartialEq, Eq, Clone, Show)]
 pub enum ErrKind {
     NonDigitError,
     UnreadableChar,
@@ -59,17 +61,17 @@ impl Config {
     }
 }
 
-#[deriving(Eq, Clone)]
+#[deriving(PartialEq, Eq, Clone)]
 /// This struct models the pretty error output
 pub struct Mark {
     /// Message displayed in first in marked message
-    offset_msg: ~str,
+    offset_msg: String,
     /// Position of error within context string
     pos: uint,
     /// Length of the erroneous underline in context
     length: uint,
     /// Context that describes where error occured
-    context: ~str
+    context: String
 }
 
 impl fmt::Show for Mark {
@@ -78,11 +80,11 @@ impl fmt::Show for Mark {
     ///       Thes text isn't spelt properly
     ///       ^~~~
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut mark_str = StrBuf::from_owned_str(self.offset_msg.clone());
+        let mut mark_str = String::from_owned_str(self.offset_msg.clone());
 
-        mark_str.push_str(self.context);
+        mark_str.push_str(self.context.as_slice());
         mark_str.push_char('\n');
-        let margin = self.pos + self.offset_msg.char_len();
+        let margin = self.pos + self.offset_msg.as_slice().char_len();
         for _ in range(0, margin) {
             mark_str.push_char(' ');
         };
@@ -101,12 +103,12 @@ impl fmt::Show for Mark {
     }
 }
 
-/// This methods removes all restricted character from a given ~str
+/// This methods removes all restricted character from a given String
 /// It emites no error or causes failures
-pub fn clean_restricted(input: ~str) -> ~str {
-    let mut result = StrBuf::new();
+pub fn clean_restricted(input: String) -> String {
+    let mut result = String::new();
 
-    for c in input.chars() {
+    for c in input.as_slice().chars() {
         if !is_restricted_char(&c) {
             result.push_char(c);
         }
@@ -279,25 +281,25 @@ pub fn is_restricted_char(chr: &char) -> bool {
     }
 }
 /// This trait is a temporary shim, until Rust readds
-/// pop_char, shift_char to StrBuf or similar structure
+/// pop_char, shift_char to String or similar structure
 
 pub trait PopShiftShim {
     fn pop_char_shim(&mut self) -> Option<char>;
     fn shift_char_shim(&mut self) -> Option<char>;
 }
 
-impl PopShiftShim for StrBuf {
+impl PopShiftShim for String {
     fn  shift_char_shim(&mut self) -> Option<char> {
         let mut result;
         if self.as_slice() == "" {
             result = None;
         } else {
-            let s = clone_to_str(self);
+            let s = self.clone();
             let mut pop = None;
-            let mut rest = StrBuf::new();
+            let mut rest = String::new();
             let mut is_first = true;
 
-            for chr in s.chars() {
+            for chr in s.as_slice().chars() {
                 if is_first {
                     pop = Some(chr);
                     is_first = false;
@@ -308,7 +310,7 @@ impl PopShiftShim for StrBuf {
 
 
             self.truncate(0);
-            self.push_str(rest.into_owned());
+            self.push_str(rest.as_slice());
 
             result = pop;
         }
@@ -320,15 +322,15 @@ impl PopShiftShim for StrBuf {
         if self.as_slice() == "" {
             result = None;
         } else {
-            let s = clone_to_str(self);
+            let s = self.clone();
             let mut shift = None;
-            let mut rest = StrBuf::new();
+            let mut rest = String::new();
 
 
-            let char_len = s.char_len();
+            let char_len = s.as_slice().char_len();
             let mut i = 0;
 
-            for chr in s.chars() {
+            for chr in s.as_slice().chars() {
                 if i == char_len-1 {
                     shift = Some(chr);
                 } else {
@@ -339,7 +341,7 @@ impl PopShiftShim for StrBuf {
             }
 
             self.truncate(0);
-            self.push_str(rest.into_owned());
+            self.push_str(rest.as_slice());
 
             result = shift;
         }
@@ -347,27 +349,12 @@ impl PopShiftShim for StrBuf {
     }
 }
 
-pub fn main() {
-    let s = ~"华b¢€𤭢";
-    let mut buf = StrBuf::from_str(s);
-    let rez = buf.pop_char_shim();
-
-    println!("length {:?}", s.len());
-    assert_eq!(Some('𤭢'), rez);
-    assert_eq!("华b¢€", buf.as_slice());
-}
-
-
-
-pub fn clone_to_str(buf: &StrBuf) -> ~str {
-    buf.clone().into_owned()
-}
 
 
 #[cfg(test)]
 mod test {
 
-    use super::{is_restricted_char, clone_to_str};
+    use super::{is_restricted_char};
     use super::{PopShiftShim};
     #[test]
     fn name(){
@@ -375,18 +362,9 @@ mod test {
     }
 
     #[test]
-    fn test_clone_to_str(){
-        let s = ~"hellO!";
-        let buf = StrBuf::from_str(s);
-        let rez = clone_to_str(&buf);
-
-        assert_eq!(s, rez);
-    }
-
-    #[test]
     fn test_pop_char(){
-        let s = ~"华b¢€𤭢";
-        let mut buf = StrBuf::from_str(s);
+        let s = "华b¢€𤭢";
+        let mut buf = String::from_str(s);
         let rez = buf.pop_char_shim();
 
         assert_eq!(Some('𤭢'), rez);
@@ -395,8 +373,8 @@ mod test {
 
     #[test]
     fn test_shift_char(){
-        let s = ~"华b¢€𤭢";
-        let mut buf = StrBuf::from_str(s);
+        let s = "华b¢€𤭢";
+        let mut buf = String::from_str(s);
         let rez = buf.shift_char_shim();
 
         assert_eq!(Some('华'), rez);
@@ -404,3 +382,4 @@ mod test {
     }
 
 }
+

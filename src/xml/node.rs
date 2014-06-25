@@ -3,7 +3,7 @@ use std::vec::Vec;
 /// A struct representing an XML root document
 pub struct XmlDoc {
     // The document's root
-    root: ~XmlElem,
+    root: XmlElem,
     // The document's processing instructions
     pi: Vec<PINode>
 }
@@ -11,36 +11,36 @@ pub struct XmlDoc {
 
 
 /// A struct representing an XML processing instruction
-#[deriving(Clone,Eq,Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub struct PINode {
     /// The processing instruction's target
-    target: ~str,
+    target: String,
     /// The processing instruction's value
     /// Must not contain ?>
-    value: ~str
+    value: String
 }
 
-#[deriving(Clone,Eq,Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub struct Doctype {
     /// Doctype name
-    name: ~str
+    name: String
     // Internal Doctype definition
     //internal: Vec<DoctypeDecl>
 }
 
 pub enum DoctypeDecl {
     /// Element declaration
-    ElementDecl(~DTDElem),
+    ElementDecl(DTDElem),
     /// Attlist declaration
-    AttDecl(~DTDAttlist),
+    AttDecl(DTDAttlist),
     /// Entity declaration
-    EntityDecl(~DTDEntity),
+    EntityDecl(DTDEntity),
     /// Notation declaration
-    NotationDecl(~DTDNota)
+    NotationDecl(DTDNota)
 }
 
 pub struct DTDElem {
-    name: ~str,
+    name: String,
     spec: ContentSpec
 }
 
@@ -48,7 +48,7 @@ pub enum ContentSpec {
     Empty,
     Any,
     Mixed(Vec<MixedSpec>),
-    Children(~ChildSpec)
+    Children(ChildSpec)
 }
 
 pub enum MixedSpec {
@@ -67,9 +67,9 @@ pub struct CPList {
 }
 
 pub enum ElemType {
-    ChildName(~str, Multi),
-    ChildChoice(~CPList, Multi),
-    ChildSeq(~CPList, Multi)
+    ChildName(String, Multi),
+    ChildChoice(CPList, Multi),
+    ChildSeq(CPList, Multi)
 }
 
 pub enum Multi {
@@ -79,12 +79,12 @@ pub enum Multi {
     Many
 }
 pub struct DTDAttlist {
-    name: ~str,
+    name: String,
     defs: Vec<AttDef>
 }
 
 pub struct AttDef {
-    name: ~str,
+    name: String,
     att_type: AttType,
     default: DefaultVal
 }
@@ -96,14 +96,14 @@ pub enum DefaultVal {
 }
 
 pub enum AttVal {
-    AttText(~str),
-    AttRef(~str)
+    AttText(String),
+    AttRef(String)
 }
 
 pub enum EntVal {
-    EntText(~str),
-    PERef(~str),
-    EntRef(~str)
+    EntText(String),
+    PERef(String),
+    EntRef(String)
 }
 
 pub enum AttType {
@@ -115,8 +115,8 @@ pub enum AttType {
     Entities,
     Nmtoken,
     Nmtokens,
-    Notation(Vec<~str>),
-    Enumeration(Vec<~str>)
+    Notation(Vec<String>),
+    Enumeration(Vec<String>)
 }
 
 pub enum DTDEntity {
@@ -129,12 +129,12 @@ pub enum DTDNota {
 
 
 /// A struct representing an XML element
-#[deriving(Clone,Eq,Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub struct XmlElem {
     /// The element's name
-    pub name: ~str,
+    pub name: String,
     /// The element's namespace
-    pub namespace: ~XmlNS,
+    pub namespace: XmlNS,
     /// The element's `Attribute`s
     pub attributes: Vec<XmlAttr>,
     /// The element's child `XmlNode` nodes
@@ -144,41 +144,41 @@ pub struct XmlElem {
 
 
 /// A struct representing an XML attribute
-#[deriving(Clone,Eq,Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub struct XmlAttr {
     /// The attribute's name
-    pub name: ~str,
+    pub name: String,
     /// The attribute's value
-    pub value: ~str,
+    pub value: String,
     /// The attribute's namespace
-    pub namespace: ~XmlNS
+    pub namespace: XmlNS
 }
 
-#[deriving(Clone,Eq,Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 /// A struct that models an XML namespace
 pub struct XmlNS {
     /// The namespace's shorthand name
-    pub name: ~str,
+    pub name: String,
     /// The namespace's uri value
-    pub uri: ~str
+    pub uri: String
 }
 
 
 /// General types
 /// An Enum describing a XML Node
-#[deriving(Clone,Eq,Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub enum XNode {
-    XDoctype(~Doctype),
+    XDoctype(Doctype),
     /// An XML Element
-    XElem(~XmlElem),
+    XElem(XmlElem),
     /// Character Data
-    XText(~str),
+    XText(String),
     /// CDATA
-    XCdata(~str),
+    XCdata(String),
     /// A XML Comment
-    XComment(~str),
+    XComment(String),
     /// Processing Information
-    XPi(~PINode)
+    XPi(PINode)
 }
 
 fn main() {
@@ -190,9 +190,9 @@ fn main() {
 impl XmlDoc {
     pub fn new() -> XmlDoc {
         XmlDoc {
-            root: ~XmlElem {
-                    name:~"",
-                    namespace:~XmlNS{name: ~"", uri: ~""},
+            root: XmlElem {
+                    name: String::new(),
+                    namespace: XmlNS{name: String::new(), uri: String::new()},
                     attributes: Vec::new(),
                     children: Vec::new()
             },
@@ -200,11 +200,8 @@ impl XmlDoc {
         }
     }
 
-    pub fn to_str(&self) -> ~str {
-        let mut ret = ~"";
-        for e in self.pi.iter() {
-            ret = ret + e.to_str();
-        }
+    pub fn to_str(&self) -> String {
+        let mut ret = String::new();
         ret
     }
 }
@@ -213,7 +210,7 @@ impl XmlElem {
     pub fn new(new_name : &str) -> XmlElem {
         XmlElem {
             name: new_name.to_owned(),
-            namespace:~XmlNS{name: ~"", uri: ~""},
+            namespace: XmlNS{name: String::new(), uri: String::new()},
             attributes: Vec::new(),
             children: Vec::new()
         }
@@ -221,14 +218,14 @@ impl XmlElem {
 }
 
 impl PINode {
-    pub fn to_str(&self) -> ~str {
+    pub fn to_str(&self) -> String {
        format!("<?{} {} ?>", self.target, self.value)
     }
 }
 
 
 impl XmlNS {
-    pub fn to_str(&self) -> ~str {
-        ~""
+    pub fn to_str(&self) -> String {
+        String::new()
     }
 }

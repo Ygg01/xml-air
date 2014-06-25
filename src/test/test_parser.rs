@@ -5,8 +5,7 @@ use xml::node::{XmlElem};
 
 #[test]
 fn test_element(){
-    let str1 = bytes!("<a>");
-    let mut reader = BufReader::new(str1);
+    let mut reader = BufReader::new(b"<a>");
     let mut parser = Parser::from_reader(&mut reader);
     let a = XmlElem::new("a");
 
@@ -16,8 +15,7 @@ fn test_element(){
 
 #[test]
 fn test_empty(){
-    let str1 = bytes!("");
-    let mut reader = BufReader::new(str1);
+    let mut reader = BufReader::new(b"");
     let mut parser = Parser::from_reader(&mut reader);
 
     assert_eq!(None,    parser.pull());
