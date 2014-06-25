@@ -9,8 +9,8 @@ use util::{is_whitespace, is_name_start, is_name_char};
 use util::{XmlError, ErrKind, PopShiftShim};
 use util::{is_hex_digit, is_digit};
 use util::{is_restricted_char, clean_restricted, is_char};
-use util::{RestrictedCharError,MinMinInComment,PrematureEOF,NonDigitError};
-use util::{NumParsingError,CharParsingError,IllegalChar,UnknownToken};
+use util::{RestrictedCharError,MinMinInComment,PrematureEOF};
+use util::{IllegalChar};
 
 
 
@@ -740,7 +740,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             };
 
         };
-        raw_str.into_owned()
+        raw_str
     }
 
     //TODO Doc
@@ -782,7 +782,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             None => {}
         }
 
-        ret_str.into_owned()
+        ret_str
     }
 
     fn read_until_peek(&mut self, peek_look: String) -> String {
@@ -814,9 +814,9 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
                     if !rew.len() > 0{
                         if peek_found {
-                            self.rewind_to(peek.into_owned(), pre_cp);
+                            self.rewind_to(peek, pre_cp);
                         } else {
-                            self.rewind(rew.into_owned());
+                            self.rewind(rew);
                         }
                     }
                 },
@@ -825,7 +825,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             }
         }
-        result.into_owned()
+        result
     }
 
 
@@ -863,7 +863,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
         }
         result.push_str(self.process_namechars().as_slice());
-        result.into_owned()
+        result
     }
 
     /// It will attempt to consume all digits until it reaches a non-digit
@@ -899,7 +899,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         });
 
         self.buf.push_str(ws.as_slice());
-        self.token = Some(WhiteSpace(self.buf.clone().into_owned()));
+        self.token = Some(WhiteSpace(self.buf.clone()));
     }
 
     /// If we find a name start character this method
@@ -1273,7 +1273,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     fn get_hash_token(&mut self) -> Option<XmlToken> {
         assert_eq!("#",    self.buf.as_slice());
         self.save_checkpoint();
-        let mut rew = String::from_owned_str(self.read_str(5));
+        let mut rew = self.read_str(5);
         let result;
 
         if rew.as_slice() == "FIXED" {
@@ -1307,7 +1307,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         }
 
         match result {
-            Some(ErrorToken(_)) => self.rewind(rew.into_owned()),
+            Some(ErrorToken(_)) => self.rewind(rew),
             _ => {}
         }
 
@@ -1466,7 +1466,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             }
 
         }
-        Some(Text(text.into_owned()))
+        Some(Text(text))
     }
 
     fn get_pi_token(&mut self) -> Option<XmlToken> {
@@ -1541,7 +1541,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 peek = self.read_str(3);
             }
         }
-        result.into_owned()
+        result
     }
 
     fn get_close_tag_token(&mut self) -> Option<XmlToken> {

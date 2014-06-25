@@ -144,7 +144,7 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
         }
 
         match self.read_token() {
-            Some(Ok(RightBracket)) => {
+            Some(Ok(GreaterBracket)) => {
                 self.elem = elem;
             },
             // FIXME: Proper error handling

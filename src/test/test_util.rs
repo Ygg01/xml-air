@@ -1,6 +1,5 @@
 
 use xml::util::{is_restricted_char, is_whitespace};
-use xml::util::{PopShiftShim};
 
 #[test]
 fn test_restricted(){

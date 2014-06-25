@@ -80,7 +80,7 @@ impl fmt::Show for Mark {
     ///       Thes text isn't spelt properly
     ///       ^~~~
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut mark_str = String::from_owned_str(self.offset_msg.clone());
+        let mut mark_str = self.offset_msg.clone();
 
         mark_str.push_str(self.context.as_slice());
         mark_str.push_char('\n');
@@ -114,7 +114,7 @@ pub fn clean_restricted(input: String) -> String {
         }
     }
 
-    result.into_owned()
+    result
 }
 #[inline(always)]
 /// Returns `true` if a character can be part of

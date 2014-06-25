@@ -1,6 +1,6 @@
 use std::io::BufReader;
 
-use xml::lexer::{Lexer, XmlResult, Char, RestrictedChar,RequiredDecl,FixedDecl};
+use xml::lexer::{Lexer, Char, RestrictedChar,RequiredDecl,FixedDecl};
 use xml::lexer::{PrologEnd, PrologStart, PI, CData, WhiteSpace};
 use xml::lexer::{DoctypeStart, CharRef};
 use xml::lexer::{Percent, NameToken, EntityType, Comment};

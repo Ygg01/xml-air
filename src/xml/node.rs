@@ -201,7 +201,7 @@ impl XmlDoc {
     }
 
     pub fn to_str(&self) -> String {
-        let mut ret = String::new();
+        let ret = String::new();
         ret
     }
 }
@@ -209,7 +209,7 @@ impl XmlDoc {
 impl XmlElem {
     pub fn new(new_name : &str) -> XmlElem {
         XmlElem {
-            name: new_name.to_owned(),
+            name: new_name.into_string(),
             namespace: XmlNS{name: String::new(), uri: String::new()},
             attributes: Vec::new(),
             children: Vec::new()
