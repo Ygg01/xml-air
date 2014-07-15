@@ -1571,7 +1571,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 Some(PrologEnd)
             },
             Some(Char(a)) => {
-                self.rewind(a.to_str());
+                self.rewind(String::from_char(1, a));
                 Some(QuestionMark)
             },
             Some(RestrictedChar(_)) => {
