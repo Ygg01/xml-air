@@ -1,7 +1,6 @@
 use std::ascii::StrAsciiExt;
 use std::io::{Reader, Buffer};
 use std::char::from_u32;
-use std::str::from_char;
 use std::num::from_str_radix;
 use std::string::String;
 
@@ -200,7 +199,7 @@ impl Quotes {
     }
 
     pub fn from_chr(quote: &char) -> Quotes {
-        Quotes::from_str(from_char(*quote))
+        Quotes::from_str(String::from_char(1, *quote))
     }
 }
 
@@ -688,8 +687,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         self.col = 0;
 
         if c == '\r' {
-            let chrPeek = self.source.read_char();
-            match chrPeek {
+            let chr_peek = self.source.read_char();
+            match chr_peek {
                 // If the read character isn't a double
                 // new-line character (\r\85 or \n),
                 // it's added to peek buffer
@@ -945,8 +944,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 let split_name: Vec<&str> = self.buf.as_slice().split(':').collect();
 
                 if split_name.len() == 2 {
-                    let ns = (*split_name.get(0)).into_string();
-                    let name = (*split_name.get(1)).into_string();
+                    let ns = (*split_name[0]).into_string();
+                    let name = (*split_name[1]).into_string();
                     result = Some(
                         QNameToken(ns, name)
                     );
@@ -973,7 +972,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         match chr {
             Some(Char(a)) => {
                 self.buf.push_char(a);
-                rew = from_char(a);
+                rew = String::from_char(1,a);
             }
             Some(RestrictedChar(_)) => {
                 return Some(FIXME);
@@ -1101,11 +1100,11 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 self.get_char_ref_token()
             },
             Some(Char(a)) => {
-                self.rewind(from_char(a));
+                self.rewind(String::from_char(1, a));
                 self.get_entity_ref_token(true)
             },
             Some(RestrictedChar(a)) => {
-                self.rewind(from_char(a));
+                self.rewind(String::from_char(1, a));
                 self.handle_errors(
                     RestrictedCharError,
                     None
@@ -1136,7 +1135,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 radix = 16;
             },
             Some(Char(a)) if (is_digit(&a)) => {
-                self.rewind(from_char(a));
+                self.rewind(String::from_char(1, a));
                 radix = 10;
             },
             Some(Char(_))
@@ -1159,7 +1158,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             },
             Some(Char(a))
             | Some(RestrictedChar(a)) => {
-                self.rewind(from_char(a));
+                self.rewind(String::from_char(1, a));
             }
             _ => {
                 return Some(ErrorToken(self.buf.clone()));
@@ -1203,7 +1202,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             },
             Some(Char(a)) => {
-                self.rewind(from_char(a));
+                self.rewind(String::from_char(1, a));
                 self.handle_errors(IllegalChar, None);
                 if is_ent {
                     Some(Ref(ref_name))
@@ -1212,7 +1211,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 }
             },
             Some(RestrictedChar(a)) => {
-                self.rewind(from_char(a));
+                self.rewind(String::from_char(1, a));
                 self.handle_errors(IllegalChar, None);
                 if is_ent {
                     Some(Ref(ref_name))
