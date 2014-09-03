@@ -24,7 +24,7 @@ enum State {
     InStartTag
 }
 
-pub struct Parser<'r, R> {
+pub struct Parser<'r, R:'r> {
     pub depth: uint,
     pub elem: Option<XmlElem>,
     pub err: Option<XmlError>,
@@ -34,19 +34,19 @@ pub struct Parser<'r, R> {
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
-pub struct XmlIterator <'i, 'r, R> {
-    iter: &'i mut Parser<'r, R>
+pub struct XmlIterator <'r, R:'r> {
+    iter: &'r mut Parser<'r, R>
 }
 
 // The problem seems to be here
-impl<'i, 'r, R: Reader+Buffer> Iterator<XmlEvent> for XmlIterator<'i, 'r, R> {
+impl<'r, R: Reader+Buffer> Iterator<XmlEvent> for XmlIterator<'r, R> {
     fn next(&mut self) -> Option<XmlEvent> {
         self.iter.pull()
     }
 }
 
-impl<'i, 'r, R: Reader+Buffer> Parser<'r, R> {
-    pub fn elems(&'i mut self) -> XmlIterator<'i, 'r, R>{
+impl<'r, R: Reader+Buffer> Parser<'r, R> {
+    pub fn elems(&'r mut self) -> XmlIterator<'r, R>{
         XmlIterator{ iter: self}
     }
 }

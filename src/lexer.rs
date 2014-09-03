@@ -204,7 +204,7 @@ impl Quotes {
     }
 }
 
-pub struct Lexer<'r, R> {
+pub struct Lexer<'r, R:'r> {
     pub line: u64,
     pub col: u64,
     token: Option<XmlToken>,
@@ -218,19 +218,19 @@ pub struct Lexer<'r, R> {
 }
 
 // Struct to help with the Iterator pattern emulating Rust native libraries
-pub struct TokenIterator <'b,'r, R> {
-    iter: &'b mut Lexer<'r, R>
+pub struct TokenIterator <'r, R:'r> {
+    iter: &'r mut Lexer<'r, R>
 }
 
 // The problem seems to be here
-impl<'b,'r, R: Reader+Buffer> Iterator<XmlResult> for TokenIterator<'b, 'r, R> {
+impl<'r, R: Reader+Buffer> Iterator<XmlResult> for TokenIterator<'r, R> {
     fn next(&mut self) -> Option<XmlResult> {
         self.iter.pull()
     }
 }
 
-impl<'iter, 'r, R: Reader+Buffer> Lexer<'r, R> {
-    pub fn tokens(&'iter mut self) -> TokenIterator<'iter,'r,R>{
+impl<'r, R: Reader+Buffer> Lexer<'r, R> {
+    pub fn tokens(&'r mut self) -> TokenIterator<'r,R>{
         TokenIterator{ iter: self}
     }
 }
