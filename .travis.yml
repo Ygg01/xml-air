@@ -1,13 +1,11 @@
 env:
   global:
     - secure: Xy0Gsm+HY2+WEL/kV4xGaemEBZLv31we8kT5uU5tXNZxeDknRSSxCgc+dNUxAaNxO8ZY+ZBEA6mraMPnmPfEIB+EnI3n91FmOqwQnlbMG0fxOhhqtwvfX8kapS5Qjmsn50NMIY9SyjnPnlJ5W+VgedJGlr7i9yLCM4G9ZFLcfwA=
-before_install:
-  - yes | sudo add-apt-repository ppa:hansjorg/rust
-  - sudo apt-get update
-install:
-  - sudo apt-get install rust-nightly
+language:
+  - rust
 script:
-  - make check
-  - make docs
+  - cargo build --verbose
+  - cargo test --verbose
+  - cargo doc
 after_script:
   - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
