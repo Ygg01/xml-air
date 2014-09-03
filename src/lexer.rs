@@ -240,7 +240,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// that must implement Reader and Buffer traits.
     /// Example
     /// ```rust
-    ///    let bytes = bytes!("<an:elem />");
+    ///    let bytes = b"<an:elem />";
     ///    let lexer = xml::Lexer::from_reader(BufReader::new(bytes));
     /// ````
     pub fn from_reader(data : &'r mut R) -> Lexer<'r, R> {
@@ -259,19 +259,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
     /// This method pulls tokens from Reader until it reaches
     /// end of file. From that point on, it will return None.
     ///
-    /// Example:
-    ///
-    ///     let reader = Reader::new(bytes!("<a></a>"));
-    ///     let mut lexer = Lexer::from_reader(reader);
-    ///
-    ///     // Calling lexer for each individual element
-    ///     let token = lexer.pull();
-    ///
-    ///     // Calling lexer in a loop
-    ///     for tok in lexer.tokens() {
-    ///         println!(tok);
-    ///     }
-    ///     assert_eq!(None, lexer.pull());
+
     pub fn pull(&mut self) -> Option<XmlResult> {
         self.buf = String::new();
 

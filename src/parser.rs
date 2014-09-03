@@ -54,10 +54,6 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
 impl<'r, R: Reader+Buffer> Parser<'r, R> {
     /// Constructs a new Parser from Reader `data`
     /// The Parser will use the given reader as the source for parsing.
-    /// ~~~
-    /// let mut p = Parser::from_read(stdin)
-    /// p.parse_doc() => XmlDoc { root: XmlElem {name: "root"} ... }
-    /// ~~~
     pub fn from_reader(data: &'r mut R)
                      -> Parser<'r, R> {
         Parser {
