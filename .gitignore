@@ -15,10 +15,12 @@ lex_test
 *.dll
 *.dylib
 *.rlib
+Cargo.lock
 
 #Ignore non-source folders
 build/
 bin/
 lib/
 doc/
+target/
 .rust
