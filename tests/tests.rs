@@ -1,5 +1,5 @@
 // Crate linkage metadata
-#![crate_name = "xml-test"]
+#![crate_name = "tests"]
 #![crate_type="bin"]
 
 extern crate xml;

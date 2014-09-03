@@ -229,7 +229,7 @@ impl<'r, R: Reader+Buffer> Iterator<XmlResult> for TokenIterator<'r, R> {
 }
 
 impl<'r, R: Reader+Buffer> Lexer<'r, R> {
-    pub fn tokens(&'r mut self) -> TokenIterator<'r,R>{
+    pub fn tokens(&'r mut self) -> TokenIterator<'r, R>{
         TokenIterator{ iter: self}
     }
 }

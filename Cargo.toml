@@ -1,8 +1,8 @@
 [package]
 
-name = "xparse"
+name = "xml"
 version = "0.0.0"
 authors = ["Daniel Fath <daniel.fath7@gmail.com>"]
 
-[[tests]]
-name = "test"
+[[test]]
+name = "tests"
