@@ -33,21 +33,10 @@ pub struct Parser<'r, R:'r> {
     state: State
 }
 
-// Struct to help with the Iterator pattern emulating Rust native libraries
-pub struct XmlIterator <'r, R:'r> {
-    iter: &'r mut Parser<'r, R>
-}
-
 // The problem seems to be here
-impl<'r, R: Reader+Buffer> Iterator<XmlEvent> for XmlIterator<'r, R> {
+impl<'r, R: Reader+Buffer> Iterator<XmlEvent> for Parser<'r, R> {
     fn next(&mut self) -> Option<XmlEvent> {
-        self.iter.pull()
-    }
-}
-
-impl<'r, R: Reader+Buffer> Parser<'r, R> {
-    pub fn elems(&'r mut self) -> XmlIterator<'r, R>{
-        XmlIterator{ iter: self}
+        self.pull()
     }
 }
 

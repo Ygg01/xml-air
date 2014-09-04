@@ -17,8 +17,7 @@ fn iteration() {
     let bytes = b"<a>";
     let mut r = BufReader::new(bytes);
     let mut lexer = Lexer::from_reader(&mut r);
-    let mut tokens = lexer.tokens();
-    for token in tokens {
+    for token in lexer {
     };
 
     assert_eq!(None,                lexer.pull());
