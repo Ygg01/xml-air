@@ -216,10 +216,14 @@ pub struct Lexer<'r, R:'r> {
     source: &'r mut R
 }
 
+pub struct LexerIterator<'i, 'l: 'i, R: 'l>  {
+    iter: &'i mut Lexer<'l, R>
+}
+
 // The problem seems to be here
-impl<'r, R: Reader+Buffer> Iterator<XmlResult> for Lexer<'r, R> {
+impl<'i,'r, R: Reader+Buffer> Iterator<XmlResult> for LexerIterator<'i, 'r, R> {
     fn next(&mut self) -> Option<XmlResult> {
-        self.pull()
+        self.iter.pull()
     }
 }
 
@@ -245,10 +249,13 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             source: data
         }
     }
+
+    pub fn tokens<'b>(&'b mut self) -> LexerIterator<'b, 'r, R> {
+        LexerIterator{ iter: self }
+    }
+
     /// This method pulls tokens from Reader until it reaches
     /// end of file. From that point on, it will return None.
-    ///
-
     pub fn pull(&mut self) -> Option<XmlResult> {
         self.buf = String::new();
 

@@ -33,10 +33,14 @@ pub struct Parser<'r, R:'r> {
     state: State
 }
 
+pub struct ParserIterator<'i, 'p: 'i, R: 'p> {
+    iter: &'i mut Parser<'p, R>
+}
+
 // The problem seems to be here
-impl<'r, R: Reader+Buffer> Iterator<XmlEvent> for Parser<'r, R> {
+impl<'i,'r, R: Reader+Buffer> Iterator<XmlEvent> for ParserIterator<'i,'r, R> {
     fn next(&mut self) -> Option<XmlEvent> {
-        self.pull()
+        self.iter.pull()
     }
 }
 
@@ -52,6 +56,12 @@ impl<'r, R: Reader+Buffer> Parser<'r, R> {
             peek: None,
             lexer: Lexer::from_reader(data),
             state: OutsideTag
+        }
+    }
+
+    pub fn nodes<'a>(&'a mut self) -> ParserIterator<'a, 'r, R> {
+        ParserIterator {
+            iter: self
         }
     }
 
