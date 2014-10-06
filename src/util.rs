@@ -121,7 +121,7 @@ pub fn clean_restricted(input: String) -> String {
 /// a decimal number. False otherwise.
 pub fn is_digit(input: &char) -> bool {
     match *input {
-        '0'..'9' => true,
+        '0'...'9' => true,
         _ => false
     }
 }
@@ -131,9 +131,9 @@ pub fn is_digit(input: &char) -> bool {
 /// a hexadecimal number. False otherwise
 pub fn is_hex_digit(input: &char) -> bool {
     match *input {
-        '0'..'9'
-        | 'a'..'f'
-        | 'A'..'F' => true,
+        '0'...'9'
+        | 'a'...'f'
+        | 'A'...'F' => true,
         _ => false
     }
 }
@@ -146,9 +146,9 @@ pub fn is_pubid_char(input: &char) -> bool {
         '\x20'
         | '\x0D'
         | '\x0A'
-        | 'a'..'z'
-        | 'A'..'Z'
-        | '0'..'9' => true,
+        | 'a'...'z'
+        | 'A'...'Z'
+        | '0'...'9' => true,
         a if("-'()+,./:=?;!*#@$_%".contains_char(a)) => true,
         _ => false
     }
@@ -161,8 +161,8 @@ pub fn is_pubid_char(input: &char) -> bool {
 /// See: http://www.w3.org/TR/xml11/#NT-EncName
 pub fn is_encoding_start_char(input: &char) -> bool {
     match *input {
-        'a'.. 'z'
-        | 'A'..'Z' => true,
+        'a'...'z'
+        | 'A'...'Z' => true,
         _ => false
     }
 }
@@ -174,9 +174,9 @@ pub fn is_encoding_start_char(input: &char) -> bool {
 /// See: http://www.w3.org/TR/xml11/#NT-EncName
 pub fn is_encoding_char(input: &char) -> bool {
     match *input {
-        'a'.. 'z'
-        | 'A'..'Z'
-        | '0'..'9'
+        'a'...'z'
+        | 'A'...'Z'
+        | '0'...'9'
         | '.' | '_'
         | '-' => true,
         _ => false
@@ -191,20 +191,20 @@ pub fn is_name_start(chr: &char) -> bool {
     match *chr {
         ':'
         | '_'
-        | 'A'..'Z'
-        | 'a'..'z'
-        | '\xC0'..'\xD6'
-        | '\xD8'..'\xF6'
-        | '\xF8'..'\u02FF'
-        | '\u0370'..'\u03FD'
-        | '\u037F'..'\u1FFF'
-        | '\u200C'..'\u200D'
-        | '\u2070'..'\u218F'
-        | '\u2C00'..'\u2FEF'
-        | '\u3001'..'\uD7FF'
-        | '\uF900'..'\uFDCF'
-        | '\uFDF0'..'\uFFFD'
-        | '\U00010000'..'\U000EFFFF' => true,
+        | 'A'...'Z'
+        | 'a'...'z'
+        | '\xC0'...'\xD6'
+        | '\xD8'...'\xF6'
+        | '\xF8'...'\u02FF'
+        | '\u0370'...'\u03FD'
+        | '\u037F'...'\u1FFF'
+        | '\u200C'...'\u200D'
+        | '\u2070'...'\u218F'
+        | '\u2C00'...'\u2FEF'
+        | '\u3001'...'\uD7FF'
+        | '\uF900'...'\uFDCF'
+        | '\uFDF0'...'\uFFFD'
+        | '\U00010000'...'\U000EFFFF' => true,
         _ => false
     }
 }
@@ -219,10 +219,10 @@ pub fn is_name_char(chr: &char) -> bool {
     match *chr {
         '-'
         | '.'
-        | '0'..'9'
+        | '0'...'9'
         | '\xB7'
-        | '\u0300'..'\u036F'
-        | '\u203F'..'\u2040' => true,
+        | '\u0300'...'\u036F'
+        | '\u203F'...'\u2040' => true,
         _ =>false
     }
 }
@@ -231,9 +231,9 @@ pub fn is_name_char(chr: &char) -> bool {
 /// Determines if the character is allowed, if not, returns false
 pub fn is_char(chr : &char) -> bool {
     match *chr {
-        '\x01' .. '\uD7FF'
-        | '\uE000' .. '\uFFFD'
-        | '\U00010000' .. '\U0010FFFF' => true,
+        '\x01' ... '\uD7FF'
+        | '\uE000' ... '\uFFFD'
+        | '\U00010000' ... '\U0010FFFF' => true,
         _ => false
     }
 }
@@ -257,11 +257,11 @@ pub fn is_whitespace(chr: &char) -> bool {
 /// [#x10FFFE-#x10FFFF].
 pub fn is_restricted_char(chr: &char) -> bool {
     match *chr {
-        '\x01'..'\x08'
-        | '\x0B'.. '\x0C'
-        | '\x0E'.. '\x1F'
-        | '\x7F'.. '\x84'
-        | '\x86'.. '\x9F'
+        '\x01'...'\x08'
+        | '\x0B'...'\x0C'
+        | '\x0E'...'\x1F'
+        | '\x7F'...'\x84'
+        | '\x86'...'\x9F'
         | '\U0001FFFE' | '\U0001FFFF'
         | '\U0002FFFE' | '\U0002FFFF'
         | '\U0003FFFE' | '\U0003FFFF'
