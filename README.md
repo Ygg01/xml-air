@@ -1,4 +1,4 @@
-XML Parser for Rust [![Build Status](https://travis-ci.org/DanielFath/xml-parser.png?branch=master)](https://travis-ci.org/DanielFath/xml-parser)
+XML Parser for Rust [![Build Status](https://travis-ci.org/DanielFath/xml-air.svg?branch=master)](https://travis-ci.org/DanielFath/xml-air)
 ==========
 
 This program isn't finished and you should not be reading this. 

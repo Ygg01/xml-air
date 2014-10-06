@@ -1,5 +1,5 @@
 // Crate linkage metadata
-#![crate_name = "xml"]
+#![crate_name = "xml_air"]
 
 
 //Metadata
