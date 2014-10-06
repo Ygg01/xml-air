@@ -265,7 +265,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         };
 
         match read_chr {
-            Char(a) => self.buf.push_char(a),
+            Char(a) => self.buf.push(a),
             _ => {}
         }
 
@@ -600,7 +600,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         self.line = cp.line;
 
         for c in peeked.as_slice().chars().rev(){
-            self.peek_buf.push_char(c);
+            self.peek_buf.push(c);
         }
     }
 
@@ -677,7 +677,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 // new-line character (\r\85 or \n),
                 // it's added to peek buffer
                 Ok(a) if a != '\x85' && a != '\n'
-                        => self.peek_buf.push_char(a),
+                        => self.peek_buf.push(a),
                 _ => {}
 
             }
@@ -709,10 +709,10 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             match chr {
                 Some(a) => {
                     match a {
-                        Char(a) => raw_str.push_char(a),
+                        Char(a) => raw_str.push(a),
                         RestrictedChar(a) => {
                             self.handle_errors(RestrictedCharError, None);
-                            raw_str.push_char(a);
+                            raw_str.push(a);
                         }
                     }
                 },
@@ -740,7 +740,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
             match chr {
                 None => break,
                 Some(Char(a)) => {
-                    ret_str.push_char(a);
+                    ret_str.push(a);
                     col = self.col;
                     line = self.line;
                     chr = self.read_chr();
@@ -760,7 +760,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         match chr {
             Some(Char(a))
             | Some(RestrictedChar(a)) => {
-                 self.peek_buf.push_char(a);
+                 self.peek_buf.push(a);
             },
             None => {}
         }
@@ -792,7 +792,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     if peek == peek_look {
                         peek_found = true;
                     } else {
-                        result.push_char(a);
+                        result.push(a);
                     }
 
                     if !rew.len() > 0{
@@ -833,7 +833,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
         let mut result = String::new();
         match self.read_chr() {
             Some(Char(a)) if is_name_start(&a) => {
-                result.push_char(a);
+                result.push(a);
             },
             Some(Char(_)) => {
                 self.handle_errors(IllegalChar, None);
@@ -955,7 +955,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
         match chr {
             Some(Char(a)) => {
-                self.buf.push_char(a);
+                self.buf.push(a);
                 rew = String::from_char(1,a);
             }
             Some(RestrictedChar(_)) => {
@@ -986,27 +986,27 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
         let result = match read {
             Some(Char('[')) => {
-                self.buf.push_char('[');
+                self.buf.push('[');
                 self.get_cdata_token()
             },
             Some(Char('-')) => {
-                self.buf.push_char('-');
+                self.buf.push('-');
                 self.get_comment_token()
             },
             Some(Char('D')) => {
-                self.buf.push_char('D');
+                self.buf.push('D');
                 self.get_doctype_start_token()
             },
             Some(Char('E')) => {
-                self.buf.push_char('E');
+                self.buf.push('E');
                 self.get_entity_or_element_token()
             },
             Some(Char('N')) => {
-                self.buf.push_char('N');
+                self.buf.push('N');
                 self.get_notation_token()
             },
             Some(Char('A')) => {
-                self.buf.push_char('A');
+                self.buf.push('A');
                 self.get_attlist_token()
             }
             None => Some(Text("<!".into_string())),
@@ -1080,7 +1080,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
 
         let token = match chr {
             Some(Char('#')) => {
-                self.buf.push_char('#');
+                self.buf.push('#');
                 self.get_char_ref_token()
             },
             Some(Char(a)) => {
@@ -1397,7 +1397,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 _ => false
             }
         });
-        let result = self.buf.clone().append(text.as_slice());
+        let mut result = self.buf.clone();
+        result.push_str(text.as_slice());
         Some(Text(result))
     }
 
@@ -1408,7 +1409,8 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 _ => false
             }
         });
-        let result = self.buf.clone().append(text.as_slice());
+        let mut result = self.buf.clone();
+        result.push_str(text.as_slice());
         Some(Text(result))
     }
 
@@ -1433,7 +1435,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                 Some(Char(a))           => {
                     if peek.len() == 3 {
                         peek.shift_char_shim();
-                        peek.push_char(a);
+                        peek.push(a);
                     }
                     if peek.as_slice() == "]]>" {
                         run_loop = false;
@@ -1443,7 +1445,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     }
 
                     if run_loop {
-                        text.push_char(a);
+                        text.push(a);
                     }
                 }
             }
@@ -1517,7 +1519,7 @@ impl<'r, R: Reader+Buffer> Lexer<'r, R> {
                     None
                     | Some(RestrictedChar(_)) => {},
                     Some(Char(a)) => {
-                        result.push_char(a)
+                        result.push(a)
                     }
                 }
                 self.save_checkpoint();

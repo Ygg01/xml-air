@@ -83,19 +83,19 @@ impl fmt::Show for Mark {
         let mut mark_str = self.offset_msg.clone();
 
         mark_str.push_str(self.context.as_slice());
-        mark_str.push_char('\n');
+        mark_str.push('\n');
         let margin = self.pos + self.offset_msg.as_slice().char_len();
         for _ in range(0, margin) {
-            mark_str.push_char(' ');
+            mark_str.push(' ');
         };
 
         let mut first_char = true;
         for _ in range(0, self.length) {
             if first_char {
-                mark_str.push_char('^');
+                mark_str.push('^');
                 first_char = false;
             } else {
-                mark_str.push_char('~');
+                mark_str.push('~');
             }
 
         };
@@ -110,7 +110,7 @@ pub fn clean_restricted(input: String) -> String {
 
     for c in input.as_slice().chars() {
         if !is_restricted_char(&c) {
-            result.push_char(c);
+            result.push(c);
         }
     }
 
@@ -304,7 +304,7 @@ impl PopShiftShim for String {
                     pop = Some(chr);
                     is_first = false;
                 } else {
-                    rest.push_char(chr);
+                    rest.push(chr);
                 }
             }
 
@@ -334,7 +334,7 @@ impl PopShiftShim for String {
                 if i == char_len-1 {
                     shift = Some(chr);
                 } else {
-                    rest.push_char(chr);
+                    rest.push(chr);
                 }
                 i += 1;
 

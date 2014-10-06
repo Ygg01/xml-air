@@ -16,7 +16,6 @@
 
 // Warn on missing docs
 #![warn(unnecessary_qualification)]
-#![warn(managed_heap_memory)]
 //#[warn(missing_doc)];
 //#[warn(owned_heap_memory)];
 
