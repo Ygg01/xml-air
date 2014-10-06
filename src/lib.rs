@@ -29,5 +29,5 @@ pub use util::{is_name_char, Config,ErrBehavior};
 
 pub mod lexer;
 pub mod parser;
-pub mod node;
+pub mod common;
 pub mod util;
