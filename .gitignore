@@ -15,6 +15,7 @@ lex_test
 *.dll
 *.dylib
 *.rlib
+*.racertmp
 Cargo.lock
 
 #Ignore non-source folders
