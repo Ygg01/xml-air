@@ -159,6 +159,11 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
             },
             Ok(a)   => {
                 self.col += 1;
+                if a == '\x00' {
+                    return Char('\uFFFD')
+                } else{
+                    return Char(a)
+                }
                 Char(a)
             }
         };
@@ -200,7 +205,7 @@ mod test {
     use std::io::BufReader;
     #[test]
     fn test_norm_char() {
-        let mut read = BufReader::new(b"ab\r\n\n");
+        let mut read = BufReader::new(b"ab\r\n\na\ra\x00");
         let mut xml_read = XmlReader::from_reader(&mut read);
         assert_eq!(Char('a'),       xml_read.read_norm_char());
         assert_eq!((1u64,1u64),     xml_read.position());
@@ -210,6 +215,14 @@ mod test {
         assert_eq!((2u64,0u64),     xml_read.position());
         assert_eq!(Char('\n'),      xml_read.read_norm_char());
         assert_eq!((3u64,0u64),     xml_read.position());
+        assert_eq!(Char('a'),       xml_read.read_norm_char());
+        assert_eq!((3u64,1u64),     xml_read.position());
+        assert_eq!(Char('\n'),      xml_read.read_norm_char());
+        assert_eq!((4u64,0u64),     xml_read.position());
+        assert_eq!(Char('a'),       xml_read.read_norm_char());
+        assert_eq!((4u64,1u64),     xml_read.position());
+        assert_eq!(Char('\uFFFD'),  xml_read.read_norm_char());
+        assert_eq!((4u64,2u64),     xml_read.position());
     }
 }
 
