@@ -1,18 +1,22 @@
 use std::vec::Vec;
 
+
+pub enum XToken {
+}
+
 /// A struct representing an XML root document
-pub struct XmlDoc {
+pub struct XDoc {
     // The document's root
-    root: XmlElem,
+    root: XElem,
     // The document's processing instructions
-    pi: Vec<PINode>
+    pi: Vec<XPi>
 }
 
 
 
 /// A struct representing an XML processing instruction
 #[deriving(Clone, PartialEq, Eq, Show)]
-pub struct PINode {
+pub struct XPi {
     /// The processing instruction's target
     target: String,
     /// The processing instruction's value
@@ -21,116 +25,15 @@ pub struct PINode {
 }
 
 #[deriving(Clone, PartialEq, Eq, Show)]
-pub struct Doctype {
+pub struct XDoctype {
     /// Doctype name
     name: String
-    // Internal Doctype definition
-    //internal: Vec<DoctypeDecl>
-}
-
-pub enum DoctypeDecl {
-    /// Element declaration
-    ElementDecl(DTDElem),
-    /// Attlist declaration
-    AttDecl(DTDAttlist),
-    /// Entity declaration
-    EntityDecl(DTDEntity),
-    /// Notation declaration
-    NotationDecl(DTDNota)
-}
-
-pub struct DTDElem {
-    name: String,
-    spec: ContentSpec
-}
-
-pub enum ContentSpec {
-    Empty,
-    Any,
-    Mixed(Vec<MixedSpec>),
-    Children(ChildSpec)
-}
-
-pub enum MixedSpec {
-    PCData,
-    Name
-}
-
-pub struct ChildSpec {
-    multi: Multi,
-    children: CPList,
-    is_choice: bool
-}
-
-pub struct CPList {
-    elems: Vec<ElemType>
-}
-
-pub enum ElemType {
-    ChildName(String, Multi),
-    ChildChoice(CPList, Multi),
-    ChildSeq(CPList, Multi)
-}
-
-pub enum Multi {
-    Single,
-    OneOrZero,
-    ZeroOrMany,
-    Many
-}
-pub struct DTDAttlist {
-    name: String,
-    defs: Vec<AttDef>
-}
-
-pub struct AttDef {
-    name: String,
-    att_type: AttType,
-    default: DefaultVal
-}
-
-pub enum DefaultVal {
-    Required,
-    Implied,
-    Fixed(Vec<AttVal>)
-}
-
-pub enum AttVal {
-    AttText(String),
-    AttRef(String)
-}
-
-pub enum EntVal {
-    EntText(String),
-    PERef(String),
-    EntRef(String)
-}
-
-pub enum AttType {
-    CData,
-    Id,
-    Idref,
-    Idrefs,
-    Entity,
-    Entities,
-    Nmtoken,
-    Nmtokens,
-    Notation(Vec<String>),
-    Enumeration(Vec<String>)
-}
-
-pub enum DTDEntity {
-
-}
-
-pub enum DTDNota {
-
 }
 
 
 /// A struct representing an XML element
 #[deriving(Clone, PartialEq, Eq, Show)]
-pub struct XmlElem {
+pub struct XElem {
     /// The element's name
     pub name: String,
     /// The element's namespace
@@ -168,64 +71,9 @@ pub struct XmlNS {
 /// An Enum describing a XML Node
 #[deriving(Clone, PartialEq, Eq, Show)]
 pub enum XNode {
-    XDoctype(Doctype),
-    /// An XML Element
-    XElem(XmlElem),
-    /// Character Data
-    XText(String),
-    /// CDATA
-    XCdata(String),
-    /// A XML Comment
-    XComment(String),
-    /// Processing Information
-    XPi(PINode)
 }
 
 fn main() {
 
 }
 
-
-
-impl XmlDoc {
-    pub fn new() -> XmlDoc {
-        XmlDoc {
-            root: XmlElem {
-                    name: String::new(),
-                    namespace: XmlNS{name: String::new(), uri: String::new()},
-                    attributes: Vec::new(),
-                    children: Vec::new()
-            },
-            pi: Vec::new()
-        }
-    }
-
-    pub fn to_str(&self) -> String {
-        let ret = String::new();
-        ret
-    }
-}
-
-impl XmlElem {
-    pub fn new(new_name : &str) -> XmlElem {
-        XmlElem {
-            name: new_name.into_string(),
-            namespace: XmlNS{name: String::new(), uri: String::new()},
-            attributes: Vec::new(),
-            children: Vec::new()
-        }
-    }
-}
-
-impl PINode {
-    pub fn to_str(&self) -> String {
-       format!("<?{} {} ?>", self.target, self.value)
-    }
-}
-
-
-impl XmlNS {
-    pub fn to_str(&self) -> String {
-        String::new()
-    }
-}

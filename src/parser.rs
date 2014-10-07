@@ -1,8 +1,7 @@
-use std::io::{Reader, Buffer};
+use std::io::{Buffer, IoError, EndOfFile};
 
-use common::{XmlDoc, XmlElem};
-use util::{XmlError};
-use lexer::{Lexer, XmlResult, NameToken, LessBracket, GreaterBracket};
+//use util::{XmlError};
+
 
 /// Struct that represents what XML events
 /// may be encountered during pull parsing
