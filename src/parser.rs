@@ -2,6 +2,80 @@ use std::io::{Buffer, IoError, EndOfFile};
 
 //use util::{XmlError};
 
+/// A struct representing states of an XML ER parser
+enum StateEr {
+    Data,
+    Tag,
+    EndTag,
+    EndTagName,
+    EndTagNameAfter,
+    Pi,
+    PiTarget,
+    PiTargetAfter,
+    PiContent,
+    PiAfter,
+    MarkupDecl,
+    Comment,
+    CommentDash,
+    CommentEnd,
+    Cdata,
+    CdataBracket,
+    CdataEnd,
+    Doctype,
+    DoctypeRootNameBefore,
+    DoctypeRootName,
+    DoctypeRootNameAfter,
+    DoctypeIdentDoubleQ,
+    DoctypeIdentSingleQ,
+    DoctypeIntSubset,
+    DoctypeIntSubsetAfter,
+    DoctypeTag,
+    DoctypeMarkupDecl,
+    DoctypeComment,
+    DoctypeCommentDash,
+    DoctypeCommentEnd,
+    DoctypeEnt,
+    DoctypeEntTypeBefore,
+    DoctypeEntParamBefore,
+    DoctypeEntParam,
+    DoctypeEntName,
+    DoctypeEntNameAfter,
+    DoctypeEntValDoubleQ,
+    DoctypeEntValSingleQ,
+    DoctypeEntValAfter,
+    DoctypeEntIdent,
+    DoctypeEntIdentDoubleQ,
+    DoctypeEntIdentSingleQ,
+    DoctypeAttlist,
+    DoctypeAttlistNameBefore,
+    DoctypeAttlistName,
+    DoctypeAttlistNameAfter,
+    DoctypeAttlistAttrname,
+    DoctypeAttlistAttrnameAfter,
+    DoctypeAttlistAttrtype,
+    DoctypeAttlistAttrtypeAfter,
+    DoctypeAttlistAttrdeclBefore,
+    DoctypeAttlistAttrdecl,
+    DoctypeAttlistAttrdeclAfter,
+    DoctypeAttlistAttrvalDoubleQuoted,
+    DoctypeAttlistAttrvalSingleQuoted,
+    DoctypeNotation,
+    DoctypeNotationIdent,
+    DoctypeNotationIdentDoubleQ,
+    DoctypeNotationIdentSingleQ,
+    DoctypePi,
+    DoctypeAfterPi,
+    DoctypeBogusComment,
+    TagName,
+    EmptyTag,
+    TagAttrNameBefore,
+    TagAttrNameAfter,
+    TagAttrValueBefore,
+    TagAttrValueDoubleQuoted,
+    TagAttrValueSingleQuoted,
+    TagAttrValueUnquoted,
+    BogusComment
+}
 
 /// Struct that represents what XML events
 /// may be encountered during pull parsing
@@ -18,9 +92,6 @@ pub enum XmlEvent {
     ErrEvent
 }
 
-enum State {
-    OutsideTag,
-    InStartTag
 }
 
 pub struct Parser<'r, R:'r> {
