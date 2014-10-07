@@ -95,7 +95,6 @@ pub enum XmlEvent {
 struct XmlReader<'r,R :'r> {
     pub line: u64,
     pub col: u64,
-    pub offset: u64,
     peek_buf: Option<char>,
     source: &'r mut R
 }
@@ -115,7 +114,6 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         XmlReader {
             line: 1,
             col: 0,
-            offset: 0,
             peek_buf: None,
             source: data
         }
@@ -128,8 +126,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
     }
 
     /// A function that reads and returns a single char, normalizing
-    /// standard XML new lines into `\n`. Reading double newlines will
-    /// increment offset by 2.
+    /// standard XML new lines into `\n`. 
     ///
     /// According to XML-ER implementation supported line endings are:
     /// `\n`, `\r`, `\r \n`.
@@ -152,21 +149,15 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
 
                 if chr == '\r' {
                     match self.source.read_char() {
-                        Ok('\n') => {
-                            self.offset += 2
-                        },
-                        Ok(a) => {
+                        Ok(a) if a != '\n' => {
                             self.peek_buf = Some(a);
                         },
-                        Err(_) => {}
+                        _ => {}
                     }
-                } else {
-                    self.offset += 1
                 }
                 Char('\n')
             },
             Ok(a)   => {
-                self.offset += 1;
                 self.col += 1;
                 Char(a)
             }
@@ -213,16 +204,12 @@ mod test {
         let mut xml_read = XmlReader::from_reader(&mut read);
         assert_eq!(Char('a'),       xml_read.read_norm_char());
         assert_eq!((1u64,1u64),     xml_read.position());
-        assert_eq!(1u64,            xml_read.offset);
         assert_eq!(Char('b'),       xml_read.read_norm_char());
         assert_eq!((1u64,2u64),     xml_read.position());
-        assert_eq!(2u64,            xml_read.offset);
         assert_eq!(Char('\n'),      xml_read.read_norm_char());
         assert_eq!((2u64,0u64),     xml_read.position());
-        assert_eq!(4u64,            xml_read.offset);
         assert_eq!(Char('\n'),      xml_read.read_norm_char());
         assert_eq!((3u64,0u64),     xml_read.position());
-        assert_eq!(5u64,            xml_read.offset);
     }
 }
 
