@@ -1,5 +1,6 @@
 use std::io::{Buffer, IoError, EndOfFile};
 
+use super::{XToken, StartTag};
 
 /// A struct representing states of an XML ER parser
 enum StateEr {
@@ -125,7 +126,8 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
     }
 
     /// A function that reads and returns a single char, normalizing
-    /// standard XML new lines into `\n`. 
+    /// standard XML new lines into `\n`. Null characters '\x00' are
+    /// normalized into '\uFFFD'.
     ///
     /// According to XML-ER implementation supported line endings are:
     /// `\n`, `\r`, `\r \n`.
@@ -175,7 +177,8 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
 pub struct Parser<'r, R:'r> {
     pub depth: uint,
     reader: XmlReader<'r,R>,
-    state: StateEr
+    state: StateEr,
+    token: Option<XToken>
 }
 
 impl<'r, R: Buffer> Parser<'r, R> {
@@ -186,10 +189,19 @@ impl<'r, R: Buffer> Parser<'r, R> {
         Parser {
             depth: 0,
             reader: XmlReader::from_reader(data),
-            state: Data
+            state: Data,
+            token: None
         }
     }
 
+    /// Consumes elements from reader until it is ready to emit a token.
+    /// Upon consuming token the values of parsers can be looked for values
+    pub fn pull(&mut self) -> Option<XToken> {
+        while self.token.is_none() {
+            self.token = Some(StartTag)
+        }
+        self.token
+    }
 }
 
 // FIXME REMOVE THIS
