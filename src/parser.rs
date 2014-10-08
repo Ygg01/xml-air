@@ -1,6 +1,5 @@
 use std::io::{Buffer, IoError, EndOfFile};
 
-//use util::{XmlError};
 
 /// A struct representing states of an XML ER parser
 enum StateEr {
