@@ -1,9 +1,6 @@
 use std::vec::Vec;
 
 
-pub enum XToken {
-}
-
 /// A struct representing an XML root document
 pub struct XDoc {
     // The document's root
