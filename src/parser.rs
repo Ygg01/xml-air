@@ -172,6 +172,17 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
     }
 
     fn read_until<Cond: CharEq>(&mut self,  cond: &mut Cond, opp: bool)
+
+    fn peek(&mut self) -> Option<char> {
+        if self.peek_buf.is_none() {
+            match self.read_nchar() {
+                Char(a) => self.peek_buf = Some(a),
+                _       => self.peek_buf = None,
+            }
+        };
+        self.peek_buf
+    }
+
                                     -> String {
         let mut retval = String::new();
 
