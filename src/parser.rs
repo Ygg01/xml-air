@@ -131,7 +131,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
     ///
     /// According to XML-ER implementation supported line endings are:
     /// `\n`, `\r`, `\r \n`.
-    pub fn read_norm_char(&mut self) -> ReadChar {
+    fn read_norm_char(&mut self) -> ReadChar {
         let chr;
 
         if self.peek_buf.is_none() {
@@ -171,7 +171,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         retval
     }
 
-    pub fn read_until<Cond: CharEq>(&mut self,  cond: &mut Cond, opp: bool)
+    fn read_until<Cond: CharEq>(&mut self,  cond: &mut Cond, opp: bool)
                                     -> String {
         let mut retval = String::new();
 
