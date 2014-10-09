@@ -22,6 +22,8 @@
 // Ignore dead code
 #![allow(dead_code)]
 
+pub use util::{is_hex_digit, is_digit};
+
 // Import lexer
 pub mod parser;
 pub mod common;
