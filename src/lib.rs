@@ -28,5 +28,6 @@ pub mod common;
 pub mod util;
 
 pub enum XToken {
+    EOFToken,
     StartTag
 }

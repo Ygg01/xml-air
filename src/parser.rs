@@ -216,9 +216,22 @@ impl<'r, R: Buffer> Parser<'r, R> {
     /// Upon consuming token the values of parsers can be looked for values
     pub fn pull(&mut self) -> Option<XToken> {
         while self.token.is_none() {
-            self.token = Some(StartTag)
+            match self.state {
+                Data => self.data(),
+                // FIXME: This part needs to go away
+                _ => {self.token = Some(EOFToken);},
+            };
         }
         self.token
+    }
+
+    fn data(&mut self) {
+        let chr = self.reader.read_norm_char();
+        match chr {
+            Char('&')   => {self.token = Some(EOFToken)},
+            Char('<')   => self.state = Tag,
+            _   => self.token = Some(EOFToken),
+        };
     }
 }
 
