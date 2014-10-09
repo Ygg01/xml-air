@@ -131,7 +131,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
     ///
     /// According to XML-ER implementation supported line endings are:
     /// `\n`, `\r`, `\r \n`.
-    fn read_norm_char(&mut self) -> ReadChar {
+    fn read_nchar(&mut self) -> ReadChar {
         let chr;
 
         if self.peek_buf.is_none() {
@@ -176,7 +176,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         let mut retval = String::new();
 
         loop {
-            match self.read_norm_char() {
+            match self.read_nchar() {
                 Char(c) => {
                     if cond.matches(c) == opp {
                         break
@@ -225,8 +225,8 @@ impl<'r, R: Buffer> Parser<'r, R> {
         self.token
     }
 
-    fn data(&mut self) {
-        let chr = self.reader.read_norm_char();
+    fn data_state(&mut self) {
+        let chr = self.reader.read_nchar();
         match chr {
             Char('&')   => {self.token = Some(EOFToken)},
             Char('<')   => self.state = Tag,
@@ -249,21 +249,21 @@ mod test {
     fn test_norm_char() {
         let mut read = BufReader::new(b"ab\r\n\na\ra\x00");
         let mut xml_read = XmlReader::from_reader(&mut read);
-        assert_eq!(Char('a'),       xml_read.read_norm_char());
+        assert_eq!(Char('a'),       xml_read.read_nchar());
         assert_eq!((1u64,1u64),     xml_read.position());
-        assert_eq!(Char('b'),       xml_read.read_norm_char());
+        assert_eq!(Char('b'),       xml_read.read_nchar());
         assert_eq!((1u64,2u64),     xml_read.position());
-        assert_eq!(Char('\n'),      xml_read.read_norm_char());
+        assert_eq!(Char('\n'),      xml_read.read_nchar());
         assert_eq!((2u64,0u64),     xml_read.position());
-        assert_eq!(Char('\n'),      xml_read.read_norm_char());
+        assert_eq!(Char('\n'),      xml_read.read_nchar());
         assert_eq!((3u64,0u64),     xml_read.position());
-        assert_eq!(Char('a'),       xml_read.read_norm_char());
+        assert_eq!(Char('a'),       xml_read.read_nchar());
         assert_eq!((3u64,1u64),     xml_read.position());
-        assert_eq!(Char('\n'),      xml_read.read_norm_char());
+        assert_eq!(Char('\n'),      xml_read.read_nchar());
         assert_eq!((4u64,0u64),     xml_read.position());
-        assert_eq!(Char('a'),       xml_read.read_norm_char());
+        assert_eq!(Char('a'),       xml_read.read_nchar());
         assert_eq!((4u64,1u64),     xml_read.position());
-        assert_eq!(Char('\uFFFD'),  xml_read.read_norm_char());
+        assert_eq!(Char('\uFFFD'),  xml_read.read_nchar());
         assert_eq!((4u64,2u64),     xml_read.position());
     }
     #[test]
