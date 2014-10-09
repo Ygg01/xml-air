@@ -1,6 +1,6 @@
 use std::io::{Buffer, IoError, EndOfFile};
-
-use super::{XToken, StartTag};
+use std::str::{CharEq};
+use super::{XToken, StartTag, EOFToken};
 
 /// A struct representing states of an XML ER parser
 enum StateEr {
@@ -92,7 +92,7 @@ pub enum XmlEvent {
     ErrEvent
 }
 
-struct XmlReader<'r,R :'r> {
+pub struct XmlReader<'r,R :'r> {
     pub line: u64,
     pub col: u64,
     peek_buf: Option<char>,
@@ -171,6 +171,24 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         retval
     }
 
+    pub fn read_until<Cond: CharEq>(&mut self,  cond: &mut Cond, opp: bool)
+                                    -> String {
+        let mut retval = String::new();
+
+        loop {
+            match self.read_norm_char() {
+                Char(c) => {
+                    if cond.matches(c) == opp {
+                        break
+                    } else {
+                        retval.push(c)
+                    }
+                },
+                _ => break
+            }
+        }
+        retval
+    }
 }
 
 
@@ -235,5 +253,22 @@ mod test {
         assert_eq!(Char('\uFFFD'),  xml_read.read_norm_char());
         assert_eq!((4u64,2u64),     xml_read.position());
     }
-}
+    #[test]
+    fn test_read_until() {
+        let mut read = BufReader::new(b"aaab");
+        let mut xml_read = XmlReader::from_reader(&mut read);
+        assert_eq!("aaa".to_string(),  xml_read.read_until(&mut 'a', false));
 
+        let mut read2 = BufReader::new(b"aaab");
+        xml_read = XmlReader::from_reader(&mut read2);
+        assert_eq!("".to_string(),     xml_read.read_until(&mut 'a', true));
+
+        let mut read3 = BufReader::new(b"aaab");
+        xml_read = XmlReader::from_reader(&mut read3);
+        assert_eq!("aaa".to_string(),  xml_read.read_until(&mut 'b', true));
+
+        let mut read4 = BufReader::new(b"aaab");
+        xml_read = XmlReader::from_reader(&mut read4);
+        assert_eq!("".to_string(),   xml_read.read_until(&mut 'b', false));
+    }
+}
