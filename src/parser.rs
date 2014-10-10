@@ -105,6 +105,23 @@ enum ReadChar {
     Char(char)
 }
 
+trait Filter {
+    fn is_match(&self, char) -> bool;
+}
+
+impl Filter for char {
+    fn is_match(&self, c: char) -> bool {
+        return *self == c;
+    }
+}
+
+impl Filter for fn(char) -> bool {
+    fn is_match(&self, c: char) -> bool {
+        (*self)(c)
+    }
+}
+
+
 impl<'r, R: Buffer> XmlReader<'r,R> {
     /// Function used for constructing XmlReader from field `data`
     /// that is both a reader and a buffer. One such element is
@@ -171,7 +188,6 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         retval
     }
 
-    fn read_until<Cond: CharEq>(&mut self,  cond: &mut Cond, opp: bool)
 
     fn peek(&mut self) -> Option<char> {
         if self.peek_buf.is_none() {
@@ -183,13 +199,15 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         self.peek_buf
     }
 
+    fn read_until<Cond: Filter>(&mut self,  cond: Cond, opp: bool)
                                     -> String {
         let mut retval = String::new();
 
         loop {
             match self.read_nchar() {
                 Char(c) => {
-                    if cond.matches(c) == opp {
+                    if cond.is_match(c) == opp {
+                        self.peek_buf = Some(c);
                         break
                     } else {
                         retval.push(c)
@@ -228,7 +246,7 @@ impl<'r, R: Buffer> Parser<'r, R> {
     pub fn pull(&mut self) -> Option<XToken> {
         while self.token.is_none() {
             match self.state {
-                Data => self.data(),
+                Data => self.data_state(),
                 // FIXME: This part needs to go away
                 _ => {self.token = Some(EOFToken);},
             };
@@ -281,18 +299,18 @@ mod test {
     fn test_read_until() {
         let mut read = BufReader::new(b"aaab");
         let mut xml_read = XmlReader::from_reader(&mut read);
-        assert_eq!("aaa".to_string(),  xml_read.read_until(&mut 'a', false));
+        assert_eq!("aaa".to_string(),  xml_read.read_until('a', false));
 
         let mut read2 = BufReader::new(b"aaab");
         xml_read = XmlReader::from_reader(&mut read2);
-        assert_eq!("".to_string(),     xml_read.read_until(&mut 'a', true));
+        assert_eq!("".to_string(),     xml_read.read_until('a', true));
 
         let mut read3 = BufReader::new(b"aaab");
         xml_read = XmlReader::from_reader(&mut read3);
-        assert_eq!("aaa".to_string(),  xml_read.read_until(&mut 'b', true));
+        assert_eq!("aaa".to_string(),  xml_read.read_until('b', true));
 
         let mut read4 = BufReader::new(b"aaab");
         xml_read = XmlReader::from_reader(&mut read4);
-        assert_eq!("".to_string(),   xml_read.read_until(&mut 'b', false));
+        assert_eq!("".to_string(),   xml_read.read_until('b', false));
     }
 }
