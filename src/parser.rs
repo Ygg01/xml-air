@@ -1,8 +1,10 @@
 use std::io::{Buffer, IoError, EndOfFile};
-use std::str::{CharEq};
-use super::{XToken, StartTag, EOFToken};
+use std::num::{from_str_radix};
+use std::char::{from_u32};
+use super::{is_digit, is_hex_digit};
 
 /// A struct representing states of an XML ER parser
+#[deriving(PartialEq, Eq)]
 enum StateEr {
     Data,
     Tag,
@@ -89,7 +91,8 @@ pub enum XmlEvent {
     PIEvent,
     TextEvent,
     CDataEvent,
-    ErrEvent
+    ErrEvent,
+    FixMeEvent
 }
 
 pub struct XmlReader<'r,R :'r> {
@@ -224,8 +227,9 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
 pub struct Parser<'r, R:'r> {
     pub depth: uint,
     reader: XmlReader<'r,R>,
+    buf: String,
     state: StateEr,
-    token: Option<XToken>
+    event: Option<XmlEvent>,
 }
 
 impl<'r, R: Buffer> Parser<'r, R> {
@@ -236,31 +240,97 @@ impl<'r, R: Buffer> Parser<'r, R> {
         Parser {
             depth: 0,
             reader: XmlReader::from_reader(data),
+            buf: String::new(),
             state: Data,
-            token: None
+            event: None
         }
     }
 
     /// Consumes elements from reader until it is ready to emit a token.
     /// Upon consuming token the values of parsers can be looked for values
-    pub fn pull(&mut self) -> Option<XToken> {
-        while self.token.is_none() {
+    pub fn pull(&mut self) -> Option<XmlEvent> {
+        while self.event.is_none() {
             match self.state {
-                Data => self.data_state(),
-                // FIXME: This part needs to go away
-                _ => {self.token = Some(EOFToken);},
+                Data    => self.data_state(),
+                _       => self.event = Some(FixMeEvent),
             };
         }
-        self.token
+        self.event
     }
 
     fn data_state(&mut self) {
         let chr = self.reader.read_nchar();
         match chr {
-            Char('&')   => {self.token = Some(EOFToken)},
+            Char('&')   => self.data_state(),
             Char('<')   => self.state = Tag,
-            _   => self.token = Some(EOFToken),
+            Char(a)     => {/*TODO */},
+            _           => self.event = None,
         };
+    }
+
+    fn consume_entity(&mut self) {
+        let chr = self.reader.read_nchar();
+        match chr {
+            Char('#') => {
+                self.buf.push_str("&#");
+                match self.reader.read_nchar() {
+                    Char('x') => {
+                        match self.reader.peek(){
+                            Some(a) if is_hex_digit(a) => {
+                                self.consume_num(true)
+                            }
+                            _ =>  self.buf.push('x')
+                        }
+                    },
+                    Char(a) if is_digit(a) => {
+                        self.buf = String::new();
+                        self.buf.push(a);
+                    },
+                    Char(_) => {
+                        //TODO
+                    }
+                    CharErr(_)
+                    | CharEOF => {
+                        self.event = None;
+                    }
+                }
+                let text = self.buf.clone();
+                //TODO
+            },
+            Char(_) => {
+                //TODO
+            }
+            CharErr(_)
+            | CharEOF => {
+                //TODO
+            },
+        }
+    }
+
+    fn consume_num(&mut self, is_hex: bool) {
+        let radix;
+        let filter = if is_hex {
+            radix = 16;
+            is_hex_digit
+        } else {
+            radix = 10;
+            is_digit
+        };
+        let digits = self.reader.read_until(filter, false);
+        self.buf.push_str(digits.as_slice());
+        let chr = match from_str_radix::<u32>(self.buf.as_slice(), radix){
+            Some(x) => {
+                let conv_chr = from_u32(x);
+                match conv_chr {
+                    Some(c) => c,
+                    // For now just make a dummy values
+                    None => '\uFFFD',
+                }
+            },
+            // For now just make a dummy values
+            None => '\uFFFD'
+        };
+        self.buf = String::from_char(1u,chr);
     }
 }
 

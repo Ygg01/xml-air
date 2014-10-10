@@ -29,7 +29,13 @@ pub mod parser;
 pub mod common;
 pub mod util;
 
+
+
+#[deriving(Show, PartialEq, Eq, Clone)]
 pub enum XToken {
     EOFToken,
+    Text(String),
     StartTag
 }
+
+
