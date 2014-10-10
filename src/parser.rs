@@ -139,7 +139,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         }
     }
 
-    /// A function that determines current line and column in
+    /// A function that returns current line and column in
     /// given `XmlReader`
     pub fn position(&self) -> (u64, u64) {
         (self.line, self.col)
@@ -194,10 +194,13 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
 
     fn peek(&mut self) -> Option<char> {
         if self.peek_buf.is_none() {
+            let (line,col) = self.position();
             match self.read_nchar() {
                 Char(a) => self.peek_buf = Some(a),
                 _       => self.peek_buf = None,
             }
+            self.line = line;
+            self.col = col;
         };
         self.peek_buf
     }
@@ -334,10 +337,6 @@ impl<'r, R: Buffer> Parser<'r, R> {
     }
 }
 
-// FIXME REMOVE THIS
-pub fn main() {
-
-}
 
 #[cfg(test)]
 mod test {
@@ -364,6 +363,20 @@ mod test {
         assert_eq!((4u64,1u64),     xml_read.position());
         assert_eq!(Char('\uFFFD'),  xml_read.read_nchar());
         assert_eq!((4u64,2u64),     xml_read.position());
+    }
+
+    #[test]
+    fn test_peek_char() {
+        let mut read = BufReader::new(b"abc");
+        let mut xml_read = XmlReader::from_reader(&mut read);
+        assert_eq!(Some('a'),       xml_read.peek());
+        assert_eq!((1u64,0u64),     xml_read.position());
+        assert_eq!(Some('a'),       xml_read.peek());
+        assert_eq!((1u64,0u64),     xml_read.position());
+        assert_eq!(Some('a'),       xml_read.peek());
+        assert_eq!((1u64,0u64),     xml_read.position());
+        assert_eq!(Char('a'),       xml_read.read_nchar());
+        assert_eq!((1u64,1u64),     xml_read.position());
     }
     #[test]
     fn test_read_until() {
