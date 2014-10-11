@@ -102,7 +102,7 @@ pub struct XmlReader<'r,R :'r> {
     source: &'r mut R
 }
 #[deriving(PartialEq, Eq, Show)]
-enum ReadChar {
+pub enum ReadChar {
     CharErr(IoError),
     CharEOF,
     Char(char)
@@ -151,7 +151,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
     ///
     /// According to XML-ER implementation supported line endings are:
     /// `\n`, `\r`, `\r \n`.
-    fn read_nchar(&mut self) -> ReadChar {
+    pub fn read_nchar(&mut self) -> ReadChar {
         let chr;
 
         if self.peek_buf.is_none() {
