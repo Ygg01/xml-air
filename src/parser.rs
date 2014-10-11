@@ -96,7 +96,10 @@ pub enum XmlEvent {
 }
 
 pub struct XmlReader<'r,R :'r> {
+    /// Line field denotes on which line of reader are we currently on.
     pub line: u64,
+    /// Col fields denotes current column, or more precisely, how many
+    /// characters from new line are we apart
     pub col: u64,
     /// `eof` field notifies parser it has reached end of file.
     pub eof: bool,
@@ -336,11 +339,11 @@ impl<'r, R: Buffer> Parser<'r, R> {
                 let conv_chr = from_u32(x);
                 match conv_chr {
                     Some(c) => c,
-                    // For now just make a dummy values
+                    // For now just make a dummy value
                     None => '\uFFFD',
                 }
             },
-            // For now just make a dummy values
+            // For now just make a dummy value
             None => '\uFFFD'
         };
         self.buf = String::from_char(1u,chr);

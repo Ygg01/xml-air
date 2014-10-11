@@ -24,7 +24,7 @@
 
 pub use util::{is_hex_digit, is_digit};
 
-// Import lexer
+// Import mods
 pub mod parser;
 pub mod common;
 pub mod util;
