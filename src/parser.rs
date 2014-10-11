@@ -98,6 +98,8 @@ pub enum XmlEvent {
 pub struct XmlReader<'r,R :'r> {
     pub line: u64,
     pub col: u64,
+    /// `eof` field notifies parser it has reached end of file.
+    pub eof: bool,
     peek_buf: Option<char>,
     source: &'r mut R
 }
@@ -134,6 +136,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         XmlReader {
             line: 1,
             col: 0,
+            eof: false,
             peek_buf: None,
             source: data
         }
@@ -162,7 +165,10 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         }
 
         let retval = match chr {
-            Err(IoError{kind: EndOfFile, ..}) => CharEOF,
+            Err(IoError{kind: EndOfFile, ..}) => {
+                self.eof = true;
+                CharEOF
+            },
             Err(err)=> CharErr(err),
             Ok(chr) if "\r\n".contains_char(chr) => {
                 self.line += 1;
@@ -191,14 +197,18 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         retval
     }
 
-
     fn peek(&mut self) -> Option<char> {
         if self.peek_buf.is_none() {
             let (line,col) = self.position();
+            let old_flag = self.eof;
+
             match self.read_nchar() {
                 Char(a) => self.peek_buf = Some(a),
                 _       => self.peek_buf = None,
             }
+            // If we peeked and saw flag by accident
+            // this resets it back
+            self.eof = old_flag;
             self.line = line;
             self.col = col;
         };
@@ -343,6 +353,26 @@ mod test {
     use super::{XmlReader, Char};
 
     use std::io::BufReader;
+    #[test]
+    fn test_eof() {
+        let mut read = BufReader::new(b"ab\r\n");
+        let mut xml_read = XmlReader::from_reader(&mut read);
+        xml_read.read_nchar();
+        assert!(!xml_read.eof);
+
+        xml_read.read_nchar();
+        assert!(!xml_read.eof);
+
+        xml_read.read_nchar();
+        assert!(!xml_read.eof);
+
+        xml_read.peek();
+        assert!(!xml_read.eof);
+
+        xml_read.read_nchar();
+        assert!(xml_read.eof);
+
+    }
     #[test]
     fn test_norm_char() {
         let mut read = BufReader::new(b"ab\r\n\na\ra\x00");
