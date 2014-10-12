@@ -113,7 +113,7 @@ pub enum ReadChar {
     Char(char)
 }
 
-trait Filter {
+pub trait Filter {
     fn is_match(&self, char) -> bool;
 }
 
@@ -218,7 +218,7 @@ impl<'r, R: Buffer> XmlReader<'r,R> {
         self.peek_buf
     }
 
-    fn read_until<Cond: Filter>(&mut self,  cond: Cond, opp: bool)
+    pub fn read_until<Cond: Filter>(&mut self,  cond: Cond, opp: bool)
                                     -> String {
         let mut retval = String::new();
 
