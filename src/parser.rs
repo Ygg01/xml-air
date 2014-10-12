@@ -265,7 +265,13 @@ impl<'r, R: Buffer> Parser<'r, R> {
     /// Consumes elements from reader until it is ready to emit a token.
     /// Upon consuming token the values of parsers can be looked for values
     pub fn pull(&mut self) -> Option<XmlEvent> {
+        self.event = None;
         while self.event.is_none() {
+            // If end of file is encountered escape loop
+            // and return None
+            if self.reader.eof { break; }
+            // If we correctly processed a token we'll change
+            // self.event to a value that isn't None.
             match self.state {
                 Data    => self.data_state(),
                 _       => self.event = Some(FixMeEvent),
